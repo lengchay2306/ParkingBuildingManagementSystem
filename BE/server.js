@@ -17,7 +17,7 @@ const { io, notificationNamespace } = initializeSocket(server);
 setupContainer({ io, notificationNamespace });
 
 //import model
-
+import './src/models/Model.js'
 //connect db
 db().then(() => {
     console.log(`Connected to DB successfully!`);
