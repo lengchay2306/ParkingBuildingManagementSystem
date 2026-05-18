@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
+
+import { Button } from "@/components/ui/button";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -9,8 +13,29 @@ const links = [
   { to: "/admin", label: "Admin" },
 ];
 
+const THEME_STORAGE_KEY = "parkos-theme";
+
 export function SiteHeader() {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === "dark" || savedTheme === "light") {
+      setTheme(savedTheme);
+      return;
+    }
+
+    if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      setTheme("light");
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("light", theme === "light");
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
   return (
     <header className="sticky top-0 z-40 glass">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
@@ -41,11 +66,24 @@ export function SiteHeader() {
             );
           })}
         </nav>
-        <div className="hidden items-center gap-2 md:flex">
-          <span className="size-1.5 animate-pulse rounded-full bg-status-empty" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            Live · v4.2
-          </span>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="h-8 px-2 text-[12px]"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
+          </Button>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="size-1.5 animate-pulse rounded-full bg-status-empty" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Live · v4.2
+            </span>
+          </div>
         </div>
       </div>
     </header>
