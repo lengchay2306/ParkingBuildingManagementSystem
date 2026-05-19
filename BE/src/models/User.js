@@ -25,6 +25,11 @@ const userSchema = mongoose.Schema({
         ref: "Role",
         required: true,
     },
+    status: {
+        type: String,
+        required: true,
+        enum: ["ACTIVE", "LOCKED"],
+    }
 }, { timestamps: true });
 
 userSchema.set('toJSON', { virtuals: true });

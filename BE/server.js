@@ -24,7 +24,7 @@ db().then(() => {
     
     server.listen(PORT, () => {
         console.log(`Server is running on PORT: ${PORT}`);
-        // console.log(`Swagger: http://localhost:3000/api-docs`);
+        console.log(`Swagger: http://localhost:3000/api-docs`);
     })
 }).catch((err) => {
     console.log(`Error: ${err}`);
