@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
+  beforeLoad: async () => {
+    await requireRole("ADMIN");
+  },
   head: () => ({
     meta: [
       { title: "System Admin — PARKOS" },
