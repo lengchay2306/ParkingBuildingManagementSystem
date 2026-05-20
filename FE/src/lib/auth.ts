@@ -96,7 +96,7 @@ export const login = async (email: string, password: string): Promise<RoleName> 
   }
   if (!role) {
     throw new Error(
-      "Login success nhưng không đọc được roleName từ response/cookie. Kiem tra backend cookie secure tren localhost.",
+      "Login succeeded but roleName is missing from both response and token. Check backend cookie settings on localhost.",
     );
   }
   setStoredRole(role);
