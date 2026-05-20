@@ -9,8 +9,12 @@ import {
   PastelDonut,
   SparkArea,
 } from "@/components/charts";
+import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/manager")({
+  beforeLoad: async () => {
+    await requireRole("MANAGER");
+  },
   head: () => ({
     meta: [
       { title: "Manager Dashboard — PARKOS" },

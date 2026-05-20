@@ -1,195 +1,126 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PARKOS — Parking Building Management System" },
+      { title: "Overview - PARKOS" },
       {
         name: "description",
         content:
-          "A command-center OS for parking buildings. Real-time occupancy, AI routing, driver pre-booking, staff POS and RBAC across web and mobile.",
-      },
-      { property: "og:title", content: "PARKOS — Parking Building Management System" },
-      {
-        property: "og:description",
-        content:
-          "Cross-platform UI for managers, staff, drivers and admins. Linear-grade dark interface.",
+          "PARKOS overview for occupancy, operations health, and real-time parking activity.",
       },
     ],
   }),
   component: Index,
 });
 
-const roles = [
-  {
-    to: "/manager",
-    eyebrow: "Role 01",
-    title: "Facility Manager",
-    desc: "Web command center with live floor grid, revenue, AI routing. Pocket app for priority alerts.",
-    chips: ["Web Dashboard", "Mobile App"],
-  },
-  {
-    to: "/staff",
-    eyebrow: "Role 02",
-    title: "Parking Staff",
-    desc: "Booth POS for plate entry & session creation. Patrol handheld for exits, payments and exceptions.",
-    chips: ["Tablet POS", "Mobile Patrol"],
-  },
-  {
-    to: "/driver",
-    eyebrow: "Role 03",
-    title: "Driver / Customer",
-    desc: "Live session, indoor wayfinding to the assigned slot, QR exit, and a web portal for pre-booking.",
-    chips: ["Mobile App", "Web Portal"],
-  },
-  {
-    to: "/admin",
-    eyebrow: "Role 04",
-    title: "System Administrator",
-    desc: "Account management, RBAC matrix, AI sensitivity, gate hardware and tariff configuration.",
-    chips: ["Responsive Web"],
-  },
+const kpis = [
+  { label: "Occupancy", value: "84%", hint: "482 / 574 slots", tone: "bg-status-empty" },
+  { label: "Open Sessions", value: "311", hint: "21 ending soon", tone: "bg-status-reserved" },
+  { label: "Gate Throughput", value: "71/hr", hint: "avg in last hour", tone: "bg-primary" },
+  { label: "Active Alerts", value: "3", hint: "1 high priority", tone: "bg-status-full" },
+];
+
+const floors = [
+  { floor: "B1", used: 168, total: 180 },
+  { floor: "B2", used: 142, total: 160 },
+  { floor: "B3", used: 88, total: 110 },
+  { floor: "L1", used: 84, total: 124 },
+];
+
+const incidents = [
+  { title: "Gate B sensor latency", detail: "response > 600ms for 4 minutes", level: "Monitor" },
+  { title: "B2 nearing full", detail: "predicted 96% occupancy in 18 minutes", level: "High" },
+  { title: "Payment queue normal", detail: "median checkout 23 seconds", level: "Info" },
 ];
 
 function Index() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6 pt-20 pb-24">
-        {/* HERO */}
-        <section className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-status-empty" /> v4.2 · 574 spots live
-          </span>
-          <h1 className="mt-6 max-w-4xl text-[64px] font-semibold leading-[1.05] tracking-[-0.04em] md:text-[80px]">
-            The operating system
-            <br />
-            for parking buildings.
-          </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-[1.5] text-muted-foreground">
-            PARKOS unifies plate recognition, AI slot routing, payments and
-            patrols into one quiet, dense command surface. Built for the four
-            roles that keep a building moving.
+      <main className="mx-auto max-w-7xl px-6 py-10">
+        <section className="rounded-3xl border border-border bg-card p-7 shadow-soft">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Parking Building OS
           </p>
-          <div className="mt-8 flex flex-wrap gap-2">
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">Overview</h1>
+          <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">
+            Single snapshot of live operations before each role enters its workspace.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
             <Link
-              to="/manager"
-              className="rounded-md bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground transition-colors hover:opacity-90"
+              to="/login"
+              className="rounded-full bg-primary px-4 py-2 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Open Manager Dashboard →
+              Sign in
             </Link>
             <Link
               to="/flow"
-              className="rounded-md border border-border bg-card px-3.5 py-2 text-[13px] font-medium hover:bg-secondary"
+              className="rounded-full border border-border bg-background px-4 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-secondary"
             >
-              View Main Flow
+              View system flow
             </Link>
           </div>
+        </section>
 
-          {/* Hero panel: live snapshot */}
-          <div className="relative mt-14 overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <div className="flex items-center justify-between border-b border-border bg-background/40 px-5 py-2.5">
+        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {kpis.map((item) => (
+            <article key={item.label} className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-status-empty" />
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  North Plaza · Realtime
+                <span className={`size-1.5 rounded-full ${item.tone}`} />
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  {item.label}
                 </span>
               </div>
-              <span className="font-mono text-[11px] text-muted-foreground">
-                15:42:08 ICT
-              </span>
+              <div className="mt-3 text-3xl font-semibold tracking-tight">{item.value}</div>
+              <p className="mt-1 text-[12px] text-muted-foreground">{item.hint}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="mt-6 grid gap-3 lg:grid-cols-3">
+          <article className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
+            <h2 className="text-[16px] font-semibold">Floor utilization</h2>
+            <p className="mt-1 text-[12px] text-muted-foreground">Current load by floor</p>
+            <div className="mt-4 space-y-3">
+              {floors.map((item) => {
+                const percent = Math.round((item.used / item.total) * 100);
+                return (
+                  <div key={item.floor}>
+                    <div className="mb-1.5 flex items-center justify-between text-[12px]">
+                      <span className="font-mono font-semibold">{item.floor}</span>
+                      <span className="text-muted-foreground">
+                        {item.used}/{item.total} ({percent}%)
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div className="grid divide-border md:grid-cols-4 md:divide-x">
-              {[
-                { l: "Occupancy", v: "84%", d: "482 / 574", c: "bg-status-empty" },
-                { l: "Today Revenue", v: "$14,204", d: "+12% MoM", c: "bg-primary" },
-                { l: "Avg. Stay", v: "1h 42m", d: "−6m vs week", c: "bg-status-reserved" },
-                { l: "AI Reroutes", v: "127", d: "today", c: "bg-status-maintenance" },
-              ].map((k) => (
-                <div key={k.l} className="p-5">
-                  <div className="flex items-center gap-2">
-                    <span className={`size-1.5 rounded-full ${k.c}`} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {k.l}
+          </article>
+
+          <article className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-[16px] font-semibold">Live incidents</h2>
+            <p className="mt-1 text-[12px] text-muted-foreground">Ops notifications</p>
+            <div className="mt-4 space-y-2">
+              {incidents.map((item) => (
+                <div key={item.title} className="rounded-xl border border-border bg-background/50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold">{item.title}</p>
+                    <span className="rounded-sm bg-secondary px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                      {item.level}
                     </span>
                   </div>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight">
-                    {k.v}
-                  </div>
-                  <div className="mt-1 text-[12px] text-muted-foreground">
-                    {k.d}
-                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{item.detail}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ROLES */}
-        <section className="mt-24">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Surfaces
-              </span>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-                Four roles. One canvas.
-              </h2>
-            </div>
-            <span className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground md:inline">
-              Choose a surface →
-            </span>
-          </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
-            {roles.map((r) => (
-              <Link
-                key={r.title}
-                to={r.to}
-                className="group relative bg-card p-7 transition-colors hover:bg-secondary"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {r.eyebrow}
-                    </span>
-                    <h3 className="mt-2 text-[22px] font-medium tracking-tight">
-                      {r.title}
-                    </h3>
-                  </div>
-                  <span className="font-mono text-[11px] text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground">
-                    →
-                  </span>
-                </div>
-                <p className="mt-3 max-w-md text-[14px] leading-[1.55] text-muted-foreground">
-                  {r.desc}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-1.5">
-                  {r.chips.map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-md border border-border bg-background/60 px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Footer note */}
-        <section className="mt-24 border-t border-border pt-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-[12px] text-muted-foreground">
-            <span className="font-mono uppercase tracking-[0.18em]">
-              © 2026 PARKOS · Building OS
-            </span>
-            <span className="font-mono uppercase tracking-[0.18em]">
-              Design system · Linear-grade dark canvas
-            </span>
-          </div>
+          </article>
         </section>
       </main>
     </div>

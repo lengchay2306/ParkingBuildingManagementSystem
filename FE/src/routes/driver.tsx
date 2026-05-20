@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/driver")({
+  beforeLoad: async () => {
+    await requireRole("CUSTOMER");
+  },
   head: () => ({
     meta: [
       { title: "Driver Experience — PARKOS" },

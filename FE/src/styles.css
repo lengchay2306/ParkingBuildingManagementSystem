@@ -163,6 +163,70 @@
 }
 
 @layer utilities {
+  @keyframes login-road-scroll {
+    from {
+      background-position: 0 0, 0 0, 0 0;
+    }
+    to {
+      background-position: 0 0, 0 220px, 0 220px;
+    }
+  }
+  .login-road-vignette {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 12%, oklch(0.55 0.14 270 / 0.18), transparent 32%),
+      radial-gradient(circle at 85% 88%, oklch(0.72 0.18 145 / 0.14), transparent 32%),
+      linear-gradient(to bottom, oklch(0.08 0.005 270 / 0.55), oklch(0.08 0.005 270 / 0.9));
+  }
+  .login-road-plane {
+    position: absolute;
+    left: -15%;
+    right: -15%;
+    bottom: -55%;
+    height: 140%;
+    transform: perspective(900px) rotateX(68deg);
+    transform-origin: center top;
+    background:
+      linear-gradient(to bottom, transparent, oklch(0.11 0.005 270 / 0.85)),
+      repeating-linear-gradient(
+        to bottom,
+        oklch(0.88 0.006 260 / 0.2) 0 2px,
+        transparent 2px 44px
+      ),
+      repeating-linear-gradient(
+        to right,
+        transparent 0 86px,
+        oklch(0.88 0.006 260 / 0.14) 86px 88px
+      );
+    animation: login-road-scroll 3.2s linear infinite;
+    opacity: 0.65;
+  }
+  @keyframes login-building-spin-once {
+    0% {
+      transform: rotateY(-24deg) rotateX(4deg) scale(0.94);
+    }
+    35% {
+      transform: rotateY(120deg) rotateX(2deg) scale(0.98);
+    }
+    70% {
+      transform: rotateY(260deg) rotateX(-1deg) scale(1);
+    }
+    100% {
+      transform: rotateY(360deg) rotateX(0deg) scale(1);
+    }
+  }
+  .login-building-spin {
+    transform-style: preserve-3d;
+    animation: login-building-spin-once 2.2s cubic-bezier(0.22, 1, 0.36, 1) 1 both;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .login-building-spin {
+      animation: none;
+      transform: none;
+    }
+  }
   .glass {
     background: color-mix(in oklab, var(--background) 70%, transparent);
     backdrop-filter: blur(20px) saturate(140%);
