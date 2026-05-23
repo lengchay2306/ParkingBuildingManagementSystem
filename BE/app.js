@@ -45,6 +45,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //import routes
 import AuthRouter from './src/api/routers/auth.router.js'
+import ParkingRouter from './src/api/routers/parking.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -54,6 +55,7 @@ const url = "/api/v1"
 
 //user routers
 app.use(`${url}/auth`, AuthRouter)
+app.use(`${url}/parking`, ParkingRouter)
 
 //handle error
 app.use(handleError)
