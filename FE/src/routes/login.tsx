@@ -6,7 +6,7 @@ import { LoginCarScene } from "@/components/LoginCarScene";
 import { RegisterForm } from "@/components/RegisterForm";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getRoleHome, login, requireGuest } from "@/lib/auth";
@@ -57,7 +57,7 @@ function LoginPage() {
 
           <section className="flex items-center lg:col-span-2">
             {mode === "login" ? (
-              <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md">
+              <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-sm md:backdrop-blur-md">
                 <CardHeader className="space-y-1 pb-4">
                   <CardTitle className="text-2xl tracking-tight">Login form</CardTitle>
                  
@@ -120,7 +120,7 @@ function LoginPage() {
               </Card>
             ) : (
               <RegisterForm
-                className="w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md"
+                className="w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-sm md:backdrop-blur-md"
                 onSwitchToLogin={() => setMode("login")}
                 onRegistered={() => {
                   setMode("login");
