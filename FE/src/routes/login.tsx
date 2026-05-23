@@ -3,10 +3,9 @@ import { ArrowRight } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
 import { LoginCarScene } from "@/components/LoginCarScene";
-import { RegisterForm } from "@/components/RegisterForm";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getRoleHome, login, requireGuest } from "@/lib/auth";
@@ -20,7 +19,6 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -56,80 +54,58 @@ function LoginPage() {
           </section>
 
           <section className="flex items-center lg:col-span-2">
-            {mode === "login" ? (
-              <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-sm md:backdrop-blur-md">
-                <CardHeader className="space-y-1 pb-4">
-                  <CardTitle className="text-2xl tracking-tight">Login form</CardTitle>
-                 
-                </CardHeader>
-                <CardContent>
-                  <form className="grid gap-5" onSubmit={handleSubmit}>
-                    <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                       
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        className="h-11 rounded-xl"
-                        required
-                      />
+            <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md">
+              <CardHeader className="space-y-1 pb-4">
+                <CardTitle className="text-2xl tracking-tight">Account login</CardTitle>
+                
+              </CardHeader>
+              <CardContent>
+                <form className="grid gap-5" onSubmit={handleSubmit}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                    
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="h-11 rounded-xl"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                     
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="h-11 rounded-xl"
+                      required
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {error}
                     </div>
+                  ) : null}
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                       
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        className="h-11 rounded-xl"
-                        required
-                      />
-                    </div>
-
-                    {error ? (
-                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        {error}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="h-11 rounded-xl text-[13px] font-semibold"
-                    >
-                      {isSubmitting ? "Signing in..." : "Sign in"}
-                      {!isSubmitting ? <ArrowRight className="size-4" /> : null}
-                    </Button>
-                  </form>
-
-                  <p className="mt-4 text-center text-sm text-muted-foreground">
-                    Don't have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setMode("register")}
-                      className="font-semibold text-foreground underline-offset-4 hover:underline"
-                    >
-                      Register
-                    </button>
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <RegisterForm
-                className="w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-sm md:backdrop-blur-md"
-                onSwitchToLogin={() => setMode("login")}
-                onRegistered={() => {
-                  setMode("login");
-                  setEmail("");
-                  setPassword("");
-                  setError(null);
-                }}
-              />
-            )}
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="h-11 rounded-xl text-[13px] font-semibold"
+                  >
+                    {isSubmitting ? "Signing in..." : "Sign in"}
+                    {!isSubmitting ? <ArrowRight className="size-4" /> : null}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </section>
         </div>
       </main>
