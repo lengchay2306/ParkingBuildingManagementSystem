@@ -202,6 +202,12 @@
     animation: login-road-scroll 3.2s linear infinite;
     opacity: 0.65;
   }
+  @media (max-width: 1024px), (pointer: coarse) {
+    .login-road-plane {
+      animation-duration: 6s;
+      opacity: 0.42;
+    }
+  }
   @keyframes login-building-spin-once {
     0% {
       transform: rotateY(-24deg) rotateX(4deg) scale(0.94);
@@ -222,6 +228,10 @@
     will-change: transform;
   }
   @media (prefers-reduced-motion: reduce) {
+    .login-road-plane {
+      animation: none;
+      opacity: 0.3;
+    }
     .login-building-spin {
       animation: none;
       transform: none;
