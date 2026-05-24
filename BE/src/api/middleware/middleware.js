@@ -33,6 +33,7 @@ export const authorizationByRole = (roles) => (req, res, next) => {
     if (!roles.includes(req.user.roleName)) {
         throw new ForbiddenError();
     }
+    next();
 }
 
 export const getUserDeviceName = (req, res, next) => {
