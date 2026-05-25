@@ -1,5 +1,20 @@
 import { Platform } from 'react-native';
 
+type CookieManagerType = {
+  setFromResponse: (url: string, cookie: string) => Promise<boolean>;
+  clearAll: () => Promise<boolean>;
+};
+
+let CookieManager: CookieManagerType | null = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    CookieManager = require('@react-native-cookies/cookies').default as CookieManagerType;
+  } catch {
+    CookieManager = null;
+  }
+}
+
 type AuthResponse = {
   status: string;
   data?: {
@@ -27,6 +42,17 @@ async function parseApiResponse(response: Response) {
   return payload;
 }
 
+async function persistCookies(response: Response) {
+  if (!CookieManager) {
+    return;
+  }
+  const setCookie = response.headers.get('set-cookie');
+  if (!setCookie) {
+    return;
+  }
+  await CookieManager.setFromResponse(response.url, setCookie);
+}
+
 export async function login(email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
@@ -37,7 +63,19 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   });
 
+  await persistCookies(response);
   return parseApiResponse(response);
+}
+
+export async function refreshSession() {
+  const response = await fetch(`${API_URL}/auth/refresh-token`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  await persistCookies(response);
+  await parseApiResponse(response);
+  return true;
 }
 
 export async function logout() {
@@ -47,4 +85,8 @@ export async function logout() {
   });
 
   await parseApiResponse(response);
+
+  if (CookieManager) {
+    await CookieManager.clearAll();
+  }
 }
