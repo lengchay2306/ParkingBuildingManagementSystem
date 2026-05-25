@@ -266,6 +266,10 @@ Display type runs Linear's custom sans (with `SF Pro Display` fallback) at weigh
 The page rhythm is **dense product screenshots** — Linear's marketing leads with high-fidelity captures of the product UI (issue list, project view, dashboard) framed in `{colors.surface-1}` panels with `{rounded.xl}` 16px corners. The chrome is intentionally minimal so the app screenshots can do the heavy lifting.
 
 **Key Characteristics:**
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 - **Dark-canvas marketing system** — `{colors.canvas}` (#010102) is the deepest dark in this collection.
 - **Lavender-blue brand accent** (`{colors.primary}` #5e6ad2) — used scarcely on brand mark, focus, and the primary CTA.
 - Four-step surface ladder (canvas → surface-1 → surface-2 → surface-3 → surface-4) carries hierarchy without shadow.
@@ -279,12 +283,20 @@ The page rhythm is **dense product screenshots** — Linear's marketing leads wi
 > Source pages: linear.app (home), /intake, /pricing, /contact/sales, /build.
 
 ### Brand & Accent
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 - **Lavender-Blue** ({colors.primary}): The signature Linear accent — primary CTA, brand mark, link emphasis.
 - **Lavender Hover** ({colors.primary-hover}): Lighter lavender (#828fff) — hovered state of the primary CTA.
 - **Lavender Focus** ({colors.primary-focus}): Focus-ring tint (#5e69d1) — focused inputs, focused buttons.
 - **Brand Secure** ({colors.brand-secure}): Muted lavender-gray (#7a7fad) — used in "Linear Security" surfaces.
 
 ### Surface
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 - **Canvas** ({colors.canvas}): Default page background — #010102, near-pure black with a faint blue tint.
 - **Surface 1** ({colors.surface-1}): One step above canvas — feature cards, pricing cards, product screenshot panels.
 - **Surface 2** ({colors.surface-2}): Two steps above — featured pricing card, hovered cards.
@@ -298,12 +310,20 @@ The page rhythm is **dense product screenshots** — Linear's marketing leads wi
 - **Inverse Surface 2** ({colors.inverse-surface-2}): Two steps above inverse canvas.
 
 ### Text
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 - **Ink** ({colors.ink}): All headlines and emphasized body type — light gray #f7f8f8.
 - **Ink Muted** ({colors.ink-muted}): Secondary type at #d0d6e0 — meta info on hero panels.
 - **Ink Subtle** ({colors.ink-subtle}): Tertiary type at #8a8f98 — deselected pricing tabs, footer columns.
 - **Ink Tertiary** ({colors.ink-tertiary}): Quaternary at #62666d — disabled, footnotes.
 
 ### Semantic
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 - **Success Green** ({colors.semantic-success}): Status pills, success indicators. The only semantic color on marketing.
 - **Overlay** ({colors.semantic-overlay}): Pure black overlay scrim for modals.
 
@@ -363,6 +383,8 @@ Linear's custom typeface isn't publicly distributed; the documented fallback `SF
 - Pricing tier grid is 3-up; comparison strip below shows checkmarks per tier.
 - Product screenshot panels span full content width — they're the protagonist.
 
+- **Safe-area rule (mobile):** all primary screens MUST render below the OS status/navigation region. Apply top safe-area inset globally at app root so no component can overlap the system bar/notch.
+
 ### Whitespace Philosophy
 
 The dark canvas IS the whitespace. Sections separate by lift onto surface-1 panels, not by gaps in white. Within a panel, generous `{spacing.lg}` 24px gaps between content blocks; `{spacing.section}` 96px between sections.
@@ -389,16 +411,16 @@ Linear's depth is carried by surface ladder + hairline borders. The brand resist
 
 ### Border Radius Scale
 
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.xs}` | 4px | Small chips, status badges |
-| `{rounded.sm}` | 6px | Inline tags |
-| `{rounded.md}` | 8px | All buttons, form inputs |
-| `{rounded.lg}` | 12px | Pricing cards, feature cards, testimonial cards |
-| `{rounded.xl}` | 16px | Product screenshot panels |
-| `{rounded.xxl}` | 24px | Oversized CTA banners (rare) |
-| `{rounded.pill}` | 9999px | Pricing tab toggles, status pills |
-| `{rounded.full}` | 9999px | Avatar circles |
+| Token            | Value  | Use                                             |
+| ---------------- | ------ | ----------------------------------------------- |
+| `{rounded.xs}`   | 4px    | Small chips, status badges                      |
+| `{rounded.sm}`   | 6px    | Inline tags                                     |
+| `{rounded.md}`   | 8px    | All buttons, form inputs                        |
+| `{rounded.lg}`   | 12px   | Pricing cards, feature cards, testimonial cards |
+| `{rounded.xl}`   | 16px   | Product screenshot panels                       |
+| `{rounded.xxl}`  | 24px   | Oversized CTA banners (rare)                    |
+| `{rounded.pill}` | 9999px | Pricing tab toggles, status pills               |
+| `{rounded.full}` | 9999px | Avatar circles                                  |
 
 ### Photography & Illustration Geometry
 
@@ -416,12 +438,15 @@ Linear's depth is carried by surface ladder + hairline borders. The brand resist
 - Hover state lives in `button-primary-hover` (background shifts to `{colors.primary-hover}` lighter lavender).
 
 **`button-secondary`** — Charcoal button. Used for secondary CTAs ("Sign in", "Read changelog").
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.button}`, padding 8px 14px, rounded `{rounded.md}`. 1px `{colors.hairline}` border.
 
 **`button-tertiary`** — Plain text button.
+
 - Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.button}`, rounded `{rounded.md}`, padding 8px 14px.
 
 **`button-inverse`** — White-on-dark inverse CTA.
+
 - Background `{colors.inverse-canvas}`, text `{colors.inverse-ink}`, type `{typography.button}`, rounded `{rounded.md}`, padding 8px 14px.
 
 ### Pricing Tabs
@@ -433,24 +458,31 @@ Linear's depth is carried by surface ladder + hairline borders. The brand resist
 ### Cards & Containers
 
 **`pricing-card`** — Each tier on `/pricing`.
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.lg}`, padding 24px. 1px `{colors.hairline}` border.
 
 **`pricing-card-featured`** — Recommended tier — surface lift to surface-2.
+
 - Background `{colors.surface-2}`, otherwise identical structure.
 
 **`feature-card`** — Generic feature highlight tile.
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.lg}`, padding 24px.
 
 **`product-screenshot-card`** — The dominant card type — frames a high-fidelity Linear app UI screenshot.
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.xl}`, padding 24px.
 
 **`testimonial-card`** — Customer quote with avatar + name + role.
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body-lg}`, rounded `{rounded.lg}`, padding 32px.
 
 **`customer-logo-tile`** — Small tile in the customer marquee.
+
 - Background `{colors.canvas}`, text `{colors.ink-subtle}`, type `{typography.caption}`, rounded `{rounded.xs}`, padding 16px.
 
 **`cta-banner`** — Closing CTA panel near page bottom.
+
 - Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.headline}`, rounded `{rounded.lg}`, padding 48px.
 
 ### Inputs & Forms
@@ -462,9 +494,11 @@ Linear's depth is carried by surface ladder + hairline borders. The brand resist
 ### Status & Build Page
 
 **`changelog-row`** — Each row in `/build` (changelog page) listing version, date, and changes.
+
 - Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.xs}`, padding 24px 0. 1px `{colors.hairline}` bottom rule.
 
 **`status-badge`** — Small status pill.
+
 - Background `{colors.surface-2}`, text `{colors.ink-muted}`, type `{typography.caption}`, rounded `{rounded.pill}`, padding 2px 8px.
 
 ### Navigation
@@ -503,13 +537,13 @@ Linear's depth is carried by surface ladder + hairline borders. The brand resist
 
 ### Breakpoints
 
-| Name | Width | Key Changes |
-|---|---|---|
-| Desktop-XL | 1440px | Default desktop layout |
-| Desktop | 1280px | Card grid 3-up maintained |
-| Tablet | 1024px | Card grid 3-up → 2-up |
-| Mobile-Lg | 768px | Pricing comparison becomes accordion; nav hamburger |
-| Mobile | 480px | Single-column; display-xl scales 80px → ~36px |
+| Name       | Width  | Key Changes                                         |
+| ---------- | ------ | --------------------------------------------------- |
+| Desktop-XL | 1440px | Default desktop layout                              |
+| Desktop    | 1280px | Card grid 3-up maintained                           |
+| Tablet     | 1024px | Card grid 3-up → 2-up                               |
+| Mobile-Lg  | 768px  | Pricing comparison becomes accordion; nav hamburger |
+| Mobile     | 480px  | Single-column; display-xl scales 80px → ~36px       |
 
 ### Touch Targets
 
