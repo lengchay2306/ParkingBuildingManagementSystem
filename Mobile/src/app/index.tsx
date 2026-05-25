@@ -8,7 +8,6 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { refreshSession } from '@/lib/auth-api';
 
 export default function IndexRoute() {
-  return <Redirect href="/home" />;
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'guest'>('loading');
@@ -46,7 +45,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? '/homeless' : '/login'} />;
+  return <Redirect href={status === 'authenticated' ? '/home_check1' : '/login'} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({

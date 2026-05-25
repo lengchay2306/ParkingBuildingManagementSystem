@@ -43,7 +43,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       showToast('Login successful', 'success');
       setPassword('');
-      router.replace('/home' as never);
+      router.replace('/home_check1' as never);
     } catch (loginError) {
       showToast(loginError instanceof Error ? loginError.message : 'Cannot login', 'error');
     } finally {
@@ -61,7 +61,7 @@ export default function LoginScreen() {
           <View style={styles.content}>
             <View style={styles.topNav}>
               <Pressable
-                onPress={() => router.replace('/home' as never)}
+                onPress={() => router.replace('/home_check1' as never)}
                 style={({ pressed }) => [styles.homeButton, pressed && styles.buttonPressed]}>
                 <ThemedText style={styles.homeButtonText}>Trang chu</ThemedText>
               </Pressable>
