@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from "../error/error";
+import { BadRequestError, NotFoundError } from "../error/error.js";
 
 class UserService {
     #userRepository;
