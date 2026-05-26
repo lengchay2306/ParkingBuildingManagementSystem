@@ -43,7 +43,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       showToast('Login successful', 'success');
       setPassword('');
-      router.replace('/home_check1' as never);
+      router.replace('/dashboard' as never);
     } catch (loginError) {
       showToast(loginError instanceof Error ? loginError.message : 'Cannot login', 'error');
     } finally {
