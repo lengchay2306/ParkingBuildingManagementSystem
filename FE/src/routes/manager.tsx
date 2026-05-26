@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StatusLegend } from "@/components/StatusLegend";
-import { FloorGrid } from "@/components/FloorGrid";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { SlotAvailabilityFilter } from "@/components/SlotAvailabilityFilter";
 import {
   OccupancyRing,
   PastelBars,
@@ -158,32 +158,7 @@ function ManagerPage() {
                     ))}
                   </div>
 
-                  {/* Floor grid */}
-                  <div className="mt-6 rounded-2xl border border-border bg-background/50 p-5">
-                    <div className="mb-4 flex items-end justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold">Level B2 · Operational Grid</h3>
-                        <p className="text-xs text-muted-foreground">
-                          60 slots · highlighted slot is AI-assigned
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        {["B1", "B2", "B3", "L1"].map((f, i) => (
-                          <div
-                            key={f}
-                            className={`rounded-lg px-2.5 py-1 text-[10px] font-bold ${
-                              i === 1
-                                ? "bg-foreground text-background"
-                                : "border border-border bg-card text-muted-foreground"
-                            }`}
-                          >
-                            {f}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <FloorGrid prefix="B2" count={60} highlightId="B2-047" />
-                  </div>
+                  <SlotAvailabilityFilter />
 
                   {/* Charts row */}
                   <div className="mt-6 grid grid-cols-3 gap-3">

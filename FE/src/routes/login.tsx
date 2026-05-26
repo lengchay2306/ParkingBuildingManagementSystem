@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
-import { LoginCarScene } from "@/components/LoginCarScene";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,22 +41,29 @@ function LoginPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="login-road-vignette" />
-          <div className="login-road-plane" />
-        </div>
+      <main className="relative isolate overflow-hidden">
+        <div className="login-static-bg pointer-events-none absolute inset-0" />
 
-        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-3.5rem)] w-full max-w-7xl gap-6 px-6 py-10 lg:grid-cols-5">
-          <section className="min-h-[360px] lg:col-span-3">
-          <LoginCarScene className="bg-transparent" />
+        <div className="relative z-10 mx-auto grid min-h-[calc(100vh-3.5rem)] w-full max-w-7xl items-center gap-8 px-6 py-10 lg:grid-cols-5">
+          <section className="min-h-[420px] lg:col-span-3">
+            <div className="login-car-hero">
+              <div className="login-hero-photo" aria-hidden="true" />
+              <div className="relative z-10 mt-6 w-fit max-w-[34rem] px-1 py-1">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Smart Parking Access
+                </p>
+                <h2 className="mt-1.5 text-lg font-semibold tracking-tight md:text-xl">
+                  Fast entry with plate recognition and live slot availability.
+                </h2>
+              </div>
+            </div>
           </section>
 
           <section className="flex items-center lg:col-span-2">
             <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md">
               <CardHeader className="space-y-1 pb-4">
                 <CardTitle className="text-2xl tracking-tight">Account login</CardTitle>
-                
+                <CardDescription>Sign in to manage parking sessions and reservations.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form className="grid gap-5" onSubmit={handleSubmit}>
@@ -67,7 +73,6 @@ function LoginPage() {
                       id="email"
                       type="email"
                       autoComplete="email"
-                    
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       className="h-11 rounded-xl"
@@ -81,7 +86,6 @@ function LoginPage() {
                       id="password"
                       type="password"
                       autoComplete="current-password"
-                     
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       className="h-11 rounded-xl"
