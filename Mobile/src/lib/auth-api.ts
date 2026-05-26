@@ -53,6 +53,30 @@ async function persistCookies(response: Response) {
   await CookieManager.setFromResponse(response.url, setCookie);
 }
 
+export type RegisterPayload = {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
+};
+
+export async function register(payload: RegisterPayload) {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: payload.email.trim().toLowerCase(),
+      password: payload.password,
+      fullName: payload.fullName.trim(),
+      phone: payload.phone.trim(),
+    }),
+  });
+
+  return parseApiResponse(response);
+}
+
 export async function login(email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',

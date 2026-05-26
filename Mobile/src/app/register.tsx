@@ -13,39 +13,58 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { login } from '@/lib/auth-api';
+import { register } from '@/lib/auth-api';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAppToast } from '@/components/app-toast';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
   const { showToast } = useAppToast();
   const { width } = useWindowDimensions();
   const isCompact = width < 390;
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.length >= 8 && !isSubmitting,
-    [email, password, isSubmitting],
-  );
+  const canSubmit = useMemo(() => {
+    const trimmedName = fullName.trim();
+    const trimmedPhone = phone.trim();
+    return (
+      trimmedName.length >= 2 &&
+      trimmedName.length <= 30 &&
+      email.trim().length > 0 &&
+      /^[0-9]+$/.test(trimmedPhone) &&
+      trimmedPhone.length > 0 &&
+      trimmedPhone.length <= 10 &&
+      password.length > 0 &&
+      !isSubmitting
+    );
+  }, [fullName, email, phone, password, isSubmitting]);
 
-  async function handleLogin() {
+  async function handleRegister() {
     if (!canSubmit) {
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await login(email.trim(), password);
-      showToast('Login successful', 'success');
-      setPassword('');
-      router.replace('/home_check1' as never);
-    } catch (loginError) {
-      showToast(loginError instanceof Error ? loginError.message : 'Cannot login', 'error');
+      await register({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+      });
+      showToast('Registration successful. Please sign in.', 'success');
+      router.replace('/login' as never);
+    } catch (registerError) {
+      showToast(
+        registerError instanceof Error ? registerError.message : 'Cannot register',
+        'error',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -70,15 +89,28 @@ export default function LoginScreen() {
             </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.main}>
-              <View style={[styles.loginCard, isCompact && styles.loginCardCompact]}>
+              <View style={[styles.card, isCompact && styles.cardCompact]}>
                 <ThemedText style={[styles.cardTitle, isCompact && styles.cardTitleCompact]}>
-                  Account Login
+                  Create Account
                 </ThemedText>
                 <ThemedText style={styles.cardBody}>
-                  Sign in to continue managing smart parking sessions.
+                  Register a customer account to use smart parking services.
                 </ThemedText>
 
                 <View style={styles.form}>
+                  <View style={styles.field}>
+                    <ThemedText style={styles.label}>Full name</ThemedText>
+                    <TextInput
+                      value={fullName}
+                      onChangeText={setFullName}
+                      autoCapitalize="words"
+                      placeholder="Full name"
+                      placeholderTextColor="#8a8f98"
+                      selectionColor="#5e6ad2"
+                      style={[styles.input, isCompact && styles.inputCompact]}
+                    />
+                  </View>
+
                   <View style={styles.field}>
                     <ThemedText style={styles.label}>Email</ThemedText>
                     <TextInput
@@ -88,6 +120,19 @@ export default function LoginScreen() {
                       autoCorrect={false}
                       keyboardType="email-address"
                       placeholder="Email"
+                      placeholderTextColor="#8a8f98"
+                      selectionColor="#5e6ad2"
+                      style={[styles.input, isCompact && styles.inputCompact]}
+                    />
+                  </View>
+
+                  <View style={styles.field}>
+                    <ThemedText style={styles.label}>Phone</ThemedText>
+                    <TextInput
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                      placeholder="Phone number"
                       placeholderTextColor="#8a8f98"
                       selectionColor="#5e6ad2"
                       style={[styles.input, isCompact && styles.inputCompact]}
@@ -110,22 +155,22 @@ export default function LoginScreen() {
 
                 <Pressable
                   disabled={!canSubmit}
-                  onPress={handleLogin}
+                  onPress={handleRegister}
                   style={({ pressed }) => [
-                    styles.signInButton,
+                    styles.primaryButton,
                     (!canSubmit || pressed) && styles.buttonPressed,
                   ]}>
                   {isSubmitting ? (
                     <ActivityIndicator color="#ffffff" />
                   ) : (
-                    <ThemedText style={styles.signInButtonText}>Sign in</ThemedText>
+                    <ThemedText style={styles.primaryButtonText}>Sign up</ThemedText>
                   )}
                 </Pressable>
 
                 <View style={styles.footer}>
-                  <ThemedText style={styles.footerText}>{"Don't have an account? "}</ThemedText>
-                  <Pressable onPress={() => router.push('/register' as never)}>
-                    <ThemedText style={styles.footerLink}>Sign up</ThemedText>
+                  <ThemedText style={styles.footerText}>Already have an account? </ThemedText>
+                  <Pressable onPress={() => router.replace('/login' as never)}>
+                    <ThemedText style={styles.footerLink}>Sign in</ThemedText>
                   </Pressable>
                 </View>
               </View>
@@ -200,7 +245,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  loginCard: {
+  card: {
     borderWidth: 1,
     borderColor: '#23252a',
     borderRadius: 12,
@@ -209,7 +254,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
     gap: Spacing.two,
   },
-  loginCardCompact: {
+  cardCompact: {
     paddingVertical: Spacing.three,
   },
   cardTitle: {
@@ -257,7 +302,7 @@ const styles = StyleSheet.create({
   inputCompact: {
     minHeight: 42,
   },
-  signInButton: {
+  primaryButton: {
     minHeight: 40,
     borderRadius: 8,
     backgroundColor: '#5e6ad2',
@@ -266,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: Spacing.one,
   },
-  signInButtonText: {
+  primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
     lineHeight: 18,
