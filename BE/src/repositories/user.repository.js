@@ -42,6 +42,57 @@ class UserRepository {
 
         return newUser.toObject();
     }
+    getAllUser = async ({
+        page = 1,
+        limit = 10,
+        search,
+        status,
+        roleId,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+    }) => {
+        const filter = {};
+
+        if (search) {
+            filter.$or = [
+                { fullName: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
+                { phone: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        if (status) {
+            filter.status = status;
+        }
+
+        if (roleId) {
+            filter.roleId = roleId;
+        }
+
+        const skip = (page - 1) * limit;
+        const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 };
+
+        const [users, totalCount] = await Promise.all([
+            User.find(filter)
+                .populate("roleId")
+                .sort(sort)
+                .skip(skip)
+                .limit(limit)
+                .select("-password")
+                .lean(),
+            User.countDocuments(filter),
+        ]);
+
+        return {
+            users,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
+    }
 }
 
 export default UserRepository

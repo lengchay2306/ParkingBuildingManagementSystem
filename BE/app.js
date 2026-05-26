@@ -27,6 +27,7 @@ setupSwagger(app);
 import AuthRouter from './src/api/routers/auth.router.js'
 import ParkingRouter from './src/api/routers/parking.router.js'
 import ReservationRouter from './src/api/routers/reservation.router.js'
+import UserRouter from './src/api/routers/user.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -38,6 +39,7 @@ const url = "/api/v1"
 app.use(`${url}/auth`, AuthRouter)
 app.use(`${url}/parking`, ParkingRouter)
 app.use(`${url}/reservations`, ReservationRouter)
+app.use(`${url}/users`, UserRouter)
 
 //handle error
 app.use(handleError)
