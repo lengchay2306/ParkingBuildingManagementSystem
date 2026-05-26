@@ -56,6 +56,15 @@ class ReservationService {
 
         return reservation;
     }
+
+    getMyReservations = async ({ driverId, status }) => {
+        const reservations = await this.#reservationRepository.findReservationsByDriverId({
+            driverId,
+            status,
+        });
+
+        return reservations;
+    }
 }
 
 export default ReservationService;

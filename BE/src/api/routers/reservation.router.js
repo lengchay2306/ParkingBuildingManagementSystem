@@ -79,4 +79,65 @@ router.post(
     }
 );
 
+/**
+ * @swagger
+ * /api/v1/reservations/my:
+ *   get:
+ *     summary: Get my reservations
+ *     description: Get all reservations for the authenticated customer. Supports filtering by status.
+ *     tags: [Reservation]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CLAIMED, EXPIRED, CANCELLED]
+ *         description: Filter reservations by status
+ *     responses:
+ *       200:
+ *         description: List of reservations
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 reservations:
+ *                   - _id: "665f..."
+ *                     driverId: "665a..."
+ *                     vehicleId:
+ *                       _id: "665b..."
+ *                       licensePlate: "51A-12345"
+ *                       vehicleTypeId:
+ *                         _id: "665c..."
+ *                         type: "SEDAN"
+ *                     parkingSlotId:
+ *                       _id: "665d..."
+ *                       slotNumber: "A-01"
+ *                       status: "AVAILABLE"
+ *                       floorId:
+ *                         _id: "665e..."
+ *                         floorName: "Tầng 1"
+ *                         vehicleTypeId:
+ *                           _id: "665c..."
+ *                           type: "SEDAN"
+ *                     reservedAt: "2026-05-26T10:00:00.000Z"
+ *                     expectedArrival: "2026-05-27T10:00:00.000Z"
+ *                     expiryAt: "2026-05-27T10:30:00.000Z"
+ *                     status: "PENDING"
+ *                 message: "Reservations fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+    "/my",
+    authentication,
+    authorizationByRole(['CUSTOMER']),
+    async (req, res, next) => {
+        const reservationController = req.container.resolve('reservationController');
+        await reservationController.getMyReservations(req, res, next);
+    }
+);
+
 export default router;

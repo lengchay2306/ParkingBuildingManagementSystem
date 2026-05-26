@@ -44,6 +44,30 @@ class ReservationRepository {
 
         return newReservation.toObject();
     }
+
+    findReservationById = async ({ reservationId }) => {
+        return Reservation.findById(reservationId).lean();
+    }
+
+    findReservationsByDriverId = async ({ driverId, status }) => {
+        const filter = { driverId };
+        if (status) filter.status = status;
+
+        return Reservation.find(filter)
+            .populate({
+                path: 'vehicleId',
+                populate: { path: 'vehicleTypeId' },
+            })
+            .populate({
+                path: 'parkingSlotId',
+                populate: {
+                    path: 'floorId',
+                    populate: { path: 'vehicleTypeId' },
+                },
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+    }
 }
 
 export default ReservationRepository;
