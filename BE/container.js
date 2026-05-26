@@ -4,6 +4,7 @@ import { createContainer, asClass, asValue, Lifetime } from "awilix";
 import AuthController from "./src/api/controllers/auth.controller.js";
 import ParkingController from "./src/api/controllers/parking.controller.js";
 import ReservationController from "./src/api/controllers/reservation.controller.js";
+import UserController from "./src/api/controllers/user.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -11,6 +12,7 @@ import HashService from "./src/services/hash.service.js";
 import TokenService from "./src/services/token.service.js";
 import ParkingService from "./src/services/parking.service.js";
 import ReservationService from "./src/services/reservation.service.js";
+import UserService from "./src/services/user.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -45,6 +47,9 @@ export function setupContainer({ io, notificationNamespace }) {
         reservationController: asClass(ReservationController, {
             lifetime: Lifetime.SCOPED,
         }),
+        userController: asClass(UserController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -60,6 +65,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         reservationService: asClass(ReservationService, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        userService: asClass(UserService, {
             lifetime: Lifetime.SCOPED,
         }),
 
