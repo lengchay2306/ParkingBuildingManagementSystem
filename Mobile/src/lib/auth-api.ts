@@ -23,14 +23,24 @@ type AuthResponse = {
   message?: string;
 };
 
-const fallbackApiUrl = Platform.select({
-  ios: 'http://192.168.100.24:3000/api/v1',
-  android: 'http://192.168.100.24:3000/api/v1',
-  web: 'http://localhost:3000/api/v1',
-  default: 'http://localhost:3000/api/v1',
-});
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? fallbackApiUrl;
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+const AUTH_REFRESH_PATH = `${API_URL}/auth/refresh-token`;
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+function resolveApiUrl(path: string) {
+  if (path.startsWith('http')) {
+    return path;
+  }
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API_URL}${normalized}`;
+}
+
+function isRefreshTokenRequest(url: string) {
+  return url.includes(AUTH_REFRESH_PATH);
+}
 
 async function parseApiResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;

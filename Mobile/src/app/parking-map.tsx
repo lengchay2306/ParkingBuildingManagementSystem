@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { GLView } from 'expo-gl';
+import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
 import { Renderer } from 'expo-three';
 import { useRouter } from 'expo-router';
 import * as THREE from 'three';
@@ -266,7 +266,7 @@ let diagramFont: Font | null = null;
 
 function getDiagramFont(): Font {
   if (!diagramFont) {
-    diagramFont = new FontLoader().parse(helvetikerFont as object);
+    diagramFont = new FontLoader().parse(helvetikerFont);
   }
   return diagramFont;
 }
@@ -1033,10 +1033,11 @@ export default function ParkingMapScreen() {
   const panOffsetRef = useRef(new THREE.Vector3());
   const orbitRef = useRef({ theta: Math.PI * 0.75, phi: 0.85, radius: 11 });
   const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<Renderer | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const panRef = useRef({ lastX: 0, lastY: 0, lastDistance: 0, moved: false });
   const viewportRef = useRef({ width: 1, height: 1 });
   const raycasterRef = useRef(new THREE.Raycaster());
+  const pointerNdcRef = useRef(new THREE.Vector2());
   const floorMeshesRef = useRef<FloorMeshSet[]>([]);
   const floorTargetsRef = useRef<FloorTarget[]>([]);
   const selectionRef = useRef<THREE.LineSegments | null>(null);
@@ -1235,15 +1236,11 @@ export default function ParkingMapScreen() {
   const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
     const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
 
-    const renderer = new Renderer({ gl });
+    const renderer = new Renderer({ gl }) as THREE.WebGLRenderer;
     renderer.setSize(width, height);
-    if (typeof renderer.setPixelRatio === 'function') {
-      renderer.setPixelRatio(1);
-    }
+    renderer.setPixelRatio(1);
     renderer.setClearColor(DesignColors.canvas, 1);
-    if ('toneMapping' in renderer) {
-      (renderer as THREE.WebGLRenderer).toneMapping = THREE.NoToneMapping;
-    }
+    renderer.toneMapping = THREE.NoToneMapping;
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
@@ -1524,7 +1521,8 @@ export default function ParkingMapScreen() {
 
           const x = (touch.locationX / width) * 2 - 1;
           const y = -(touch.locationY / height) * 2 + 1;
-          raycasterRef.current.setFromCamera({ x, y }, cameraRef.current);
+          pointerNdcRef.current.set(x, y);
+          raycasterRef.current.setFromCamera(pointerNdcRef.current, cameraRef.current);
 
           const intersects: THREE.Intersection[] = [];
           floorMeshesRef.current.forEach((floorMesh, floorIndex) => {

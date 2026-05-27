@@ -219,6 +219,10 @@ export default function HomeScreen() {
           { width: drawerWidth },
         ]}
       >
+
+        <ThemedText style={{ fontWeight: 'bold' }}>
+            <>{t('Xin chào,', 'Welcome,')} Toi an cut</>
+        </ThemedText>
         <View style={styles.menuList}>
           <Pressable
             onPress={() => {
