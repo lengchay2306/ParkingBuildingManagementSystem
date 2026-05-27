@@ -41,20 +41,6 @@ function isRefreshTokenRequest(url: string) {
   return url.includes(AUTH_REFRESH_PATH);
 }
 
-let refreshInFlight: Promise<boolean> | null = null;
-
-function resolveApiUrl(path: string) {
-  if (path.startsWith('http')) {
-    return path;
-  }
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  return `${API_URL}${normalized}`;
-}
-
-function isRefreshTokenRequest(url: string) {
-  return url.includes(AUTH_REFRESH_PATH);
-}
-
 async function parseApiResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;
 
