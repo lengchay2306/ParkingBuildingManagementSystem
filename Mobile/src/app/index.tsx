@@ -45,7 +45,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? '/dashboard' : '/login'} />;
+  return <Redirect href={status === 'authenticated' ? '/dashboard' : '/sign-platform'} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({

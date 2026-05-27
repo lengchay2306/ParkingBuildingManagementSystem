@@ -64,7 +64,6 @@ export default function HomeScreen() {
       ]),
     );
     pulseLoop.start();
-
     const driftLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatDrift, {

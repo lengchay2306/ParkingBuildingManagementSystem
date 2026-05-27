@@ -22,7 +22,7 @@ export default function DashboardScreen() {
     try {
       await logout();
       showToast('Logged out successfully', 'success');
-      router.replace('/login' as never);
+      router.replace('/sign-platform' as never);
     } catch (logoutError) {
       showToast(
         logoutError instanceof Error ? logoutError.message : 'Cannot log out',
