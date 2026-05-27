@@ -23,14 +23,7 @@ type AuthResponse = {
   message?: string;
 };
 
-const fallbackApiUrl = Platform.select({
-  ios: 'http://192.168.100.24:3000/api/v1',
-  android: 'http://192.168.100.24:3000/api/v1',
-  web: 'http://localhost:3000/api/v1',
-  default: 'http://localhost:3000/api/v1',
-});
-
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? fallbackApiUrl;
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 async function parseApiResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;
