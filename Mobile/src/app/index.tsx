@@ -17,9 +17,9 @@ export default function IndexRoute() {
 
     async function bootstrapSession() {
       try {
-        await refreshSession();
+        const isValid = await refreshSession();
         if (isMounted) {
-          setStatus('authenticated');
+          setStatus(isValid ? 'authenticated' : 'guest');
         }
       } catch {
         if (isMounted) {
@@ -45,7 +45,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? '/home_check1' : '/login'} />;
+  return <Redirect href={status === 'authenticated' ? '/dashboard' : '/login'} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
