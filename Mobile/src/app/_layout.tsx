@@ -63,7 +63,6 @@ function RootNavigator() {
         <AppToastProvider>
           <AnimatedSplashOverlay />
           <Tabs
-            key={resolvedScheme}
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarActiveTintColor: DesignColors.primary,
@@ -120,8 +119,8 @@ function RootNavigator() {
             })}
           >
             <Tabs.Screen name="index" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-            <Tabs.Screen name="login" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-            <Tabs.Screen name="register" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+            <Tabs.Screen name="Sign_Platform" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+            <Tabs.Screen name="sign-platform" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="dashboard" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="home_check1" options={{ title: t('Trang chủ 1', 'Home') }} />
             <Tabs.Screen name="home_check2" options={{ title: t('Trang chủ 2', 'Homeless') }} />

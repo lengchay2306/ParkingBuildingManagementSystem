@@ -6,7 +6,7 @@ import { refreshSession } from '@/lib/auth-api';
 
 /**
  * Keeps the session alive on protected screens: refresh when the screen is focused
- * or the app returns to foreground; redirect to login if refresh fails.
+ * or the app returns to foreground; redirect to auth if refresh fails.
  */
 export function useProtectedSession() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export function useProtectedSession() {
   const syncSession = useCallback(async () => {
     const isValid = await refreshSession();
     if (!isValid) {
-      router.replace('/login' as never);
+      router.replace('/sign-platform' as never);
     }
   }, [router]);
 
