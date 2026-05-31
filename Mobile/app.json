@@ -35,6 +35,13 @@
           }
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ParkOS to access your camera to capture vehicle photos.",
+          "photosPermission": "Allow ParkOS to access your photos to register your vehicle."
+        }
+      ],
       "expo-font",
       "expo-web-browser"
     ],

@@ -5,25 +5,26 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { DesignColorPalette, Radius } from '@/constants/design';
 import { useDesignColors } from '@/hooks/use-design-colors';
+import { getRoleHome } from '@/lib/auth';
 import { refreshSession } from '@/lib/auth-api';
 
 export default function IndexRoute() {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const [status, setStatus] = useState<'loading' | 'authenticated' | 'guest'>('loading');
+  const [redirectHref, setRedirectHref] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     async function bootstrapSession() {
       try {
-        const isValid = await refreshSession();
+        const role = await refreshSession();
         if (isMounted) {
-          setStatus(isValid ? 'authenticated' : 'guest');
+          setRedirectHref(role ? getRoleHome(role) : '/sign-platform');
         }
       } catch {
         if (isMounted) {
-          setStatus('guest');
+          setRedirectHref('/sign-platform');
         }
       }
     }
@@ -35,7 +36,7 @@ export default function IndexRoute() {
     };
   }, []);
 
-  if (status === 'loading') {
+  if (!redirectHref) {
     return (
       <ThemedView style={styles.loadingScreen}>
         <View style={styles.loadingCard}>
@@ -45,7 +46,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? '/dashboard' : '/sign-platform'} />;
+  return <Redirect href={redirectHref as never} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({

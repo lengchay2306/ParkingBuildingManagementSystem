@@ -119,13 +119,13 @@ export default function HomeScreen() {
     }).start();
   }, [languageDropdownAnim, languageDropdownOpen]);
 
-  const themeOptions: Array<{ key: ThemePreference; label: string }> = [
+  const themeOptions: { key: ThemePreference; label: string }[] = [
     { key: 'system', label: t('Theo thiết bị', 'System') },
     { key: 'dark', label: t('Tối', 'Dark') },
     { key: 'light', label: t('Sáng', 'Light') },
   ];
 
-  const languageOptions: Array<{ key: 'vi' | 'en'; label: string }> = [
+  const languageOptions: { key: 'vi' | 'en'; label: string }[] = [
     { key: 'vi', label: 'Tiếng Việt' },
     { key: 'en', label: 'English' },
   ];

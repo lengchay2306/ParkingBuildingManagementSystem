@@ -19,6 +19,7 @@ import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useThemePreference } from '@/hooks/theme-preference';
+import { getRoleHome } from '@/lib/auth';
 import { login, register } from '@/lib/auth-api';
 
 type AuthView = 'login' | 'signup';
@@ -278,10 +279,10 @@ export default function SignPlatformScreen() {
     if (!canSignInSubmit) return;
     setIsSigningIn(true);
     try {
-      await login(loginEmail.trim(), loginPassword);
+      const role = await login(loginEmail.trim(), loginPassword);
       showToast('Login successful', 'success');
       setLoginPassword('');
-      router.replace('/dashboard' as never);
+      router.replace(getRoleHome(role) as never);
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Cannot login', 'error');
     } finally {
@@ -569,7 +570,9 @@ export default function SignPlatformScreen() {
                         <ThemedText style={[styles.secondaryButtonText, { color: palette.text }]}>Google</ThemedText>
                       </Pressable>
                       <View style={styles.footerRow}>
-                        <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>Don't have an account?</ThemedText>
+                        <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
+                          Don&apos;t have an account?
+                        </ThemedText>
                         <Pressable onPress={animateToSignup}>
                           <ThemedText style={[styles.footerLink, { color: palette.primary }]}>Sign up</ThemedText>
                         </Pressable>

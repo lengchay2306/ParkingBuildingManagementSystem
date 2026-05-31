@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
 import { Renderer } from 'expo-three';
-import { useRouter } from 'expo-router';
 import * as THREE from 'three';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { Font, FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
@@ -332,7 +331,7 @@ type FloorTarget = { x: number; y: number; z: number; opacity: number; scale: nu
 type FloorMeshSet = {
   group: THREE.Group;
   slotMesh: THREE.InstancedMesh;
-  slotMap: Array<SlotInfo | null>;
+  slotMap: (SlotInfo | null)[];
   base: THREE.Mesh;
   baseMaterial: THREE.MeshBasicMaterial;
   slotDims: { width: number; depth: number; height: number };
@@ -640,7 +639,7 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
 
   const addDashedCenterLine = (
     road: RoadSegment,
-    skipZones: Array<{ center: number; half: number }> = [],
+    skipZones: { center: number; half: number }[] = [],
   ) => {
     const axisLength = road.flow === 'pz' || road.flow === 'nz' ? road.depth : road.width;
     const dashLen = Math.max(0.22, Math.min(0.62, axisLength * 0.12));
@@ -747,6 +746,8 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
 
 }
 
+// Reserved for future intersection styling alongside buildCurvedRampGuides.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildRoundedIntersections(
   group: THREE.Group,
   roads: RoadSegment[],
@@ -846,9 +847,11 @@ function buildCurvedRampGuides(group: THREE.Group, roads: RoadSegment[]) {
   makeCurve(crossIn.cz - 0.35, crossIn.cz - 1.1, 0.02, MapColors.laneMark);
 }
 
+// Reserved for future inter-floor helical ramps.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildHelicalInterFloorRamp(
   building: THREE.Group,
-  anchors: Array<{ x: number; z: number; y: number }>,
+  anchors: { x: number; z: number; y: number }[],
 ) {
   if (anchors.length < 2) return;
   const deckMat = new THREE.MeshBasicMaterial({ color: MapColors.rampMark, toneMapped: false });
@@ -1003,7 +1006,6 @@ function buildFloorAnnotations(
 }
 
 export default function ParkingMapScreen() {
-  const router = useRouter();
   const DesignColors = useDesignColors();
   const { t, language } = useLanguagePreference();
   const { resolvedScheme } = useThemePreference();
@@ -1290,7 +1292,7 @@ export default function ParkingMapScreen() {
       });
       const slotMesh = new THREE.InstancedMesh(slotGeometry, slotMaterial, totalSlots);
       const dummy = new THREE.Object3D();
-      const slotMap: Array<SlotInfo | null> = [];
+      const slotMap: (SlotInfo | null)[] = [];
 
       layout.slots.forEach((placement, slotIndex) => {
         const { x, z, row, aisle, side } = placement;

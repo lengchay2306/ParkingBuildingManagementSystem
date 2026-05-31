@@ -123,13 +123,19 @@ function RootNavigator() {
             <Tabs.Screen name="sign-platform" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="dashboard" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="home_check1" options={{ title: t('Trang chủ 1', 'Home') }} />
-            <Tabs.Screen name="home_check2" options={{ title: t('Trang chủ 2', 'Homeless') }} />
+            <Tabs.Screen name="home_check2" options={{ title: t('Trang chủ 2', 'Home 2') }} />
             <Tabs.Screen name="parking-map" options={{ title: t('Bản đồ', 'Map') }} />
             <Tabs.Screen name="flow" options={{ title: t('Luồng', 'Flow') }} />
             <Tabs.Screen name="settings" options={{ href: null }} />
             <Tabs.Screen name="manager" options={{ href: null }} />
             <Tabs.Screen name="staff" options={{ href: null }} />
-            <Tabs.Screen name="driver" options={{ href: null }} />
+            <Tabs.Screen
+              name="driver"
+              options={{
+                href: null,
+                tabBarStyle: { display: 'none' },
+              }}
+            />
             <Tabs.Screen name="admin" options={{ href: null }} />
           </Tabs>
         </AppToastProvider>
