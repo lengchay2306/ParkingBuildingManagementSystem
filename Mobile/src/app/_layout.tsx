@@ -119,7 +119,6 @@ function RootNavigator() {
             })}
           >
             <Tabs.Screen name="index" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-            <Tabs.Screen name="Sign_Platform" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="sign-platform" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="dashboard" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="home_check1" options={{ title: t('Trang chủ 1', 'Home') }} />
