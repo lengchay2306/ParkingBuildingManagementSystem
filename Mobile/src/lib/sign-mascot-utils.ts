@@ -22,7 +22,7 @@ export function getIdleMascotLines(t: (vi: string, en: string) => string): strin
     t('ParkOS luôn sẵn sàng hỗ trợ bạn.', 'ParkOS is ready to help you.'),
     t('Nhớ kiểm tra email trước khi đăng nhập nhé.', 'Double-check your email before signing in.'),
     t('Bạn thích dark mode hay light mode?', 'Do you prefer dark or light mode?'),
-    t('Mình là linh vật bãi đỗ, rất vui được gặp bạn!', 'I am the parking mascot, nice to meet you!'),
+    t('Mình là linh vật của bạn Phong nè, rất vui được gặp bạn!', 'I am the parking mascot, nice to meet you!'),
   ];
 }
 
@@ -30,6 +30,8 @@ export function getWelcomeMascotLines(t: (vi: string, en: string) => string): st
   return [
     t('Chào mừng đến ParkOS!', 'Welcome to ParkOS!'),
     t('Đăng nhập để tìm chỗ đỗ xe nhé.', 'Sign in to find parking.'),
+    t('Bạn có thể đăng ký tài khoản mới nếu chưa có.', 'You can sign up for a new account if you don\'t have one.'),
+    t('Mình sẽ giúp bạn tìm chỗ đỗ xe nhanh chóng!', 'I will help you find parking quickly!'),
   ];
 }
 
@@ -38,6 +40,7 @@ export function getEmailFocusLines(t: (vi: string, en: string) => string): strin
     t('Mình đang theo dõi email của bạn...', 'I am following your email...'),
     t('Gõ chậm thôi, mình đọc được mà!', 'Type slowly, I can keep up!'),
     t('Email đúng format là có @ và dấu chấm nhé.', 'A valid email needs @ and a dot.'),
+    t('Đừng lo nếu email dài, mình sẽ không bị mỏi mắt đâu!', 'Don\'t worry if your email is long, I won\'t get tired!'),
   ];
 }
 
@@ -45,6 +48,7 @@ export function getSignupNameLines(t: (vi: string, en: string) => string): strin
   return [
     t('Tên đẹp đấy!', 'Nice name!'),
     t('Rất vui được làm quen!', 'Nice to meet you!'),
+    t('Tên này sẽ xuất hiện trên hồ sơ của bạn.', 'This name will appear on your profile.'),
   ];
 }
 
@@ -53,6 +57,7 @@ export function getPasswordCoverLines(t: (vi: string, en: string) => string): st
     t('Mình che mắt rồi, yên tâm nhé!', 'Eyes covered — you are safe!'),
     t('Mật khẩu là bí mật, mình không nhìn!', 'Passwords are secret — I will not look!'),
     t('Cứ nhập đi, mình đứng ngoài cuộc!', 'Go ahead, I am staying out of it!'),
+    t('Mình tin bạn sẽ nhập đúng mật khẩu!', 'I trust you will enter the correct password!'),
   ];
 }
 
@@ -61,6 +66,8 @@ export function getPasswordPeekLines(t: (vi: string, en: string) => string): str
     t('Hí hí, mình không nhìn đâu...', 'Hehe, I am not looking...'),
     t('Chỉ nhìn một chút thôi!', 'Just a tiny peek!'),
     t('Ối, suýt thấy mật khẩu rồi!', 'Oops, almost saw your password!'),
+    t('Mình biết bạn đang nhập gì đấy, nhưng mình sẽ giữ bí mật nhé!', 'I know what you are typing, but I will keep it a secret!'),
+    t('Đừng lo, mình sẽ không nói với ai đâu!', 'Don\'t worry, I won\'t tell anyone!'),
   ];
 }
 
@@ -68,5 +75,9 @@ export function getBusyMascotLines(t: (vi: string, en: string) => string): strin
   return [
     t('Đợi chút nhé, đang xử lý...', 'Hang on, processing...'),
     t('Mình cũng hồi hộp lắm!', 'I am nervous too!'),
+    t('Sắp xong rồi, đừng rời mắt nhé!', 'Almost there, don\'t look away!'),
+    t('Mình hy vọng mọi thứ suôn sẻ!', 'I hope everything goes smoothly!'),
+    t('Cảm ơn bạn đã kiên nhẫn chờ đợi!', 'Thank you for patiently waiting!'),
+    t('Nếu mất nhiều thời gian, có thể do mạng hoặc máy chủ đang bận.', 'If it takes a while, it might be due to network or server load.'),
   ];
 }

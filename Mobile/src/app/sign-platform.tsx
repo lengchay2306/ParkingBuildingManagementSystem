@@ -27,7 +27,13 @@ import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useSignMascotInteraction } from '@/hooks/use-sign-mascot-interaction';
 import { useThemePreference } from '@/hooks/theme-preference';
-import { login, register } from '@/lib/auth-api';
+import {
+  login,
+  register,
+  resolvePostLoginRoute,
+  resolveRoleAfterLogin,
+  setStoredPostLoginRoute,
+} from '@/lib/auth-api';
 
 type AuthView = 'login' | 'signup';
 type FocusField = 'loginEmail' | 'loginPassword' | 'signupFullName' | 'signupEmail' | 'signupPassword' | null;
@@ -284,9 +290,12 @@ export default function SignPlatformScreen() {
     setIsSigningIn(true);
     try {
       await login(loginEmail.trim(), loginPassword);
+      const roleName = await resolveRoleAfterLogin();
+      const route = resolvePostLoginRoute(roleName);
+      await setStoredPostLoginRoute(route);
       showToast(t('Đăng nhập thành công', 'Login successful'), 'success');
       setLoginPassword('');
-      router.replace('/dashboard' as never);
+      router.replace(route as never);
     } catch (error) {
       showToast(error instanceof Error ? error.message : t('Không thể đăng nhập', 'Cannot login'), 'error');
     } finally {
