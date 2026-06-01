@@ -8,9 +8,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 const heroImage =
-  'https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=2000&q=80';
+  'Mobile/src/components/pictures/cars_parking.png';
 const sectionImage =
-  'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1600&q=80';
+  'Mobile/src/components/pictures/cars_parking_02.png';
 
 const features = [
   { title: 'Nhanh chong', detail: 'Vao/ra duoi 5 giay' },
@@ -33,7 +33,7 @@ export default function HomeScreen() {
               <View style={styles.navGhost} />
               <ThemedText style={styles.navTitle}>Parking Building System</ThemedText>
               <Pressable
-                onPress={() => router.push('/login' as never)}
+                onPress={() => router.push('/sign-platform' as never)}
                 style={({ pressed }) => [styles.signInButton, pressed && styles.buttonPressed]}>
                 <ThemedText style={styles.signInButtonText}>Dang nhap</ThemedText>
               </Pressable>
@@ -93,7 +93,7 @@ export default function HomeScreen() {
                 Dat cho truoc chi voi vai thao tac. Dam bao co cho ngay khi ban den.
               </ThemedText>
               <Pressable
-                onPress={() => router.push('/login' as never)}
+                onPress={() => router.push('/sign-platform' as never)}
                 style={({ pressed }) => [styles.reserveButton, pressed && styles.buttonPressed]}>
                 <ThemedText style={styles.reserveButtonText}>Dat cho ngay</ThemedText>
               </Pressable>

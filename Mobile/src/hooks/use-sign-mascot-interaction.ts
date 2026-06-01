@@ -1,0 +1,271 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import type { EyeCoverMode } from '@/components/sign-mascot';
+import {
+  emailLengthToLookX,
+  getBusyMascotLines,
+  getEmailFocusLines,
+  getIdleMascotLines,
+  getPasswordCoverLines,
+  getPasswordPeekLines,
+  getSignupNameLines,
+  getWelcomeMascotLines,
+  isValidEmail,
+  pickRandomLine,
+} from '@/lib/sign-mascot-utils';
+
+type FocusField =
+  | 'loginEmail'
+  | 'loginPassword'
+  | 'signupFullName'
+  | 'signupEmail'
+  | 'signupPassword'
+  | null;
+
+type Params = {
+  t: (vi: string, en: string) => string;
+  focusedField: FocusField;
+  activeView: 'login' | 'signup';
+  loginEmail: string;
+  loginPassword: string;
+  signupEmail: string;
+  signupPassword: string;
+  signupFullName: string;
+  isSigningIn: boolean;
+  isSigningUp: boolean;
+};
+
+const SPEECH_MS = 4200;
+const EMAIL_VALIDATE_DEBOUNCE_MS = 500;
+const PASSWORD_TYPING_PAUSE_MS = 520;
+
+export function useSignMascotInteraction({
+  t,
+  focusedField,
+  activeView,
+  loginEmail,
+  loginPassword,
+  signupEmail,
+  signupPassword,
+  signupFullName,
+  isSigningIn,
+  isSigningUp,
+}: Params) {
+  const [mascotSpeech, setMascotSpeech] = useState<string | null>(null);
+  const [isTypingPassword, setIsTypingPassword] = useState(false);
+
+  const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emailValidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const passwordTypingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const randomIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const passwordFieldRef = useRef<FocusField>(null);
+  const loginEmailRef = useRef(loginEmail);
+  const peekSpeechShownRef = useRef(false);
+  const prevBusyRef = useRef(false);
+  const prevActiveViewRef = useRef(activeView);
+
+  useEffect(() => {
+    loginEmailRef.current = loginEmail;
+  }, [loginEmail]);
+
+  const clearSpeechTimer = useCallback(() => {
+    if (speechTimerRef.current) {
+      clearTimeout(speechTimerRef.current);
+      speechTimerRef.current = null;
+    }
+  }, []);
+
+  const showSpeech = useCallback(
+    (line: string, duration = SPEECH_MS) => {
+      setMascotSpeech(line);
+      clearSpeechTimer();
+      speechTimerRef.current = setTimeout(() => {
+        setMascotSpeech(null);
+        speechTimerRef.current = null;
+      }, duration);
+    },
+    [clearSpeechTimer],
+  );
+
+  const isPasswordFocused =
+    focusedField === 'loginPassword' || focusedField === 'signupPassword';
+
+  const lookX = useMemo(() => {
+    if (focusedField === 'loginEmail') return emailLengthToLookX(loginEmail.length);
+    if (focusedField === 'signupEmail') return emailLengthToLookX(signupEmail.length);
+    if (focusedField === 'signupFullName') return emailLengthToLookX(signupFullName.length);
+    return 0;
+  }, [focusedField, loginEmail, signupEmail, signupFullName]);
+
+  const clearPasswordTypingTimer = useCallback(() => {
+    if (passwordTypingStopTimerRef.current) {
+      clearTimeout(passwordTypingStopTimerRef.current);
+      passwordTypingStopTimerRef.current = null;
+    }
+  }, []);
+
+  const lookY = useMemo(
+    () => (isPasswordFocused && isTypingPassword ? 6 : 0),
+    [isPasswordFocused, isTypingPassword],
+  );
+
+  const eyeCover = useMemo((): EyeCoverMode => {
+    if (isSigningIn || isSigningUp) return 'open';
+    if (!isPasswordFocused) return 'open';
+    if (isTypingPassword) return 'peek';
+    return 'covered';
+  }, [isPasswordFocused, isSigningIn, isSigningUp, isTypingPassword]);
+
+  const handlePasswordFocus = useCallback(
+    (field: 'loginPassword' | 'signupPassword') => {
+      passwordFieldRef.current = field;
+      setIsTypingPassword(false);
+      peekSpeechShownRef.current = false;
+      clearPasswordTypingTimer();
+      showSpeech(pickRandomLine(getPasswordCoverLines(t)));
+    },
+    [clearPasswordTypingTimer, showSpeech, t],
+  );
+
+  const handlePasswordBlur = useCallback(() => {
+    passwordFieldRef.current = null;
+    setIsTypingPassword(false);
+    peekSpeechShownRef.current = false;
+    clearPasswordTypingTimer();
+  }, [clearPasswordTypingTimer]);
+
+  const handlePasswordChange = useCallback(
+    (text: string, onChange: (value: string) => void) => {
+      onChange(text);
+      if (!passwordFieldRef.current) return;
+
+      setIsTypingPassword(true);
+      if (!peekSpeechShownRef.current) {
+        peekSpeechShownRef.current = true;
+        showSpeech(pickRandomLine(getPasswordPeekLines(t)), 3200);
+      }
+
+      clearPasswordTypingTimer();
+      passwordTypingStopTimerRef.current = setTimeout(() => {
+        setIsTypingPassword(false);
+        passwordTypingStopTimerRef.current = null;
+      }, PASSWORD_TYPING_PAUSE_MS);
+    },
+    [clearPasswordTypingTimer, showSpeech, t],
+  );
+
+  const validateLoginEmail = useCallback(
+    (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      if (!isValidEmail(trimmed)) {
+        showSpeech(
+          t(
+            'Email không đúng định dạng đâu! Thử lại nhé.',
+            'That email format looks wrong. Please try again.',
+          ),
+        );
+      }
+    },
+    [showSpeech, t],
+  );
+
+  const handleLoginEmailChange = useCallback(
+    (text: string) => {
+      loginEmailRef.current = text;
+      if (emailValidateTimerRef.current) clearTimeout(emailValidateTimerRef.current);
+      emailValidateTimerRef.current = setTimeout(() => {
+        if (focusedField === 'loginEmail') validateLoginEmail(text);
+      }, EMAIL_VALIDATE_DEBOUNCE_MS);
+    },
+    [focusedField, validateLoginEmail],
+  );
+
+  const handleLoginEmailBlur = useCallback(() => {
+    if (emailValidateTimerRef.current) clearTimeout(emailValidateTimerRef.current);
+    validateLoginEmail(loginEmailRef.current);
+  }, [validateLoginEmail]);
+
+  const handleLoginEmailFocus = useCallback(() => {
+    showSpeech(pickRandomLine(getEmailFocusLines(t)), 3600);
+  }, [showSpeech, t]);
+
+  const handleSignupEmailFocus = useCallback(() => {
+    showSpeech(pickRandomLine(getEmailFocusLines(t)), 3600);
+  }, [showSpeech, t]);
+
+  const handleSignupNameFocus = useCallback(() => {
+    showSpeech(pickRandomLine(getSignupNameLines(t)), 3600);
+  }, [showSpeech, t]);
+
+  useEffect(() => {
+    passwordFieldRef.current = isPasswordFocused ? focusedField : null;
+    if (!isPasswordFocused) {
+      setIsTypingPassword(false);
+      peekSpeechShownRef.current = false;
+    }
+  }, [focusedField, isPasswordFocused]);
+
+  useEffect(() => {
+    if (prevActiveViewRef.current !== activeView) {
+      prevActiveViewRef.current = activeView;
+      showSpeech(pickRandomLine(getWelcomeMascotLines(t)), 3800);
+    }
+  }, [activeView, showSpeech, t]);
+
+  useEffect(() => {
+    const busy = isSigningIn || isSigningUp;
+    if (busy && !prevBusyRef.current) {
+      showSpeech(pickRandomLine(getBusyMascotLines(t)), 3600);
+    }
+    prevBusyRef.current = busy;
+  }, [isSigningIn, isSigningUp, showSpeech, t]);
+
+  useEffect(() => {
+    const scheduleIdleLine = () => {
+      randomIdleTimerRef.current = setTimeout(() => {
+        const canSpeak =
+          !isSigningIn &&
+          !isSigningUp &&
+          !isPasswordFocused &&
+          focusedField !== 'loginEmail' &&
+          focusedField !== 'signupEmail';
+
+        if (canSpeak) {
+          showSpeech(pickRandomLine(getIdleMascotLines(t)), 3600);
+        }
+        scheduleIdleLine();
+      }, 16000 + Math.random() * 14000);
+    };
+
+    scheduleIdleLine();
+    return () => {
+      if (randomIdleTimerRef.current) clearTimeout(randomIdleTimerRef.current);
+    };
+  }, [activeView, focusedField, isPasswordFocused, isSigningIn, isSigningUp, showSpeech, t]);
+
+  useEffect(
+    () => () => {
+      clearSpeechTimer();
+      if (emailValidateTimerRef.current) clearTimeout(emailValidateTimerRef.current);
+      clearPasswordTypingTimer();
+      if (randomIdleTimerRef.current) clearTimeout(randomIdleTimerRef.current);
+    },
+    [clearPasswordTypingTimer, clearSpeechTimer],
+  );
+
+  return {
+    mascotSpeech,
+    lookX,
+    lookY,
+    eyeCover,
+    handleLoginEmailChange,
+    handleLoginEmailBlur,
+    handleLoginEmailFocus,
+    handleSignupEmailFocus,
+    handleSignupNameFocus,
+    handlePasswordFocus,
+    handlePasswordBlur,
+    handlePasswordChange,
+  };
+}
