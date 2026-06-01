@@ -5,12 +5,18 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ThemedView } from '@/components/themed-view';
 import { DesignColorPalette, Radius } from '@/constants/design';
 import { useDesignColors } from '@/hooks/use-design-colors';
-import { refreshSession } from '@/lib/auth-api';
+import {
+  getStoredPostLoginRoute,
+  refreshSession,
+  resolvePostLoginRoute,
+  resolveRoleAfterLogin,
+} from '@/lib/auth-api';
 
 export default function IndexRoute() {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'guest'>('loading');
+  const [postLoginRoute, setPostLoginRoute] = useState<'/staff' | '/home_check1'>('/home_check1');
 
   useEffect(() => {
     let isMounted = true;
@@ -19,6 +25,14 @@ export default function IndexRoute() {
       try {
         const isValid = await refreshSession();
         if (isMounted) {
+          if (isValid) {
+            try {
+              const role = await resolveRoleAfterLogin();
+              setPostLoginRoute(resolvePostLoginRoute(role));
+            } catch {
+              setPostLoginRoute(await getStoredPostLoginRoute());
+            }
+          }
           setStatus(isValid ? 'authenticated' : 'guest');
         }
       } catch {
@@ -45,7 +59,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? '/dashboard' : '/sign-platform'} />;
+  return <Redirect href={status === 'authenticated' ? postLoginRoute : '/sign-platform'} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({

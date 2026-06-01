@@ -1,12 +1,16 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import { MaxContentWidth } from '@/constants/theme';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { useProtectedSession } from '@/hooks/use-protected-session';
+import { logout } from '@/lib/auth-api';
 
 const recentSessions = [
   ['SES-19204', '51K-298.74', 'B2-047', 'IN-USE', '00:42'],
@@ -22,10 +26,33 @@ const getQuickActions = (t: (vi: string, en: string) => string) => [
 ];
 
 export default function StaffScreen() {
+  const router = useRouter();
+  const { showToast } = useAppToast();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useProtectedSession();
   const DesignColors = useDesignColors();
   const { t } = useLanguagePreference();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const quickActions = useMemo(() => getQuickActions(t), [t]);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
+      router.replace('/sign-platform' as never);
+    } catch (logoutError) {
+      showToast(
+        logoutError instanceof Error
+          ? logoutError.message
+          : t('Không thể đăng xuất', 'Cannot log out'),
+        'error',
+      );
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -39,6 +66,19 @@ export default function StaffScreen() {
               'One-handed session lookup, exit confirmation, and quick exceptions.',
             )}
           </ThemedText>
+          <Pressable
+            disabled={isLoggingOut}
+            onPress={handleLogout}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && styles.logoutButtonPressed,
+            ]}>
+            {isLoggingOut ? (
+              <ActivityIndicator color={DesignColors.onPrimary} />
+            ) : (
+              <ThemedText style={styles.logoutButtonText}>{t('Đăng xuất', 'Log out')}</ThemedText>
+            )}
+          </Pressable>
         </View>
 
         <View style={styles.card}>
@@ -166,6 +206,24 @@ const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
   subtitle: {
     ...Typography.body,
     color: DesignColors.inkMuted,
+  },
+  logoutButton: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    minWidth: 140,
+    marginTop: Spacing.sm,
+    borderRadius: Radius.md,
+    backgroundColor: DesignColors.primary,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonPressed: {
+    opacity: 0.8,
+  },
+  logoutButtonText: {
+    ...Typography.button,
+    color: DesignColors.onPrimary,
   },
   card: {
     backgroundColor: DesignColors.surface1,

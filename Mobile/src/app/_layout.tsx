@@ -127,7 +127,10 @@ function RootNavigator() {
             <Tabs.Screen name="flow" options={{ title: t('Luồng', 'Flow') }} />
             <Tabs.Screen name="settings" options={{ href: null }} />
             <Tabs.Screen name="manager" options={{ href: null }} />
-            <Tabs.Screen name="staff" options={{ href: null }} />
+            <Tabs.Screen
+              name="staff"
+              options={{ href: null, tabBarStyle: { display: 'none' } }}
+            />
             <Tabs.Screen name="driver" options={{ href: null }} />
             <Tabs.Screen name="admin" options={{ href: null }} />
           </Tabs>
