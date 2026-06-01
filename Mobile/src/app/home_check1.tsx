@@ -64,7 +64,6 @@ export default function HomeScreen() {
       ]),
     );
     pulseLoop.start();
-
     const driftLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(floatDrift, {
@@ -219,6 +218,10 @@ export default function HomeScreen() {
           { width: drawerWidth },
         ]}
       >
+
+        <ThemedText style={{ fontWeight: 'bold' }}>
+            <>{t('Xin chào,', 'Welcome,')} Toi an cut</>
+        </ThemedText>
         <View style={styles.menuList}>
           <Pressable
             onPress={() => {
