@@ -29,6 +29,10 @@ class VehicleRepository {
         const vehicleTypes = await VehicleType.find().lean();
         return vehicleTypes;
     }
+    getVehicleByUserId = async ({ userId }) => {
+        const vehicles = await Vehicle.find({ userId })
+            .populate("vehicleTypeId")
+            .lean();
+        return vehicles;
+    }
 }
-
-export default VehicleRepository;

@@ -55,5 +55,15 @@ class VehicleService {
         }
         return vehicleTypes;
     }
+
+    getVehicleByUserId = async ({ userId }) => {
+        const vehicles = await this.#vehicleRepository.getVehicleByUserId({
+            userId
+        })
+        if (!vehicles || vehicles.length === 0) {
+            throw new NotFoundError("No vehicles found for this user");
+        }
+        return vehicles;
+    }
 }
 export default VehicleService;
