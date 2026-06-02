@@ -28,6 +28,7 @@ import AuthRouter from './src/api/routers/auth.router.js'
 import ParkingRouter from './src/api/routers/parking.router.js'
 import ReservationRouter from './src/api/routers/reservation.router.js'
 import UserRouter from './src/api/routers/user.router.js'
+import VehicleRouter from './src/api/routers/vehicle.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -40,6 +41,7 @@ app.use(`${url}/auth`, AuthRouter)
 app.use(`${url}/parking`, ParkingRouter)
 app.use(`${url}/reservations`, ReservationRouter)
 app.use(`${url}/users`, UserRouter)
+app.use(`${url}/vehicles`, VehicleRouter)
 
 //handle error
 app.use(handleError)
