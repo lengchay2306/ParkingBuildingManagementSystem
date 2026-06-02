@@ -5,6 +5,7 @@ import AuthController from "./src/api/controllers/auth.controller.js";
 import ParkingController from "./src/api/controllers/parking.controller.js";
 import ReservationController from "./src/api/controllers/reservation.controller.js";
 import UserController from "./src/api/controllers/user.controller.js";
+import VehicleController from "./src/api/controllers/vehicle.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -13,6 +14,7 @@ import TokenService from "./src/services/token.service.js";
 import ParkingService from "./src/services/parking.service.js";
 import ReservationService from "./src/services/reservation.service.js";
 import UserService from "./src/services/user.service.js";
+import VehicleService from "./src/services/vehicle.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -20,6 +22,7 @@ import RefreshTokenRepository from "./src/repositories/refreshToken.repository.j
 import RoleRepository from "./src/repositories/role.repository.js";
 import ParkingRepository from "./src/repositories/parking.repository.js";
 import ReservationRepository from "./src/repositories/reservation.repository.js";
+import VehicleRepository from "./src/repositories/vehicle.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
@@ -50,6 +53,9 @@ export function setupContainer({ io, notificationNamespace }) {
         userController: asClass(UserController, {
             lifetime: Lifetime.SCOPED,
         }),
+        vehicleController: asClass(VehicleController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -70,6 +76,9 @@ export function setupContainer({ io, notificationNamespace }) {
         userService: asClass(UserService, {
             lifetime: Lifetime.SCOPED,
         }),
+        vehicleService: asClass(VehicleService, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //repositories
         userRepository: asClass(UserRepository, {
@@ -85,6 +94,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         reservationRepository: asClass(ReservationRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        vehicleRepository: asClass(VehicleRepository, {
             lifetime: Lifetime.SCOPED,
         }),
     })
