@@ -36,3 +36,5 @@ class VehicleRepository {
         return vehicles;
     }
 }
+
+export default VehicleRepository;
