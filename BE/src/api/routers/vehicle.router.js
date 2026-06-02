@@ -112,6 +112,57 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/vehicles/my:
+ *   get:
+ *     summary: Get my vehicles
+ *     description: Get all vehicles belonging to the currently authenticated user.
+ *     tags: [Vehicle]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Vehicles fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicles:
+ *                   - _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                     userId: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                     licensePlate: "51A-12345"
+ *                     vehicleTypeId:
+ *                       _id: "665a1b2c3d4e5f6a7b8c9d01"
+ *                       type: "SEDAN"
+ *                     monthlyCardId: null
+ *                     createdAt: "2026-06-02T10:00:00.000Z"
+ *                     updatedAt: "2026-06-02T10:00:00.000Z"
+ *                   - _id: "665f1b2c3d4e5f6a7b8c9d10"
+ *                     userId: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                     licensePlate: "30A-67890"
+ *                     vehicleTypeId:
+ *                       _id: "665a1b2c3d4e5f6a7b8c9d02"
+ *                       type: "SUV"
+ *                     monthlyCardId: null
+ *                     createdAt: "2026-06-02T11:00:00.000Z"
+ *                     updatedAt: "2026-06-02T11:00:00.000Z"
+ *               message: "Vehicles fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No vehicles found for this user
+ */
+router.get(
+    "/my",
+    authentication,
+    async (req, res, next) => {
+        const vehicleController = req.container.resolve('vehicleController');
+        await vehicleController.getVehicleByUserId(req, res, next);
+    }
+);
+
+/**
+ * @swagger
  * /api/v1/vehicles/{licensePlate}:
  *   get:
  *     summary: Get vehicle by license plate

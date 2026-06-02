@@ -62,5 +62,23 @@ class VehicleController {
             next(error);
         }
     }
+
+    getVehicleByUserId = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const vehicles = await this.#vehicleService.getVehicleByUserId({
+                userId
+            });
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicles,
+                },
+                message: 'Vehicles fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 export default VehicleController;
