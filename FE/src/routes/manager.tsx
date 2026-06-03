@@ -3,12 +3,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { StatusLegend } from "@/components/StatusLegend";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { SlotAvailabilityFilter } from "@/components/SlotAvailabilityFilter";
-import {
-  OccupancyRing,
-  PastelBars,
-  PastelDonut,
-  SparkArea,
-} from "@/components/charts";
+import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
+import { OccupancyRing, PastelBars, PastelDonut, SparkArea } from "@/components/charts";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/manager")({
@@ -26,8 +22,7 @@ export const Route = createFileRoute("/manager")({
       { property: "og:title", content: "Manager Dashboard — PARKOS" },
       {
         property: "og:description",
-        content:
-          "Web command center and mobile alerts for parking facility managers.",
+        content: "Web command center and mobile alerts for parking facility managers.",
       },
     ],
   }),
@@ -45,12 +40,11 @@ function ManagerPage() {
               Role 01 · Facility Manager
             </span>
             <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
-              Web Command Center{" "}
-              <span className="text-muted-foreground">vs.</span> Pocket Alerts
+              Web Command Center <span className="text-muted-foreground">vs.</span> Pocket Alerts
             </h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
-              The web view goes wide and dense. The mobile view distills
-              everything into the next decision the manager has to make.
+              The web view goes wide and dense. The mobile view distills everything into the next
+              decision the manager has to make.
             </p>
           </div>
           <StatusLegend />
@@ -100,9 +94,7 @@ function ManagerPage() {
                       Shift
                     </div>
                     <div className="mt-1 text-sm font-bold">M. Chen</div>
-                    <div className="text-[10px] opacity-70">
-                      14:00 → 22:00 · L1-L4
-                    </div>
+                    <div className="text-[10px] opacity-70">14:00 → 22:00 · L1-L4</div>
                   </div>
                 </aside>
 
@@ -147,18 +139,16 @@ function ManagerPage() {
                           <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                             {k.l}
                           </div>
-                          <div className="mt-1 text-2xl font-bold tracking-tight">
-                            {k.v}
-                          </div>
-                          <div className="mt-1 text-[10px] text-muted-foreground">
-                            {k.d}
-                          </div>
+                          <div className="mt-1 text-2xl font-bold tracking-tight">{k.v}</div>
+                          <div className="mt-1 text-[10px] text-muted-foreground">{k.d}</div>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   <SlotAvailabilityFilter />
+
+                  <UserDirectoryPanel className="mt-6" compact />
 
                   {/* Charts row */}
                   <div className="mt-6 grid grid-cols-3 gap-3">
@@ -178,9 +168,7 @@ function ManagerPage() {
                     </div>
                     <div className="rounded-2xl border border-border bg-card p-5">
                       <div className="text-sm font-bold">Vehicle Mix</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Last 24h
-                      </div>
+                      <div className="text-[10px] text-muted-foreground">Last 24h</div>
                       <div className="mt-3 flex items-center justify-center">
                         <PastelDonut
                           segments={[
@@ -217,15 +205,11 @@ function ManagerPage() {
                       <div className="flex items-end justify-between">
                         <div>
                           <div className="text-sm font-bold">Revenue Trend</div>
-                          <div className="text-[10px] text-muted-foreground">
-                            14-day rolling
-                          </div>
+                          <div className="text-[10px] text-muted-foreground">14-day rolling</div>
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold">$182,940</div>
-                          <div className="text-[10px] font-bold text-status-empty">
-                            ↑ 18.2%
-                          </div>
+                          <div className="text-[10px] font-bold text-status-empty">↑ 18.2%</div>
                         </div>
                       </div>
                       <div className="mt-2">
@@ -238,9 +222,8 @@ function ManagerPage() {
                         AI Insight
                       </div>
                       <p className="mt-2 text-sm leading-snug">
-                        Reroute incoming sedans to{" "}
-                        <span className="font-bold">B3 (Zone C)</span>. B2
-                        predicted 96% by 17:15.
+                        Reroute incoming sedans to <span className="font-bold">B3 (Zone C)</span>.
+                        B2 predicted 96% by 17:15.
                       </p>
                       <div className="mt-4 flex gap-2">
                         <button className="rounded-lg bg-background px-3 py-1.5 text-[11px] font-bold text-foreground">
@@ -273,9 +256,7 @@ function ManagerPage() {
                       <div className="text-base font-bold">Hi, Mara</div>
                     </div>
                     <div className="relative">
-                      <div className="grid size-9 place-items-center rounded-full bg-muted">
-                        🔔
-                      </div>
+                      <div className="grid size-9 place-items-center rounded-full bg-muted">🔔</div>
                       <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-status-full text-[8px] font-bold text-white">
                         3
                       </span>
@@ -306,12 +287,8 @@ function ManagerPage() {
                               className="flex items-center gap-2 rounded-lg bg-card/70 px-2 py-1"
                             >
                               <span className={`size-1.5 rounded-full ${s.c}`} />
-                              <span className="text-[10px] font-semibold">
-                                {s.l}
-                              </span>
-                              <span className="ml-auto text-[10px] font-bold">
-                                {s.v}
-                              </span>
+                              <span className="text-[10px] font-semibold">{s.l}</span>
+                              <span className="ml-auto text-[10px] font-bold">{s.v}</span>
                             </div>
                           ))}
                         </div>
@@ -344,19 +321,12 @@ function ManagerPage() {
                           d: "Staff #41 · 14:38",
                         },
                       ].map((a) => (
-                        <div
-                          key={a.t}
-                          className="rounded-2xl border border-border bg-card p-3"
-                        >
+                        <div key={a.t} className="rounded-2xl border border-border bg-card p-3">
                           <div className="flex items-start gap-2">
-                            <span
-                              className={`mt-1 size-2 rounded-full ${a.c}`}
-                            />
+                            <span className={`mt-1 size-2 rounded-full ${a.c}`} />
                             <div className="min-w-0 flex-1">
                               <div className="text-xs font-bold">{a.t}</div>
-                              <div className="mt-0.5 text-[10px] text-muted-foreground">
-                                {a.d}
-                              </div>
+                              <div className="mt-0.5 text-[10px] text-muted-foreground">{a.d}</div>
                             </div>
                           </div>
                         </div>
@@ -381,9 +351,7 @@ function ManagerPage() {
                       <div
                         key={l}
                         className={`grid place-items-center rounded-xl py-2 text-[10px] font-bold ${
-                          i === 0
-                            ? "bg-foreground text-background"
-                            : "text-muted-foreground"
+                          i === 0 ? "bg-foreground text-background" : "text-muted-foreground"
                         }`}
                       >
                         {l}
