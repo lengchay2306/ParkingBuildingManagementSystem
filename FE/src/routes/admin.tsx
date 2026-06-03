@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
+import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -61,19 +62,18 @@ function AdminPage() {
           <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Role 04 · System Administrator
           </span>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">
-            Control panel
-          </h1>
+          <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Control panel</h1>
           <p className="mt-2 max-w-2xl text-[15px] text-muted-foreground">
-            Accounts, role-based access, AI sensitivity, hardware and tariff
-            policies. One responsive surface for desktop and mobile browsers.
+            Accounts, role-based access, AI sensitivity, hardware and tariff policies. One
+            responsive surface for desktop and mobile browsers.
           </p>
         </header>
 
         <div className="grid gap-3 lg:grid-cols-12">
           {/* Users */}
           <section className="lg:col-span-7">
-            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <UserDirectoryPanel />
+            <div className="hidden overflow-hidden rounded-2xl border border-border bg-card">
               <div className="flex items-center justify-between border-b border-border bg-background/40 px-5 py-3">
                 <div>
                   <div className="text-[13.5px] font-medium">User accounts</div>
@@ -121,8 +121,8 @@ function AdminPage() {
                         s === "Active"
                           ? "bg-status-empty/15 text-status-empty"
                           : s === "Suspended"
-                          ? "bg-status-full/15 text-status-full"
-                          : "bg-status-maintenance/15 text-status-maintenance"
+                            ? "bg-status-full/15 text-status-full"
+                            : "bg-status-maintenance/15 text-status-maintenance"
                       }`}
                     >
                       <span className="size-1.5 rounded-full bg-current" />
@@ -215,10 +215,7 @@ function AdminPage() {
                   ["Riverside Tower", "318 slots · 3 floors", true],
                   ["Old Quarter Lot", "92 slots · L1", false],
                 ].map(([n, d, on]) => (
-                  <div
-                    key={n as string}
-                    className="flex items-center justify-between py-3"
-                  >
+                  <div key={n as string} className="flex items-center justify-between py-3">
                     <div>
                       <div className="text-[13px] font-medium">{n}</div>
                       <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -266,9 +263,7 @@ function AdminPage() {
             <div className="rounded-2xl border border-border bg-card p-5">
               <div className="flex items-center justify-between">
                 <div className="text-[13.5px] font-medium">System health</div>
-                <span className="font-mono text-[10.5px] text-status-empty">
-                  ● all green
-                </span>
+                <span className="font-mono text-[10.5px] text-status-empty">● all green</span>
               </div>
               <div className="mt-3 space-y-2 text-[12px]">
                 {[
@@ -285,9 +280,7 @@ function AdminPage() {
                       <span className={`size-1.5 rounded-full ${c}`} />
                       <span>{k}</span>
                     </div>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {v}
-                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">{v}</span>
                   </div>
                 ))}
               </div>

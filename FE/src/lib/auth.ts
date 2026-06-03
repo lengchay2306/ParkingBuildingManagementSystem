@@ -41,12 +41,14 @@ const getRoleNameFromAccessCookie = createServerFn({ method: "GET" }).handler(as
   }
 });
 
-
 const normalizeRole = (value?: string | null): RoleName | null => {
   if (!value) {
     return null;
   }
   const upper = value.toUpperCase();
+  if (upper === "DRIVER") {
+    return "CUSTOMER";
+  }
   return upper in ROLE_TO_ROUTE ? (upper as RoleName) : null;
 };
 

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getRoleHome, login, requireGuest } from "@/lib/auth";
+import { AuthApiError, registerUser } from "@/services/auth.service";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
@@ -18,10 +20,17 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [registerFullName, setRegisterFullName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerError, setRegisterError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -36,6 +45,67 @@ function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRegisterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRegisterError(null);
+
+    const fullName = registerFullName.trim();
+    const customerEmail = registerEmail.trim();
+    const phone = registerPhone.trim();
+    const customerPassword = registerPassword;
+
+    if (fullName.length < 2 || fullName.length > 30) {
+      setRegisterError("Họ tên phải từ 2 đến 30 kí tự.");
+      return;
+    }
+    if (!/^[0-9]{1,10}$/.test(phone)) {
+      setRegisterError("Số điện thoại chỉ gồm tối đa 10 chữ số.");
+      return;
+    }
+    if (customerPassword.length < 8) {
+      setRegisterError("Mật khẩu phải có ít nhất 8 kí tự.");
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      await registerUser({
+        email: customerEmail,
+        password: customerPassword,
+        fullName,
+        phone,
+      });
+      setEmail(customerEmail);
+      setPassword("");
+      setRegisterPassword("");
+      setMode("login");
+      toast.success("Đăng kí thành công", {
+        description: "Tài khoản Customer đã được tạo. Bạn có thể đăng nhập ngay.",
+      });
+    } catch (err) {
+      if (err instanceof AuthApiError && err.status === 400) {
+        setRegisterError(err.message || "Dữ liệu không hợp lệ hoặc tài khoản đã tồn tại.");
+        return;
+      }
+      setRegisterError(err instanceof Error ? err.message : "Đăng kí thất bại.");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const showLogin = () => {
+    setMode("login");
+    setError(null);
+    setRegisterError(null);
+  };
+
+  const showRegister = () => {
+    setMode("register");
+    setError(null);
+    setRegisterError(null);
+    setRegisterEmail(email);
   };
 
   return (
@@ -62,52 +132,152 @@ function LoginPage() {
           <section className="flex items-center lg:col-span-2">
             <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md">
               <CardHeader className="space-y-1 pb-4">
-                <CardTitle className="text-2xl tracking-tight">Account login</CardTitle>
-                <CardDescription>Sign in to manage parking sessions and reservations.</CardDescription>
+                <CardTitle className="text-2xl tracking-tight">
+                  {mode === "login" ? "Account login" : "Đăng kí tài khoản"}
+                </CardTitle>
+                <CardDescription>
+                  {mode === "login"
+                    ? "Sign in to manage parking sessions and reservations."
+                    : "Tạo tài khoản Customer để sử dụng cổng tài xế."}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="grid gap-5" onSubmit={handleSubmit}>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      className="h-11 rounded-xl"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      className="h-11 rounded-xl"
-                      required
-                    />
-                  </div>
-
-                  {error ? (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {error}
+                {mode === "login" ? (
+                  <form className="grid gap-5" onSubmit={handleSubmit}>
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
                     </div>
-                  ) : null}
 
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="h-11 rounded-xl text-[13px] font-semibold"
-                  >
-                    {isSubmitting ? "Signing in..." : "Sign in"}
-                    {!isSubmitting ? <ArrowRight className="size-4" /> : null}
-                  </Button>
-                </form>
+                    <div className="grid gap-2">
+                      <Label htmlFor="password">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    {error ? (
+                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {error}
+                      </div>
+                    ) : null}
+
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="h-11 rounded-xl text-[13px] font-semibold"
+                    >
+                      {isSubmitting ? "Signing in..." : "Sign in"}
+                      {!isSubmitting ? <ArrowRight className="size-4" /> : null}
+                    </Button>
+
+                    <p className="text-center text-sm text-muted-foreground">
+                      Chưa có tài khoản?{" "}
+                      <button
+                        type="button"
+                        onClick={showRegister}
+                        className="font-semibold text-foreground underline-offset-4 hover:underline"
+                      >
+                        Đăng kí
+                      </button>
+                      .
+                    </p>
+                  </form>
+                ) : (
+                  <form className="grid gap-4" onSubmit={handleRegisterSubmit}>
+                    <div className="grid gap-2">
+                      <Label htmlFor="register-full-name">Họ tên</Label>
+                      <Input
+                        id="register-full-name"
+                        autoComplete="name"
+                        value={registerFullName}
+                        onChange={(event) => setRegisterFullName(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="register-email">Email</Label>
+                      <Input
+                        id="register-email"
+                        type="email"
+                        autoComplete="email"
+                        value={registerEmail}
+                        onChange={(event) => setRegisterEmail(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="register-phone">Số điện thoại</Label>
+                      <Input
+                        id="register-phone"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        value={registerPhone}
+                        onChange={(event) => setRegisterPhone(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="register-password">Mật khẩu</Label>
+                      <Input
+                        id="register-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={registerPassword}
+                        onChange={(event) => setRegisterPassword(event.target.value)}
+                        className="h-11 rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    {registerError ? (
+                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {registerError}
+                      </div>
+                    ) : null}
+
+                    <Button
+                      type="submit"
+                      disabled={isRegistering}
+                      className="h-11 rounded-xl text-[13px] font-semibold"
+                    >
+                      {isRegistering ? "Đang đăng kí..." : "Đăng kí"}
+                      {!isRegistering ? <ArrowRight className="size-4" /> : null}
+                    </Button>
+
+                    <p className="text-center text-sm text-muted-foreground">
+                      Đã có tài khoản?{" "}
+                      <button
+                        type="button"
+                        onClick={showLogin}
+                        className="font-semibold text-foreground underline-offset-4 hover:underline"
+                      >
+                        Đăng nhập
+                      </button>
+                      .
+                    </p>
+                  </form>
+                )}
               </CardContent>
             </Card>
           </section>

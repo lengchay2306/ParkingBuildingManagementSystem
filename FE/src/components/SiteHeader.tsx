@@ -1,18 +1,9 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 
 import { getStoredRole, logout, type RoleName } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-
-const links = [
-  { to: "/", label: "Overview" },
-  { to: "/flow", label: "Flow" },
-  { to: "/manager", label: "Manager" },
-  { to: "/staff", label: "Staff" },
-  { to: "/driver", label: "Driver" },
-  { to: "/admin", label: "Admin" },
-] as const;
 
 const THEME_STORAGE_KEY = "parkos-theme";
 
@@ -25,7 +16,6 @@ export function SiteHeader() {
 
   const isLoginPage = path === "/login";
   const isLoggedIn = !!role;
-  const showNav = !isLoggedIn && !isLoginPage;
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -71,29 +61,7 @@ export function SiteHeader() {
             / Building OS
           </span>
         </Link>
-
-        {showNav ? (
-          <nav className="flex items-center gap-0.5">
-            {links.map((l) => {
-              const active = path === l.to;
-              return (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  className={`rounded-md px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
-                    active
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              );
-            })}
-          </nav>
-        ) : (
-          <div />
-        )}
+        <div />
 
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
@@ -116,7 +84,12 @@ export function SiteHeader() {
               <Link to="/login">Sign in</Link>
             </Button>
           ) : (
-            <Button asChild variant="secondary" size="sm" className="h-8 rounded-full px-4 text-[12px]">
+            <Button
+              asChild
+              variant="secondary"
+              size="sm"
+              className="h-8 rounded-full px-4 text-[12px]"
+            >
               <Link to="/">Back to overview</Link>
             </Button>
           )}
@@ -136,7 +109,7 @@ export function SiteHeader() {
           <div className="hidden items-center gap-2 md:flex">
             <span className="size-1.5 animate-pulse rounded-full bg-status-empty" />
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Live � v4.2
+              Live · v4.2
             </span>
           </div>
         </div>

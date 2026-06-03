@@ -1,4 +1,4 @@
-import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
+﻿import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
@@ -68,12 +68,6 @@ function Index() {
                 >
                   Đăng nhập <ArrowRight className="size-3.5" />
                 </Link>
-                <Link
-                  to="/flow"
-                  className="inline-flex h-10 items-center rounded-md border border-border bg-surface-1 px-5 text-[13px] font-semibold transition-colors hover:bg-surface-2"
-                >
-                  Xem luồng hệ thống
-                </Link>
               </div>
             </div>
           </div>
@@ -84,7 +78,9 @@ function Index() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
               Giới thiệu dự án
             </p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">Tòa nhà đỗ xe thế hệ mới</h2>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
+              Tòa nhà đỗ xe thế hệ mới
+            </h2>
             <p className="mt-4 max-w-xl text-[15px] text-muted-foreground">
               Parking Building System là giải pháp quản lý đỗ xe toàn diện với 1.000+ chỗ trên 10
               tầng. Tích hợp camera AI, cảm biến IoT và ứng dụng di động giúp tài xế tìm chỗ trống
@@ -146,7 +142,9 @@ function Index() {
             </p>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">Địa chỉ</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+              Địa chỉ
+            </p>
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-4 text-primary" />
               123 Nguyễn Văn Linh, Q.7, TP.HCM
