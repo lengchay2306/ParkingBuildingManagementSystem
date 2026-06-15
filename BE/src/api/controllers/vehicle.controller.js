@@ -80,5 +80,47 @@ class VehicleController {
             next(error);
         }
     }
+
+    updateVehicle = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const { vehicleId } = req.params;
+            const updateData = req.body;
+            const updatedVehicle = await this.#vehicleService.updateVehicle({
+                userId,
+                vehicleId,
+                updateData
+            });
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicle: updatedVehicle,
+                },
+                message: 'Vehicle updated successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    softDeleteVehicle = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const { vehicleId } = req.params;
+            const softDeletedVehicle = await this.#vehicleService.softDeleteVehicle({
+                userId,
+                vehicleId
+            });
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicle: softDeletedVehicle,
+                },
+                message: 'Vehicle soft deleted successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
 }
 export default VehicleController;

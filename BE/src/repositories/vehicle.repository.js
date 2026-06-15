@@ -42,6 +42,35 @@ class VehicleRepository {
             .lean();
         return vehicles;
     }
+
+    getVehicleById = async ({ vehicleId }) => {
+        const vehicle = await Vehicle.findById(vehicleId)
+                                    .populate("vehicleTypeId")
+                                    .lean();
+        return vehicle;
+    }
+
+    updateVehicle = async ({ vehicleId, updateData }) => {
+        const updatedVehicle = await Vehicle.findByIdAndUpdate(vehicleId, updateData, { new: true })
+                                            .populate("vehicleTypeId")
+                                            .populate("monthlyCardId")
+                                            .lean();
+        if (!updatedVehicle) {
+            return null;
+        }
+        return updatedVehicle;
+    }
+
+    softDeleteVehicle = async ({ vehicleId }) => {
+        const deletedVehicle = await Vehicle.findByIdAndUpdate(vehicleId, { status: "INACTIVE" }, { new: true })
+                                            .populate("vehicleTypeId")
+                                            .populate("monthlyCardId")
+                                            .lean();
+        if (!deletedVehicle) {
+            return null;
+        }
+        return deletedVehicle;
+    }
 }
 
 export default VehicleRepository;
