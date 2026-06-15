@@ -19,7 +19,7 @@ const router = express.Router();
  *     description: Customer reserves a parking slot. driverId is taken from the authenticated user.
  *     tags: [Reservation]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -87,7 +87,7 @@ router.post(
  *     description: Get all reservations for the authenticated customer. Supports filtering by status.
  *     tags: [Reservation]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: status

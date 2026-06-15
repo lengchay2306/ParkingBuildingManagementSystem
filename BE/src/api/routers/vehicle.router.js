@@ -19,7 +19,7 @@ const router = express.Router();
  *     description: Customer registers a new vehicle with license plate and vehicle type.
  *     tags: [Vehicle]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -81,7 +81,7 @@ router.post(
  *     description: Get the list of all available vehicle types (SEDAN, SUV, MPV, PICKUP).
  *     tags: [Vehicle]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Vehicle types fetched successfully
@@ -120,7 +120,7 @@ router.get(
  *     description: Get all vehicles belonging to the currently authenticated user.
  *     tags: [Vehicle]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Vehicles fetched successfully
@@ -171,7 +171,7 @@ router.get(
  *     description: Look up a vehicle by its license plate number.
  *     tags: [Vehicle]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: licensePlate

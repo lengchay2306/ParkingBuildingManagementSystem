@@ -35,6 +35,14 @@ class UserService {
         }
         return user;
     }
+
+    updateMyProfile = async ({ userId, updateData}) => {
+        const updatedUser = await this.#userRepository.updateUser({ userId, updateData });
+        if (!updatedUser) {
+            throw new NotFoundError("User not found");
+        }
+        return updatedUser;
+    }
 }
 
 export default UserService;
