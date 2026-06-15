@@ -1,4 +1,5 @@
 import User from "../models/User.js"
+import Vehicle from "../models/Vehicle.js"
 
 class UserRepository {
     findUserByEmail = async ({ email }) => {
@@ -26,11 +27,18 @@ class UserRepository {
     findByUserId = async ({ userId }) => {
         const existingUser = await User.findById(userId)
                                         .populate('roleId')
+                                        .select('-password')
                                         .lean();
         if (!existingUser) {
             return null;
         }
 
+        const vehicles = await Vehicle.find({ userId })
+                                        .populate('vehicleTypeId')
+                                        .populate('monthlyCardId')
+                                        .lean();
+
+        existingUser.vehicles = vehicles;
         return existingUser;
     }
 
@@ -94,8 +102,28 @@ class UserRepository {
             User.countDocuments(filter),
         ]);
 
+        const userIds = users.map(u => u._id);
+        const vehicles = await Vehicle.find({ userId: { $in: userIds } })
+                                        .populate('vehicleTypeId')
+                                        .populate('monthlyCardId')
+                                        .lean();
+
+        const vehiclesByUserId = {};
+        for (const vehicle of vehicles) {
+            const key = vehicle.userId.toString();
+            if (!vehiclesByUserId[key]) {
+                vehiclesByUserId[key] = [];
+            }
+            vehiclesByUserId[key].push(vehicle);
+        }
+
+        const usersWithVehicles = users.map(user => ({
+            ...user,
+            vehicles: vehiclesByUserId[user._id.toString()] || [],
+        }));
+
         return {
-            users,
+            users: usersWithVehicles,
             pagination: {
                 page,
                 limit,

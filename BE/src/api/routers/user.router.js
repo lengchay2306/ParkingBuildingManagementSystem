@@ -36,6 +36,13 @@ const router = express.Router();
  *                     _id: "665a1b2c3d4e5f6a7b8c9d0f"
  *                     roleName: "CUSTOMER"
  *                   status: "ACTIVE"
+ *                   vehicles:
+ *                     - _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                       licensePlate: "51A-123.45"
+ *                       vehicleTypeId:
+ *                         _id: "665a1b2c3d4e5f6a7b8c9d01"
+ *                         type: "SEDAN"
+ *                       monthlyCardId: null
  *                   createdAt: "2026-05-20T10:00:00.000Z"
  *                   updatedAt: "2026-05-20T10:00:00.000Z"
  *                 message: "Profile fetched successfully"
@@ -128,6 +135,13 @@ router.get(
  *                       _id: "665a1b2c3d4e5f6a7b8c9d0f"
  *                       roleName: "CUSTOMER"
  *                     status: "ACTIVE"
+ *                     vehicles:
+ *                       - _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                         licensePlate: "51A-123.45"
+ *                         vehicleTypeId:
+ *                           _id: "665a1b2c3d4e5f6a7b8c9d01"
+ *                           type: "SEDAN"
+ *                         monthlyCardId: null
  *                     createdAt: "2026-05-20T10:00:00.000Z"
  *                     updatedAt: "2026-05-20T10:00:00.000Z"
  *                 pagination:
