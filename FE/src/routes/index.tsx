@@ -1,197 +1,172 @@
+﻿import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PARKOS — Parking Building Management System" },
+      { title: "Overview - PARKOS" },
       {
         name: "description",
         content:
-          "A command-center OS for parking buildings. Real-time occupancy, AI routing, driver pre-booking, staff POS and RBAC across web and mobile.",
-      },
-      { property: "og:title", content: "PARKOS — Parking Building Management System" },
-      {
-        property: "og:description",
-        content:
-          "Cross-platform UI for managers, staff, drivers and admins. Linear-grade dark interface.",
+          "PARKOS overview for occupancy, operations health, and real-time parking activity.",
       },
     ],
   }),
   component: Index,
 });
 
-const roles = [
-  {
-    to: "/manager",
-    eyebrow: "Role 01",
-    title: "Facility Manager",
-    desc: "Web command center with live floor grid, revenue, AI routing. Pocket app for priority alerts.",
-    chips: ["Web Dashboard", "Mobile App"],
-  },
-  {
-    to: "/staff",
-    eyebrow: "Role 02",
-    title: "Parking Staff",
-    desc: "Booth POS for plate entry & session creation. Patrol handheld for exits, payments and exceptions.",
-    chips: ["Tablet POS", "Mobile Patrol"],
-  },
-  {
-    to: "/driver",
-    eyebrow: "Role 03",
-    title: "Driver / Customer",
-    desc: "Live session, indoor wayfinding to the assigned slot, QR exit, and a web portal for pre-booking.",
-    chips: ["Mobile App", "Web Portal"],
-  },
-  {
-    to: "/admin",
-    eyebrow: "Role 04",
-    title: "System Administrator",
-    desc: "Account management, RBAC matrix, AI sensitivity, gate hardware and tariff configuration.",
-    chips: ["Responsive Web"],
-  },
+const heroImage =
+  "https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=2400&q=80";
+const sectionImage =
+  "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1800&q=80";
+
+const features = [
+  { icon: Zap, title: "Nhanh chóng", detail: "Vào ra dưới 5 giây" },
+  { icon: Shield, title: "An toàn", detail: "Giám sát 24/7" },
+  { icon: CarFront, title: "Tiện lợi", detail: "Đặt chỗ trước linh hoạt" },
 ];
 
 function Index() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6 pt-20 pb-24">
-        {/* HERO */}
-        <section className="relative">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-status-empty" /> v4.2 · 574 spots live
-          </span>
-          <h1 className="mt-6 max-w-4xl text-[64px] font-semibold leading-[1.05] tracking-[-0.04em] md:text-[80px]">
-            The operating system
-            <br />
-            for parking buildings.
-          </h1>
-          <p className="mt-6 max-w-xl text-[17px] leading-[1.5] text-muted-foreground">
-            PARKOS unifies plate recognition, AI slot routing, payments and
-            patrols into one quiet, dense command surface. Built for the four
-            roles that keep a building moving.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-2">
-            <Link
-              to="/manager"
-              className="rounded-md bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground transition-colors hover:opacity-90"
-            >
-              Open Manager Dashboard →
-            </Link>
-            <Link
-              to="/flow"
-              className="rounded-md border border-border bg-card px-3.5 py-2 text-[13px] font-medium hover:bg-secondary"
-            >
-              View Main Flow
-            </Link>
-          </div>
-
-          {/* Hero panel: live snapshot */}
-          <div className="relative mt-14 overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <div className="flex items-center justify-between border-b border-border bg-background/40 px-5 py-2.5">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-status-empty" />
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  North Plaza · Realtime
-                </span>
-              </div>
-              <span className="font-mono text-[11px] text-muted-foreground">
-                15:42:08 ICT
+      <main>
+        <section className="relative border-b border-border/80">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-30"
+            style={{ backgroundImage: `url(${heroImage})` }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, color-mix(in oklab, var(--background) 42%, transparent), var(--background) 92%)",
+            }}
+            aria-hidden
+          />
+          <div className="relative mx-auto flex min-h-[74vh] w-full max-w-7xl items-center px-6 py-20">
+            <div className="max-w-2xl">
+              <span className="inline-flex rounded-full border border-hairline-strong bg-surface-2/90 px-4 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
+                Smart Parking · 24/7
               </span>
+              <h1 className="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.04em] md:text-6xl">
+                Đỗ xe thông minh,
+                <br />
+                <span className="text-primary">không lo chỗ trống</span>
+              </h1>
+              <p className="mt-5 max-w-xl text-[16px] text-muted-foreground">
+                Hệ thống tòa nhà đỗ xe hiện đại với AI nhận diện biển số, đặt chỗ trực tuyến và
+                thanh toán không tiền mặt.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  to="/login"
+                  className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Đăng nhập <ArrowRight className="size-3.5" />
+                </Link>
+              </div>
             </div>
-            <div className="grid divide-border md:grid-cols-4 md:divide-x">
-              {[
-                { l: "Occupancy", v: "84%", d: "482 / 574", c: "bg-status-empty" },
-                { l: "Today Revenue", v: "$14,204", d: "+12% MoM", c: "bg-primary" },
-                { l: "Avg. Stay", v: "1h 42m", d: "−6m vs week", c: "bg-status-reserved" },
-                { l: "AI Reroutes", v: "127", d: "today", c: "bg-status-maintenance" },
-              ].map((k) => (
-                <div key={k.l} className="p-5">
-                  <div className="flex items-center gap-2">
-                    <span className={`size-1.5 rounded-full ${k.c}`} />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {k.l}
-                    </span>
-                  </div>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight">
-                    {k.v}
-                  </div>
-                  <div className="mt-1 text-[12px] text-muted-foreground">
-                    {k.d}
-                  </div>
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-7xl gap-10 px-6 py-24 lg:grid-cols-[1fr_1.05fr]">
+          <article className="lg:pt-8">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary">
+              Giới thiệu dự án
+            </p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.03em]">
+              Tòa nhà đỗ xe thế hệ mới
+            </h2>
+            <p className="mt-4 max-w-xl text-[15px] text-muted-foreground">
+              Parking Building System là giải pháp quản lý đỗ xe toàn diện với 1.000+ chỗ trên 10
+              tầng. Tích hợp camera AI, cảm biến IoT và ứng dụng di động giúp tài xế tìm chỗ trống
+              trong vài giây.
+            </p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              {features.map((item) => (
+                <div key={item.title} className="rounded-xl border border-border bg-card p-4">
+                  <item.icon className="size-4 text-primary" />
+                  <h3 className="mt-3 text-[15px] font-semibold">{item.title}</h3>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">{item.detail}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </article>
+          <article className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-pop">
+            <div
+              className="h-full min-h-[360px] w-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${sectionImage})` }}
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(180deg, transparent 58%, color-mix(in oklab, var(--background) 76%, transparent))",
+              }}
+              aria-hidden
+            />
+          </article>
         </section>
 
-        {/* ROLES */}
-        <section className="mt-24">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Surfaces
-              </span>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-                Four roles. One canvas.
-              </h2>
-            </div>
-            <span className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground md:inline">
-              Choose a surface →
-            </span>
-          </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
-            {roles.map((r) => (
+        <section className="mx-auto max-w-7xl px-6 pb-24">
+          <article className="rounded-2xl border border-hairline-strong bg-[linear-gradient(100deg,oklch(0.54_0.16_275),oklch(0.5_0.14_255))] px-8 py-14 text-center shadow-pop">
+            <h2 className="text-4xl font-semibold tracking-[-0.03em] md:text-5xl">
+              Sẵn sàng đặt chỗ đỗ xe?
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[15px] text-primary-foreground/90">
+              Đặt chỗ trước chỉ với vài thao tác. Đảm bảo có chỗ ngay khi bạn đến.
+            </p>
+            <div className="mt-8">
               <Link
-                key={r.title}
-                to={r.to}
-                className="group relative bg-card p-7 transition-colors hover:bg-secondary"
+                to="/driver"
+                className="inline-flex h-10 items-center rounded-md bg-primary-foreground px-6 text-[13px] font-semibold text-background transition-opacity hover:opacity-90"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {r.eyebrow}
-                    </span>
-                    <h3 className="mt-2 text-[22px] font-medium tracking-tight">
-                      {r.title}
-                    </h3>
-                  </div>
-                  <span className="font-mono text-[11px] text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground">
-                    →
-                  </span>
-                </div>
-                <p className="mt-3 max-w-md text-[14px] leading-[1.55] text-muted-foreground">
-                  {r.desc}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-1.5">
-                  {r.chips.map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-md border border-border bg-background/60 px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </div>
+                Đặt chỗ ngay
               </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Footer note */}
-        <section className="mt-24 border-t border-border pt-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-[12px] text-muted-foreground">
-            <span className="font-mono uppercase tracking-[0.18em]">
-              © 2026 PARKOS · Building OS
-            </span>
-            <span className="font-mono uppercase tracking-[0.18em]">
-              Design system · Linear-grade dark canvas
-            </span>
-          </div>
+            </div>
+          </article>
         </section>
       </main>
+
+      <footer className="border-t border-border bg-card/40">
+        <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 md:grid-cols-3">
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight">Parking Building System</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Giải pháp đỗ xe thông minh cho đô thị hiện đại.
+            </p>
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-primary">
+              Địa chỉ
+            </p>
+            <p className="flex items-start gap-2">
+              <MapPin className="mt-0.5 size-4 text-primary" />
+              123 Nguyễn Văn Linh, Q.7, TP.HCM
+            </p>
+          </div>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <Phone className="size-4 text-primary" />
+              Hotline: 1900 1234
+            </p>
+            <p className="flex items-center gap-2">
+              <Mail className="size-4 text-primary" />
+              contact@parkingbs.vn
+            </p>
+          </div>
+        </div>
+        <div className="border-t border-border">
+          <p className="mx-auto max-w-7xl px-6 py-5 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            © 2026 Parking Building System. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

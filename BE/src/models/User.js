@@ -19,6 +19,7 @@ const userSchema = mongoose.Schema({
     phone: {
         type: String,
         required: true,
+        unique: true
     },
     roleId: {
         type: mongoose.Schema.Types.ObjectId,
