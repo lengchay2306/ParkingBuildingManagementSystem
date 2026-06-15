@@ -12,7 +12,7 @@ const app = express();
 
 app.use(cors({
     origin: process.env.FRONTEND_URL,
-    credentials: true,
+    credentials: true, //cho phép call cross-site
 }));
 
 app.use(cookieParser())
