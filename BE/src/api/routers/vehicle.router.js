@@ -1,6 +1,6 @@
 import express from 'express';
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
-import { createVehicleSchema, updateVehicleSchema } from '../../validators/vehicle.validator.js';
+import { createVehicleSchema, updateVehicleSchema, adminUpdateVehicleSchema } from '../../validators/vehicle.validator.js';
 
 const router = express.Router();
 
@@ -213,12 +213,12 @@ router.get(
 
 /**
  * @swagger
- * /api/v1/vehicles/{vehicleId}:
+ * /api/v1/vehicles/user-vehicles/{vehicleId}:
  *   put:
- *     summary: Update a vehicle
+ *     summary: Update my vehicle (Customer)
  *     description: |
- *       Update vehicle information. Only the vehicle owner (CUSTOMER) can update.
- *       At least one field must be provided.
+ *       Customer updates their own vehicle information.
+ *       Only the vehicle owner can update. At least one field must be provided.
  *     tags: [Vehicle]
  *     security:
  *       - bearerAuth: []
@@ -261,6 +261,7 @@ router.get(
  *                     _id: "665a1b2c3d4e5f6a7b8c9d02"
  *                     type: "SUV"
  *                   monthlyCardId: null
+ *                   status: "ACTIVE"
  *                   createdAt: "2026-06-02T10:00:00.000Z"
  *                   updatedAt: "2026-06-15T19:00:00.000Z"
  *               message: "Vehicle updated successfully"
@@ -274,13 +275,102 @@ router.get(
  *         description: License plate already exists
  */
 router.put(
-    "/:vehicleId",
+    "/user-vehicles/:vehicleId",
     authentication,
     authorizationByRole(['CUSTOMER']),
     validateData(updateVehicleSchema),
     async (req, res, next) => {
         const vehicleController = req.container.resolve('vehicleController');
         await vehicleController.updateVehicle(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/vehicles/manage/{vehicleId}:
+ *   put:
+ *     summary: Update vehicle by ID (Admin/Manager)
+ *     description: |
+ *       Admin or Manager updates any vehicle's information.
+ *       Can update: licensePlate, vehicleTypeId, monthlyCardId, status.
+ *       At least one field must be provided.
+ *     tags: [Vehicle]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: vehicleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The vehicle ObjectId
+ *         example: "665f1b2c3d4e5f6a7b8c9d0e"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               licensePlate:
+ *                 type: string
+ *                 description: New license plate (format 51A-123.45)
+ *                 example: "51A-999.88"
+ *               vehicleTypeId:
+ *                 type: string
+ *                 description: New vehicle type ObjectId
+ *                 example: "665a1b2c3d4e5f6a7b8c9d02"
+ *               monthlyCardId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Monthly card ObjectId (null to remove)
+ *                 example: "665a1b2c3d4e5f6a7b8c9d03"
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, INACTIVE]
+ *                 description: Vehicle status
+ *                 example: "ACTIVE"
+ *     responses:
+ *       200:
+ *         description: Vehicle updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicle:
+ *                   _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                   userId: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                   licensePlate: "51A-999.88"
+ *                   vehicleTypeId:
+ *                     _id: "665a1b2c3d4e5f6a7b8c9d02"
+ *                     type: "SUV"
+ *                   monthlyCardId:
+ *                     _id: "665a1b2c3d4e5f6a7b8c9d03"
+ *                     cardCode: "MC-2026-001"
+ *                   status: "ACTIVE"
+ *                   createdAt: "2026-06-02T10:00:00.000Z"
+ *                   updatedAt: "2026-06-15T19:00:00.000Z"
+ *               message: "Vehicle updated successfully"
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Vehicle or vehicle type not found
+ *       409:
+ *         description: License plate already exists
+ */
+router.put(
+    "/manage/:vehicleId",
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER']),
+    validateData(adminUpdateVehicleSchema),
+    async (req, res, next) => {
+        const vehicleController = req.container.resolve('vehicleController');
+        await vehicleController.adminUpdateVehicle(req, res, next);
     }
 );
 

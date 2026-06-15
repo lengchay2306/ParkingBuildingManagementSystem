@@ -133,7 +133,7 @@ class UserRepository {
         };
     }
 
-    updateUser = async ({ userId, updateData }) => {
+    updateMyProfile = async ({ userId, updateData }) => {
         const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
                                         .populate('roleId')
                                         .select('-password')
@@ -143,6 +143,17 @@ class UserRepository {
         }
         return updatedUser;
     }
+
+    updateUserById = async ({ userId, updateData }) => {
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
+                                        .populate('roleId')
+                                        .select('-password')
+                                        .lean();
+        if (!updatedUser) {
+            return null;
+        }
+        return updatedUser;
+    };
 }
 
 export default UserRepository
