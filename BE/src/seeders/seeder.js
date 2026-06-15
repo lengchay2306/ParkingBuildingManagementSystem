@@ -343,185 +343,185 @@ const seedData = async () => {
         const availableSlots = createdParkingSlots.filter(s => s.status === "AVAILABLE");
 
         // ===== 9. PARKING SESSIONS =====
-        console.log("Seeding ParkingSessions...");
-        const parkingSessionsData = [
-            {
-                vehicleId: createdVehicles[0]._id,
-                parkingSlotId: usedSlots[0]._id,
-                sessionType: "MONTH",
-                checkInStaffId: staff1._id,
-                checkOutStaffId: null,
-                checkInTime: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-                checkOutTime: null,
-                status: "ACTIVE",
-            },
-            {
-                vehicleId: createdVehicles[1]._id,
-                parkingSlotId: usedSlots[1]._id,
-                sessionType: "DAILY",
-                checkInStaffId: staff1._id,
-                checkOutStaffId: null,
-                checkInTime: new Date(now.getTime() - 2 * 60 * 60 * 1000),
-                checkOutTime: null,
-                status: "ACTIVE",
-            },
-            {
-                vehicleId: createdVehicles[2]._id,
-                parkingSlotId: usedSlots[2]._id,
-                sessionType: "DAILY",
-                checkInStaffId: staff2._id,
-                checkOutStaffId: null,
-                checkInTime: new Date(now.getTime() - 1 * 60 * 60 * 1000),
-                checkOutTime: null,
-                status: "ACTIVE",
-            },
-            {
-                vehicleId: createdVehicles[4]._id,
-                parkingSlotId: usedSlots[3]._id,
-                sessionType: "DAILY",
-                checkInStaffId: staff2._id,
-                checkOutStaffId: null,
-                checkInTime: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-                checkOutTime: null,
-                status: "ACTIVE",
-            },
-            // Completed sessions
-            {
-                vehicleId: createdVehicles[3]._id,
-                parkingSlotId: availableSlots[0]._id,
-                sessionType: "DAILY",
-                checkInStaffId: staff1._id,
-                checkOutStaffId: staff2._id,
-                checkInTime: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-                checkOutTime: new Date(now.getTime() - 20 * 60 * 60 * 1000),
-                status: "COMPLETED",
-            },
-            {
-                vehicleId: createdVehicles[5]._id,
-                parkingSlotId: availableSlots[1]._id,
-                sessionType: "DAILY",
-                checkInStaffId: staff2._id,
-                checkOutStaffId: staff1._id,
-                checkInTime: new Date(now.getTime() - 48 * 60 * 60 * 1000),
-                checkOutTime: new Date(now.getTime() - 44 * 60 * 60 * 1000),
-                status: "COMPLETED",
-            },
-        ];
-        const createdSessions = await ParkingSession.insertMany(parkingSessionsData);
-        console.log(`  Created ${createdSessions.length} parking sessions.`);
+        // console.log("Seeding ParkingSessions...");
+        // const parkingSessionsData = [
+        //     {
+        //         vehicleId: createdVehicles[0]._id,
+        //         parkingSlotId: usedSlots[0]._id,
+        //         sessionType: "MONTH",
+        //         checkInStaffId: staff1._id,
+        //         checkOutStaffId: null,
+        //         checkInTime: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+        //         checkOutTime: null,
+        //         status: "ACTIVE",
+        //     },
+        //     {
+        //         vehicleId: createdVehicles[1]._id,
+        //         parkingSlotId: usedSlots[1]._id,
+        //         sessionType: "DAILY",
+        //         checkInStaffId: staff1._id,
+        //         checkOutStaffId: null,
+        //         checkInTime: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+        //         checkOutTime: null,
+        //         status: "ACTIVE",
+        //     },
+        //     {
+        //         vehicleId: createdVehicles[2]._id,
+        //         parkingSlotId: usedSlots[2]._id,
+        //         sessionType: "DAILY",
+        //         checkInStaffId: staff2._id,
+        //         checkOutStaffId: null,
+        //         checkInTime: new Date(now.getTime() - 1 * 60 * 60 * 1000),
+        //         checkOutTime: null,
+        //         status: "ACTIVE",
+        //     },
+        //     {
+        //         vehicleId: createdVehicles[4]._id,
+        //         parkingSlotId: usedSlots[3]._id,
+        //         sessionType: "DAILY",
+        //         checkInStaffId: staff2._id,
+        //         checkOutStaffId: null,
+        //         checkInTime: new Date(now.getTime() - 4 * 60 * 60 * 1000),
+        //         checkOutTime: null,
+        //         status: "ACTIVE",
+        //     },
+        //     // Completed sessions
+        //     {
+        //         vehicleId: createdVehicles[3]._id,
+        //         parkingSlotId: availableSlots[0]._id,
+        //         sessionType: "DAILY",
+        //         checkInStaffId: staff1._id,
+        //         checkOutStaffId: staff2._id,
+        //         checkInTime: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        //         checkOutTime: new Date(now.getTime() - 20 * 60 * 60 * 1000),
+        //         status: "COMPLETED",
+        //     },
+        //     {
+        //         vehicleId: createdVehicles[5]._id,
+        //         parkingSlotId: availableSlots[1]._id,
+        //         sessionType: "DAILY",
+        //         checkInStaffId: staff2._id,
+        //         checkOutStaffId: staff1._id,
+        //         checkInTime: new Date(now.getTime() - 48 * 60 * 60 * 1000),
+        //         checkOutTime: new Date(now.getTime() - 44 * 60 * 60 * 1000),
+        //         status: "COMPLETED",
+        //     },
+        // ];
+        // const createdSessions = await ParkingSession.insertMany(parkingSessionsData);
+        // console.log(`  Created ${createdSessions.length} parking sessions.`);
 
-        const completedSessions = createdSessions.filter(s => s.status === "COMPLETED");
+        // const completedSessions = createdSessions.filter(s => s.status === "COMPLETED");
 
         // ===== 10. PAYMENTS =====
-        console.log("Seeding Payments...");
-        const paymentsData = [
-            {
-                sessionId: completedSessions[0]._id,
-                monthlyCardId: null,
-                calculatedFee: 80000,
-                additionalFee: 0,
-                total: 80000,
-                paymentMethod: "CASH",
-                status: "PAID",
-                paymentTime: completedSessions[0].checkOutTime,
-            },
-            {
-                sessionId: completedSessions[1]._id,
-                monthlyCardId: null,
-                calculatedFee: 60000,
-                additionalFee: 10000,
-                total: 70000,
-                paymentMethod: "TRANSFER",
-                status: "PAID",
-                paymentTime: completedSessions[1].checkOutTime,
-            },
-            {
-                sessionId: createdSessions[0]._id,
-                monthlyCardId: createdMonthlyCards[0]._id,
-                calculatedFee: 0,
-                additionalFee: 0,
-                total: 0,
-                paymentMethod: "CARD",
-                status: "UNPAID",
-                paymentTime: now,
-            },
-        ];
-        const createdPayments = await Payment.insertMany(paymentsData);
-        console.log(`  Created ${createdPayments.length} payments.`);
+        // console.log("Seeding Payments...");
+        // const paymentsData = [
+        //     {
+        //         sessionId: completedSessions[0]._id,
+        //         monthlyCardId: null,
+        //         calculatedFee: 80000,
+        //         additionalFee: 0,
+        //         total: 80000,
+        //         paymentMethod: "CASH",
+        //         status: "PAID",
+        //         paymentTime: completedSessions[0].checkOutTime,
+        //     },
+        //     {
+        //         sessionId: completedSessions[1]._id,
+        //         monthlyCardId: null,
+        //         calculatedFee: 60000,
+        //         additionalFee: 10000,
+        //         total: 70000,
+        //         paymentMethod: "TRANSFER",
+        //         status: "PAID",
+        //         paymentTime: completedSessions[1].checkOutTime,
+        //     },
+        //     {
+        //         sessionId: createdSessions[0]._id,
+        //         monthlyCardId: createdMonthlyCards[0]._id,
+        //         calculatedFee: 0,
+        //         additionalFee: 0,
+        //         total: 0,
+        //         paymentMethod: "CARD",
+        //         status: "UNPAID",
+        //         paymentTime: now,
+        //     },
+        // ];
+        // const createdPayments = await Payment.insertMany(paymentsData);
+        // console.log(`  Created ${createdPayments.length} payments.`);
 
         // ===== 11. TICKETS =====
-        console.log("Seeding Tickets...");
-        const ticketsData = [
-            {
-                sessionId: completedSessions[0]._id,
-                reporterId: customer2._id,
-                type: "FEEDBACK",
-                description: "Bãi đỗ xe sạch sẽ, nhân viên thân thiện. Rất hài lòng!",
-                resolvedBy: staff1._id,
-                status: "RESOLVED",
-            },
-            {
-                sessionId: completedSessions[1]._id,
-                reporterId: customer3._id,
-                type: "INCIDENT",
-                description: "Xe bị trầy xước ở cửa bên phải khi đỗ tại slot T103.",
-                resolvedBy: null,
-                status: "PENDING",
-            },
-            {
-                sessionId: createdSessions[1]._id,
-                reporterId: customer1._id,
-                type: "FEEDBACK",
-                description: "Đèn tầng 3 bị hỏng, khó quan sát khi đỗ xe.",
-                resolvedBy: null,
-                status: "PENDING",
-            },
-        ];
-        const createdTickets = await Ticket.insertMany(ticketsData);
-        console.log(`  Created ${createdTickets.length} tickets.`);
+        // console.log("Seeding Tickets...");
+        // const ticketsData = [
+        //     {
+        //         sessionId: completedSessions[0]._id,
+        //         reporterId: customer2._id,
+        //         type: "FEEDBACK",
+        //         description: "Bãi đỗ xe sạch sẽ, nhân viên thân thiện. Rất hài lòng!",
+        //         resolvedBy: staff1._id,
+        //         status: "RESOLVED",
+        //     },
+        //     {
+        //         sessionId: completedSessions[1]._id,
+        //         reporterId: customer3._id,
+        //         type: "INCIDENT",
+        //         description: "Xe bị trầy xước ở cửa bên phải khi đỗ tại slot T103.",
+        //         resolvedBy: null,
+        //         status: "PENDING",
+        //     },
+        //     {
+        //         sessionId: createdSessions[1]._id,
+        //         reporterId: customer1._id,
+        //         type: "FEEDBACK",
+        //         description: "Đèn tầng 3 bị hỏng, khó quan sát khi đỗ xe.",
+        //         resolvedBy: null,
+        //         status: "PENDING",
+        //     },
+        // ];
+        // const createdTickets = await Ticket.insertMany(ticketsData);
+        // console.log(`  Created ${createdTickets.length} tickets.`);
 
-        // ===== 12. RESERVATIONS =====
-        console.log("Seeding Reservations...");
-        const reservationsData = [
-            {
-                driverId: customer1._id,
-                vehicleId: createdVehicles[0]._id,
-                parkingSlotId: availableSlots[2]._id,
-                reservedAt: new Date(now.getTime() + 1 * 60 * 60 * 1000),
-                expectedArrival: new Date(now.getTime() + 2 * 60 * 60 * 1000),
-                expiryAt: new Date(now.getTime() + 3 * 60 * 60 * 1000),
-                status: "PENDING",
-            },
-            {
-                driverId: customer2._id,
-                vehicleId: createdVehicles[2]._id,
-                parkingSlotId: availableSlots[3]._id,
-                reservedAt: new Date(now.getTime() - 5 * 60 * 60 * 1000),
-                expectedArrival: new Date(now.getTime() - 4 * 60 * 60 * 1000),
-                expiryAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-                status: "CLAIMED",
-            },
-            {
-                driverId: customer3._id,
-                vehicleId: createdVehicles[4]._id,
-                parkingSlotId: availableSlots[4]._id,
-                reservedAt: new Date(now.getTime() - 48 * 60 * 60 * 1000),
-                expectedArrival: new Date(now.getTime() - 47 * 60 * 60 * 1000),
-                expiryAt: new Date(now.getTime() - 46 * 60 * 60 * 1000),
-                status: "EXPIRED",
-            },
-            {
-                driverId: customer1._id,
-                vehicleId: createdVehicles[1]._id,
-                parkingSlotId: availableSlots[5]._id,
-                reservedAt: new Date(now.getTime() - 10 * 60 * 60 * 1000),
-                expectedArrival: new Date(now.getTime() - 9 * 60 * 60 * 1000),
-                expiryAt: new Date(now.getTime() - 8 * 60 * 60 * 1000),
-                status: "CANCELLED",
-            },
-        ];
-        const createdReservations = await Reservation.insertMany(reservationsData);
-        console.log(`  Created ${createdReservations.length} reservations.`);
+        // // ===== 12. RESERVATIONS =====
+        // console.log("Seeding Reservations...");
+        // const reservationsData = [
+        //     {
+        //         driverId: customer1._id,
+        //         vehicleId: createdVehicles[0]._id,
+        //         parkingSlotId: availableSlots[2]._id,
+        //         reservedAt: new Date(now.getTime() + 1 * 60 * 60 * 1000),
+        //         expectedArrival: new Date(now.getTime() + 2 * 60 * 60 * 1000),
+        //         expiryAt: new Date(now.getTime() + 3 * 60 * 60 * 1000),
+        //         status: "PENDING",
+        //     },
+        //     {
+        //         driverId: customer2._id,
+        //         vehicleId: createdVehicles[2]._id,
+        //         parkingSlotId: availableSlots[3]._id,
+        //         reservedAt: new Date(now.getTime() - 5 * 60 * 60 * 1000),
+        //         expectedArrival: new Date(now.getTime() - 4 * 60 * 60 * 1000),
+        //         expiryAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+        //         status: "CLAIMED",
+        //     },
+        //     {
+        //         driverId: customer3._id,
+        //         vehicleId: createdVehicles[4]._id,
+        //         parkingSlotId: availableSlots[4]._id,
+        //         reservedAt: new Date(now.getTime() - 48 * 60 * 60 * 1000),
+        //         expectedArrival: new Date(now.getTime() - 47 * 60 * 60 * 1000),
+        //         expiryAt: new Date(now.getTime() - 46 * 60 * 60 * 1000),
+        //         status: "EXPIRED",
+        //     },
+        //     {
+        //         driverId: customer1._id,
+        //         vehicleId: createdVehicles[1]._id,
+        //         parkingSlotId: availableSlots[5]._id,
+        //         reservedAt: new Date(now.getTime() - 10 * 60 * 60 * 1000),
+        //         expectedArrival: new Date(now.getTime() - 9 * 60 * 60 * 1000),
+        //         expiryAt: new Date(now.getTime() - 8 * 60 * 60 * 1000),
+        //         status: "CANCELLED",
+        //     },
+        // ];
+        // const createdReservations = await Reservation.insertMany(reservationsData);
+        // console.log(`  Created ${createdReservations.length} reservations.`);
 
         // ===== SUMMARY =====
         console.log("\n========== SEED SUMMARY ==========");
@@ -533,10 +533,10 @@ const seedData = async () => {
         console.log(`  Vehicles:        ${createdVehicles.length}`);
         console.log(`  Floors:          ${createdFloors.length}`);
         console.log(`  ParkingSlots:    ${createdParkingSlots.length}`);
-        console.log(`  ParkingSessions: ${createdSessions.length}`);
-        console.log(`  Payments:        ${createdPayments.length}`);
-        console.log(`  Tickets:         ${createdTickets.length}`);
-        console.log(`  Reservations:    ${createdReservations.length}`);
+        // console.log(`  ParkingSessions: ${createdSessions.length}`);
+        // console.log(`  Payments:        ${createdPayments.length}`);
+        // console.log(`  Tickets:         ${createdTickets.length}`);
+        // console.log(`  Reservations:    ${createdReservations.length}`);
         console.log("===================================");
         console.log("\nAll accounts password: 12345678");
         console.log("\nSeed complete! Exiting...");

@@ -12,6 +12,17 @@ class UserRepository {
         return existingUser;
     }
 
+    findUser = async (filter) => {
+        const existingUser = await User.findOne(filter)
+                                        .populate('roleId')
+                                        .lean();
+
+        if (!existingUser) {
+            return null
+        }
+        return existingUser
+    }
+
     findByUserId = async ({ userId }) => {
         const existingUser = await User.findById(userId)
                                         .populate('roleId')

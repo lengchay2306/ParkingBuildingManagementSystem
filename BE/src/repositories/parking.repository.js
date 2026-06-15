@@ -1,4 +1,5 @@
 import Floor from "../models/Floor.js";
+import ParkingSession from "../models/ParkingSession.js";
 import ParkingSlot from "../models/ParkingSlot.js";
 import VehicleType from "../models/VehicleType.js";
 
@@ -7,6 +8,44 @@ class ParkingRepository {
         return VehicleType.findOne({
             type: vehicleType.toUpperCase(),
         }).lean();
+    }
+
+    findParkingSlot = async (filter) => {
+        const existingParkingSlot = await ParkingSlot.findOne(filter)
+                                                    .populate('floorId')
+                                                    .lean();
+
+        if (!existingParkingSlot) {
+            return null;
+        }
+
+        return existingParkingSlot
+    }
+
+    createNewParkingSession = async ({
+        vehicleId,
+        parkingSlotId,
+        sessionType,
+        checkInUserId,
+        checkInStaffId,
+        checkInTime,
+        status,
+    }) => {
+        const newParkingSession = await ParkingSession.create({
+            vehicleId,
+            parkingSlotId,
+            sessionType,
+            checkInUserId,
+            checkInStaffId,
+            status,
+        }).populate([
+            'vehicleId',
+            'parkingSlotId',
+            'checkInUserId',
+            'checkInStaffId',
+        ]).lean()
+
+        return newParkingSession
     }
 
     getFloorsWithSlots = async ({ floorId, vehicleTypeId, slotStatus }) => {

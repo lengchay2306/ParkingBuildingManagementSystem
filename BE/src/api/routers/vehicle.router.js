@@ -114,7 +114,7 @@ router.get(
 
 /**
  * @swagger
- * /api/v1/vehicles/my:
+ * /api/v1/vehicles/user-vehicles:
  *   get:
  *     summary: Get my vehicles
  *     description: Get all vehicles belonging to the currently authenticated user.
@@ -155,7 +155,7 @@ router.get(
  *         description: No vehicles found for this user
  */
 router.get(
-    "/my",
+    "/user-vehicles",
     authentication,
     async (req, res, next) => {
         const vehicleController = req.container.resolve('vehicleController');
