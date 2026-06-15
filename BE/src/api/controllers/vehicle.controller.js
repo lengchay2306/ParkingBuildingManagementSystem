@@ -103,6 +103,26 @@ class VehicleController {
         }
     }
 
+    adminUpdateVehicle = async (req, res, next) => {
+        try {
+            const { vehicleId } = req.params;
+            const updateData = req.body;
+            const updatedVehicle = await this.#vehicleService.adminUpdateVehicle({
+                vehicleId,
+                updateData
+            });
+            return res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicle: updatedVehicle,
+                },
+                message: 'Vehicle updated successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     softDeleteVehicle = async (req, res, next) => {
         try {
             const { userId } = req.user;

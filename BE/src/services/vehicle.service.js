@@ -102,6 +102,38 @@ class VehicleService {
         return updatedVehicle;
     }
 
+    adminUpdateVehicle = async ({ vehicleId, updateData }) => {
+        const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
+        if (!existingVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        if (updateData.vehicleTypeId) {
+            const checkType = await this.#vehicleRepository.getVehicleTypeById({
+                vehicleTypeId: updateData.vehicleTypeId
+            });
+            if (!checkType) {
+                throw new NotFoundError("Vehicle type not found");
+            }
+        }
+
+        if (updateData.licensePlate) {
+            const duplicate = await this.#vehicleRepository.getVehicleByLicensePlate({
+                licensePlate: updateData.licensePlate
+            });
+            if (duplicate && duplicate._id.toString() !== vehicleId) {
+                throw new ConflictError("License plate already exists");
+            }
+            updateData.licensePlate = updateData.licensePlate.toUpperCase();
+        }
+
+        const updatedVehicle = await this.#vehicleRepository.updateVehicle({
+            vehicleId,
+            updateData
+        });
+        return updatedVehicle;
+    }
+
     softDeleteVehicle = async ({ userId, vehicleId }) => {
         const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
         if (!existingVehicle) {
