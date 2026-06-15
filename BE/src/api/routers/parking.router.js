@@ -21,7 +21,7 @@ const router = express.Router();
  *       All filters are optional and can be combined.
  *     tags: [Parking]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: vehicleType

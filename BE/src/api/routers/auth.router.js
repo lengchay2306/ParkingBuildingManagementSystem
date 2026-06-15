@@ -81,6 +81,8 @@ router.post(
  *   delete:
  *     summary: User logout
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successfully
