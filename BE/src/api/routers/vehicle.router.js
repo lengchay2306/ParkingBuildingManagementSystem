@@ -1,5 +1,6 @@
 import express from 'express';
-import { authentication, authorizationByRole } from '../middleware/middleware.js';
+import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
+import { createVehicleSchema } from '../../validators/vehicle.validator.js';
 
 const router = express.Router();
 
@@ -65,6 +66,7 @@ router.post(
     "/",
     authentication,
     authorizationByRole(['CUSTOMER']),
+    validateData(createVehicleSchema),
     async (req, res, next) => {
         const vehicleController = req.container.resolve('vehicleController');
         await vehicleController.createVehicle(req, res, next);
