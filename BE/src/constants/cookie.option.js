@@ -1,7 +1,7 @@
 export const commonCookieOption = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    secure: process.env.NODE_ENV === 'production',//ma hoa https moi cung cap hoac nhan cookie
+    sameSite: 'None',
     path: "/"
 }
 
