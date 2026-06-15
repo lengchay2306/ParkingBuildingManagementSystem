@@ -73,10 +73,22 @@ router.get(
     "/slots",
     authentication,
     authorizationByRole(['CUSTOMER', 'MANAGER', 'ADMIN', 'STAFF']),
+    //co 4 role de ca 4 thi de? lam` j
     async (req, res, next) => {
         const parkingController = req.container.resolve('parkingController');
         await parkingController.getParkingSlots(req, res, next);
     }
 );
+
+router.post(
+    "/create-parking-session",
+    authentication,
+    authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController');
+
+        await parkingController.createNewParkingSession(req, res, next);
+    }
+)
 
 export default router;

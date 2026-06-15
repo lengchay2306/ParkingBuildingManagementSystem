@@ -21,7 +21,14 @@ class VehicleRepository {
     }
 
     getVehicleByLicensePlate = async ({ licensePlate }) => {
-        const existingVehicle = await Vehicle.findOne({ licensePlate }).lean();
+        const existingVehicle = await Vehicle.findOne({ licensePlate })
+                                            .populate(['vehicleTypeId', "monthlyCardId"])
+                                            .lean();
+
+        if (!existingVehicle) {
+            return null;
+        }
+        
         return existingVehicle;
     }
 

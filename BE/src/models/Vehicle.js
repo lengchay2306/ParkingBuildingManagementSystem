@@ -10,6 +10,7 @@ const vehicleSchema = mongoose.Schema({
         type: String,
         required: true,
         trim: true,
+        unique: true,
     },
     vehicleTypeId: {
         type: mongoose.Schema.Types.ObjectId,

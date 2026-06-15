@@ -29,7 +29,7 @@ class VehicleService {
         }
         const newVehicle = await this.#vehicleRepository.createVehicle({
             userId,
-            licensePlate,
+            licensePlate: licensePlate.toUpperCase(),
             vehicleTypeId
         })
         if (!newVehicle) {
