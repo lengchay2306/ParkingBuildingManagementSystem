@@ -242,12 +242,12 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => {
               setMenuOpen(false);
-              router.push(CUSTOMER_ROUTES.flow);
+              router.push(CUSTOMER_ROUTES.reservations);
             }}
             style={({ pressed }) => [styles.menuItem, styles.menuItemLast, pressed && styles.menuItemPressed]}
           >
-            <Ionicons name="git-network-outline" size={17} color={DesignColors.ink} />
-            <ThemedText style={styles.menuItemText}>{t('Luồng hệ thống', 'System flow')}</ThemedText>
+            <Ionicons name="calendar-outline" size={17} color={DesignColors.ink} />
+            <ThemedText style={styles.menuItemText}>{t('Đặt chỗ', 'Reservations')}</ThemedText>
           </Pressable>
         </View>
 

@@ -7,7 +7,7 @@ export const CUSTOMER_ROUTES = {
   home: '/home_check1',
   homeAlt: '/home_check2',
   parkingMap: '/parking-map',
-  flow: '/flow',
+  reservations: '/reservations',
   profile: '/profile',
   settings: '/settings',
   driver: '/driver',

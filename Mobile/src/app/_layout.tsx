@@ -96,10 +96,10 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(customer)/flow') {
+                if (route.name === '(customer)/reservations') {
                   return (
                     <Ionicons
-                      name={focused ? 'git-network' : 'git-network-outline'}
+                      name={focused ? 'calendar' : 'calendar-outline'}
                       size={iconSize}
                       color={color}
                     />
@@ -139,7 +139,7 @@ function RootNavigator() {
             <Tabs.Screen name="(customer)/home_check1" options={{ title: t('Trang chủ 1', 'Home') }} />
             <Tabs.Screen name="(customer)/home_check2" options={{ title: t('Trang chủ 2', 'Homeless') }} />
             <Tabs.Screen name="(customer)/parking-map" options={{ title: t('Bản đồ', 'Map') }} />
-            <Tabs.Screen name="(customer)/flow" options={{ title: t('Luồng', 'Flow') }} />
+            <Tabs.Screen name="(customer)/reservations" options={{ title: t('Đặt chỗ', 'Reservations') }} />
             <Tabs.Screen name="(customer)/profile" options={{ title: t('Hồ sơ', 'Profile') }} />
             <Tabs.Screen name="(customer)/settings" options={{ href: null }} />
             <Tabs.Screen name="(manager)/manager" options={{ href: null }} />
