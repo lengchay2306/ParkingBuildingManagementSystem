@@ -51,6 +51,7 @@ import {
   getVehicleByLicensePlate,
   getMyVehicles,
   getVehicleTypes,
+  updateMyVehicle,
   type Vehicle,
   type VehicleType,
 } from "@/services/vehicle.service";
@@ -208,6 +209,11 @@ function DriverPage() {
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editProfileError, setEditProfileError] = useState<string | null>(null);
+  const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [editVehicleLicensePlate, setEditVehicleLicensePlate] = useState("");
+  const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
+  const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   useEffect(() => {
     setHasMounted(true);
   }, []);
@@ -241,6 +247,25 @@ function DriverPage() {
     },
     onError: (error) => {
       setVehicleFormError(getErrorMessage(error, "Unable to register vehicle."));
+    },
+  });
+  const updateVehicleMutation = useMutation({
+    mutationFn: ({ vehicleId, payload }: { vehicleId: string; payload: { licensePlate?: string; vehicleTypeId?: string } }) =>
+      updateMyVehicle(vehicleId, payload),
+    onSuccess: async (updatedVehicle) => {
+      setEditVehicleError(null);
+      setIsEditVehicleOpen(false);
+      setEditingVehicle(null);
+      setEditVehicleLicensePlate("");
+      setEditVehicleTypeId("");
+      setLookupVehicle((previous) => (previous?._id === updatedVehicle._id ? updatedVehicle : previous));
+      toast.success("Vehicle updated", {
+        description: `${updatedVehicle.licensePlate} has been updated.`,
+      });
+      await queryClient.invalidateQueries({ queryKey: myVehiclesQueryKey });
+    },
+    onError: (error) => {
+      setEditVehicleError(getErrorMessage(error, "Unable to update vehicle."));
     },
   });
   const lookupVehicleMutation = useMutation({
@@ -333,6 +358,66 @@ function DriverPage() {
 
     setLookupPlate(normalizedPlate);
     lookupVehicleMutation.mutate(normalizedPlate);
+  };
+
+  const handleEditVehicleOpenChange = (open: boolean) => {
+    setIsEditVehicleOpen(open);
+    if (!open) {
+      setEditingVehicle(null);
+      setEditVehicleError(null);
+      setEditVehicleLicensePlate("");
+      setEditVehicleTypeId("");
+    }
+  };
+
+  const handleStartEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setEditVehicleError(null);
+    setEditVehicleLicensePlate(vehicle.licensePlate);
+    setEditVehicleTypeId(getVehicleTypeId(vehicle) ?? "");
+    setIsEditVehicleOpen(true);
+
+    if (vehicleTypes.length === 0 && !vehicleTypesQuery.isFetching) {
+      void vehicleTypesQuery.refetch();
+    }
+  };
+
+  const handleEditVehicleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingVehicle) {
+      return;
+    }
+    setEditVehicleError(null);
+
+    const normalizedPlate = editVehicleLicensePlate.trim().replace(/\s+/g, " ").toUpperCase();
+    if (normalizedPlate.length < 4) {
+      setEditVehicleError("Enter a valid license plate.");
+      return;
+    }
+    if (!editVehicleTypeId) {
+      setEditVehicleError("Choose a vehicle type.");
+      return;
+    }
+
+    const payload: { licensePlate?: string; vehicleTypeId?: string } = {};
+    if (normalizedPlate !== editingVehicle.licensePlate.toUpperCase()) {
+      payload.licensePlate = normalizedPlate;
+    }
+
+    const currentVehicleTypeId = getVehicleTypeId(editingVehicle);
+    if (editVehicleTypeId !== currentVehicleTypeId) {
+      payload.vehicleTypeId = editVehicleTypeId;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setEditVehicleError("You have not changed any vehicle data.");
+      return;
+    }
+
+    updateVehicleMutation.mutate({
+      vehicleId: editingVehicle._id,
+      payload,
+    });
   };
 
   const vehicleListError = vehiclesQuery.error
@@ -813,6 +898,75 @@ function DriverPage() {
             </div>
           ) : null}
 
+          <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
+            <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit vehicle</DialogTitle>
+                <DialogDescription>Update the license plate or vehicle type.</DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleEditVehicleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-vehicle-license-plate">License plate</Label>
+                  <Input
+                    id="edit-vehicle-license-plate"
+                    value={editVehicleLicensePlate}
+                    onChange={(event) => setEditVehicleLicensePlate(event.target.value.toUpperCase())}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    inputMode="text"
+                    placeholder="51A-12345"
+                    className="h-11 rounded-xl font-mono tracking-wide"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-vehicle-type">Vehicle type</Label>
+                  <Select
+                    value={editVehicleTypeId}
+                    onValueChange={setEditVehicleTypeId}
+                    disabled={vehicleTypesQuery.isLoading && vehicleTypes.length === 0}
+                  >
+                    <SelectTrigger id="edit-vehicle-type" className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicleTypes.map((type) => (
+                        <SelectItem key={type._id} value={type._id}>
+                          {type.type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editVehicleError ? (
+                  <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {editVehicleError}
+                  </div>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  disabled={updateVehicleMutation.isPending}
+                  className="h-11 w-full rounded-xl text-[13px] font-semibold"
+                >
+                  {updateVehicleMutation.isPending ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4" />
+                      Save changes
+                    </>
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-background/35">
             {vehiclesQuery.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
@@ -841,10 +995,22 @@ function DriverPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
-                    <CheckCircle2 className="size-3.5" />
-                    {vehicle.monthlyCardId ? "Monthly card" : "Registered"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
+                      <CheckCircle2 className="size-3.5" />
+                      {vehicle.monthlyCardId ? "Monthly card" : "Registered"}
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleStartEditVehicle(vehicle)}
+                      className="size-8 rounded-lg"
+                      aria-label={`Edit ${vehicle.licensePlate}`}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -1015,6 +1181,16 @@ function getVehicleTypeName(vehicle: Vehicle, vehicleTypes: VehicleType[]) {
 
   const matchedType = vehicleTypes.find((type) => type._id === vehicle.vehicleTypeId);
   return matchedType?.type ?? "Vehicle";
+}
+
+function getVehicleTypeId(vehicle: Vehicle): string | null {
+  if (typeof vehicle.vehicleTypeId === "object" && vehicle.vehicleTypeId?._id) {
+    return vehicle.vehicleTypeId._id;
+  }
+  if (typeof vehicle.vehicleTypeId === "string") {
+    return vehicle.vehicleTypeId;
+  }
+  return null;
 }
 
 function getProfileRoleName(profile: UserProfile) {
