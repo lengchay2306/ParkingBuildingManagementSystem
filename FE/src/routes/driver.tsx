@@ -12,9 +12,11 @@ import {
   Mail,
   MapPin,
   MessageSquareWarning,
+  Pencil,
   Phone,
   Plus,
   RefreshCw,
+  Save,
   Search,
   ShieldCheck,
   Timer,
@@ -52,7 +54,7 @@ import {
   type Vehicle,
   type VehicleType,
 } from "@/services/vehicle.service";
-import { getMyProfile, type UserProfile } from "@/services/user.service";
+import { getMyProfile, updateMyProfile, type UserProfile } from "@/services/user.service";
 
 export const Route = createFileRoute("/driver")({
   beforeLoad: async () => {
@@ -201,6 +203,10 @@ function DriverPage() {
   const [lookupVehicle, setLookupVehicle] = useState<Vehicle | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editProfileError, setEditProfileError] = useState<string | null>(null);
   const canFetchVehicles = typeof window !== "undefined";
 
   const profileQuery = useQuery({
@@ -243,6 +249,21 @@ function DriverPage() {
     onError: (error) => {
       setLookupVehicle(null);
       setLookupError(getErrorMessage(error, "Vehicle not found."));
+    },
+  });
+  const updateProfileMutation = useMutation({
+    mutationFn: updateMyProfile,
+    onSuccess: async (updatedUser) => {
+      setEditProfileError(null);
+      setIsEditProfileOpen(false);
+      queryClient.setQueryData(myProfileQueryKey, updatedUser);
+      await queryClient.invalidateQueries({ queryKey: myProfileQueryKey });
+      toast.success("Cập nhật thành công", {
+        description: "Thông tin hồ sơ của bạn đã được cập nhật.",
+      });
+    },
+    onError: (error) => {
+      setEditProfileError(getErrorMessage(error, "Không thể cập nhật hồ sơ."));
     },
   });
 
@@ -338,6 +359,47 @@ function DriverPage() {
     }
   };
 
+  const handleEditProfileOpenChange = (open: boolean) => {
+    setIsEditProfileOpen(open);
+    if (open) {
+      setEditProfileError(null);
+      setEditFullName(profile?.fullName ?? "");
+      setEditPhone(profile?.phone ?? "");
+    }
+  };
+
+  const handleEditProfileSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setEditProfileError(null);
+
+    const fullName = editFullName.trim();
+    const phone = editPhone.trim();
+
+    if (fullName.length < 2 || fullName.length > 30) {
+      setEditProfileError("Họ tên phải từ 2 đến 30 kí tự.");
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(phone)) {
+      setEditProfileError("Số điện thoại phải gồm đúng 10 chữ số.");
+      return;
+    }
+
+    const payload: { fullName?: string; phone?: string } = {};
+    if (fullName !== profile?.fullName) {
+      payload.fullName = fullName;
+    }
+    if (phone !== profile?.phone) {
+      payload.phone = phone;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setEditProfileError("Bạn chưa thay đổi thông tin nào.");
+      return;
+    }
+
+    updateProfileMutation.mutate(payload);
+  };
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -378,6 +440,7 @@ function DriverPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2">
             <Dialog open={isProfileOpen} onOpenChange={handleProfileOpenChange}>
               <DialogTrigger asChild>
                 <button
@@ -478,6 +541,85 @@ function DriverPage() {
                 ) : null}
               </DialogContent>
             </Dialog>
+
+            <Dialog open={isEditProfileOpen} onOpenChange={handleEditProfileOpenChange}>
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  disabled={!profile}
+                  className="h-[42px] rounded-xl px-4 text-sm font-semibold"
+                >
+                  <Pencil className="size-4" />
+                  Edit profile
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Cập nhật họ tên và số điện thoại của bạn.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <form onSubmit={handleEditProfileSubmit} className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-profile-full-name">Họ tên</Label>
+                    <Input
+                      id="edit-profile-full-name"
+                      value={editFullName}
+                      onChange={(event) => setEditFullName(event.target.value)}
+                      className="h-11 rounded-xl"
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-profile-phone">Số điện thoại</Label>
+                    <div className="relative">
+                      <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="edit-profile-phone"
+                        value={editPhone}
+                        onChange={(event) =>
+                          setEditPhone(event.target.value.replace(/[^0-9]/g, ""))
+                        }
+                        className="h-11 rounded-xl pl-9"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        maxLength={10}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {editProfileError ? (
+                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {editProfileError}
+                    </div>
+                  ) : null}
+
+                  <Button
+                    type="submit"
+                    disabled={updateProfileMutation.isPending}
+                    className="h-11 w-full rounded-xl text-[13px] font-semibold"
+                  >
+                    {updateProfileMutation.isPending ? (
+                      <>
+                        <LoaderCircle className="size-4 animate-spin" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="size-4" />
+                        Lưu thay đổi
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">

@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { StatusLegend } from "@/components/StatusLegend";
-import { PhoneFrame } from "@/components/PhoneFrame";
 import { SlotAvailabilityFilter } from "@/components/SlotAvailabilityFilter";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
-import { OccupancyRing, PastelBars, PastelDonut, SparkArea } from "@/components/charts";
+import { PastelBars, PastelDonut, SparkArea } from "@/components/charts";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/manager")({
@@ -50,9 +49,9 @@ function ManagerPage() {
           <StatusLegend />
         </header>
 
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-8">
           {/* WEB DASHBOARD */}
-          <section className="lg:col-span-8">
+          <section>
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
               <div className="flex h-[820px]">
                 {/* Sidebar */}
@@ -240,126 +239,6 @@ function ManagerPage() {
               <div className="border-t border-border bg-background/40 p-2 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Web Dashboard · 1440px
               </div>
-            </div>
-          </section>
-
-          {/* MOBILE */}
-          <section className="lg:col-span-4">
-            <div className="sticky top-24 flex flex-col items-center">
-              <PhoneFrame label="Mobile App · Manager Mode">
-                <div className="flex h-full flex-col bg-background">
-                  <div className="px-5 pt-12 pb-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                        Wed · 15:42
-                      </div>
-                      <div className="text-base font-bold">Hi, Mara</div>
-                    </div>
-                    <div className="relative">
-                      <div className="grid size-9 place-items-center rounded-full bg-muted">🔔</div>
-                      <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-status-full text-[8px] font-bold text-white">
-                        3
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="px-5">
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-pastel-lavender via-pastel-pink to-pastel-peach p-4">
-                      <div className="font-mono text-[9px] uppercase tracking-widest opacity-70">
-                        North Plaza · Live
-                      </div>
-                      <div className="mt-2 flex items-end justify-between">
-                        <OccupancyRing
-                          percent={84}
-                          size={120}
-                          thickness={12}
-                          label="84%"
-                          sub="482/574"
-                        />
-                        <div className="space-y-2">
-                          {[
-                            { l: "Empty", v: "92", c: "bg-status-empty" },
-                            { l: "Full", v: "482", c: "bg-status-full" },
-                            { l: "Maint", v: "6", c: "bg-status-maintenance" },
-                          ].map((s) => (
-                            <div
-                              key={s.l}
-                              className="flex items-center gap-2 rounded-lg bg-card/70 px-2 py-1"
-                            >
-                              <span className={`size-1.5 rounded-full ${s.c}`} />
-                              <span className="text-[10px] font-semibold">{s.l}</span>
-                              <span className="ml-auto text-[10px] font-bold">{s.v}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex-1 overflow-y-auto px-5 pb-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <h4 className="text-xs font-bold">Priority Alerts</h4>
-                      <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                        3 new
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      {[
-                        {
-                          c: "bg-status-full",
-                          t: "B2 reaching capacity",
-                          d: "Predicted 96% in 18m · reroute active",
-                        },
-                        {
-                          c: "bg-status-error",
-                          t: "Sensor B2-008 offline",
-                          d: "Last ping 6 min ago · dispatch tech",
-                        },
-                        {
-                          c: "bg-status-maintenance",
-                          t: "Gate 3 manual override",
-                          d: "Staff #41 · 14:38",
-                        },
-                      ].map((a) => (
-                        <div key={a.t} className="rounded-2xl border border-border bg-card p-3">
-                          <div className="flex items-start gap-2">
-                            <span className={`mt-1 size-2 rounded-full ${a.c}`} />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-bold">{a.t}</div>
-                              <div className="mt-0.5 text-[10px] text-muted-foreground">{a.d}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 rounded-2xl bg-foreground p-3 text-background">
-                      <div className="font-mono text-[9px] uppercase tracking-widest opacity-60">
-                        AI · Next 2h
-                      </div>
-                      <div className="mt-1 text-xs font-semibold leading-snug">
-                        Open B3 reserve overflow at 17:00 to absorb +120 cars.
-                      </div>
-                      <button className="mt-2 w-full rounded-lg bg-background py-1.5 text-[10px] font-bold text-foreground">
-                        Schedule
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mx-5 mb-4 grid grid-cols-4 gap-1 rounded-2xl bg-card p-1 shadow-soft">
-                    {["Home", "Floors", "Revenue", "More"].map((l, i) => (
-                      <div
-                        key={l}
-                        className={`grid place-items-center rounded-xl py-2 text-[10px] font-bold ${
-                          i === 0 ? "bg-foreground text-background" : "text-muted-foreground"
-                        }`}
-                      >
-                        {l}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </PhoneFrame>
             </div>
           </section>
         </div>

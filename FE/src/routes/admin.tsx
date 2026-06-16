@@ -20,15 +20,6 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-const users = [
-  ["M. Chen", "Staff", "Booth 03", "Active", "now"],
-  ["Mara N.", "Manager", "North Plaza", "Active", "12m"],
-  ["A. Tran", "Driver", "—", "Active", "1h"],
-  ["K. Pham", "Staff", "Patrol L1", "On break", "3m"],
-  ["V. Le", "Admin", "HQ", "Active", "now"],
-  ["T. Nguyen", "Staff", "Booth 01", "Suspended", "2d"],
-];
-
 const perms = [
   "View dashboard",
   "Open session",
@@ -73,68 +64,6 @@ function AdminPage() {
           {/* Users */}
           <section className="lg:col-span-7">
             <UserDirectoryPanel />
-            <div className="hidden overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-center justify-between border-b border-border bg-background/40 px-5 py-3">
-                <div>
-                  <div className="text-[13.5px] font-medium">User accounts</div>
-                  <div className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-                    248 active · 12 suspended
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  <button className="rounded-md border border-border bg-card px-2.5 py-1.5 text-[12px] font-medium hover:bg-secondary">
-                    Invite
-                  </button>
-                  <button className="rounded-md bg-primary px-2.5 py-1.5 text-[12px] font-medium text-primary-foreground">
-                    + New user
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-[1.4fr_0.8fr_1fr_0.8fr_0.6fr] gap-2 border-b border-border bg-background/30 px-5 py-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-                <span>User</span>
-                <span>Role</span>
-                <span>Assignment</span>
-                <span>Status</span>
-                <span className="text-right">Seen</span>
-              </div>
-              <div className="divide-y divide-border">
-                {users.map(([n, r, a, s, t]) => (
-                  <div
-                    key={n}
-                    className="grid grid-cols-[1.4fr_0.8fr_1fr_0.8fr_0.6fr] items-center gap-2 px-5 py-2.5 text-[13px] hover:bg-secondary/50"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid size-7 place-items-center rounded-full bg-secondary font-mono text-[11px] font-semibold">
-                        {n
-                          .split(" ")
-                          .map((p) => p[0])
-                          .join("")}
-                      </div>
-                      <span className="font-medium">{n}</span>
-                    </div>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                      {r}
-                    </span>
-                    <span className="text-muted-foreground">{a}</span>
-                    <span
-                      className={`inline-flex w-fit items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] ${
-                        s === "Active"
-                          ? "bg-status-empty/15 text-status-empty"
-                          : s === "Suspended"
-                            ? "bg-status-full/15 text-status-full"
-                            : "bg-status-maintenance/15 text-status-maintenance"
-                      }`}
-                    >
-                      <span className="size-1.5 rounded-full bg-current" />
-                      {s}
-                    </span>
-                    <span className="text-right font-mono text-[11px] text-muted-foreground">
-                      {t}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             {/* RBAC matrix */}
             <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">
