@@ -19,6 +19,19 @@ const swaggerOptions = {
                 description: 'Production server',
             }] : []),
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Enter your access token (obtained from /api/v1/auth/login)',
+                },
+            },
+        },
+        security: [
+            { bearerAuth: [] },
+        ],
     },
     apis: ['./src/api/routers/*.js'],
 };

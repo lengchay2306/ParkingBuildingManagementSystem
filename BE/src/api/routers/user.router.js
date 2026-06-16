@@ -1,5 +1,6 @@
 import express from 'express';
-import { authentication, authorizationByRole } from '../middleware/middleware.js';
+import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
+import { updateMyProfileSchema, updateUserByIdSchema } from '../../validators/user.validator.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const router = express.Router();
  *     description: Get the profile of the currently authenticated user.
  *     tags: [User]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Profile fetched successfully
@@ -36,6 +37,13 @@ const router = express.Router();
  *                     _id: "665a1b2c3d4e5f6a7b8c9d0f"
  *                     roleName: "CUSTOMER"
  *                   status: "ACTIVE"
+ *                   vehicles:
+ *                     - _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                       licensePlate: "51A-123.45"
+ *                       vehicleTypeId:
+ *                         _id: "665a1b2c3d4e5f6a7b8c9d01"
+ *                         type: "SEDAN"
+ *                       monthlyCardId: null
  *                   createdAt: "2026-05-20T10:00:00.000Z"
  *                   updatedAt: "2026-05-20T10:00:00.000Z"
  *                 message: "Profile fetched successfully"
@@ -65,7 +73,7 @@ router.get(
  *       Only accessible by ADMIN and MANAGER.
  *     tags: [User]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -128,6 +136,13 @@ router.get(
  *                       _id: "665a1b2c3d4e5f6a7b8c9d0f"
  *                       roleName: "CUSTOMER"
  *                     status: "ACTIVE"
+ *                     vehicles:
+ *                       - _id: "665f1b2c3d4e5f6a7b8c9d0e"
+ *                         licensePlate: "51A-123.45"
+ *                         vehicleTypeId:
+ *                           _id: "665a1b2c3d4e5f6a7b8c9d01"
+ *                           type: "SEDAN"
+ *                         monthlyCardId: null
  *                     createdAt: "2026-05-20T10:00:00.000Z"
  *                     updatedAt: "2026-05-20T10:00:00.000Z"
  *                 pagination:
@@ -148,6 +163,152 @@ router.get(
     async (req, res, next) => {
         const userController = req.container.resolve('userController');
         await userController.getAllUser(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/users/my-profile:
+ *   put:
+ *     summary: Update my profile
+ *     description: Update the profile of the currently authenticated user. At least one field must be provided.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 30
+ *                 example: "Nguyen Van B"
+ *               phone:
+ *                 type: string
+ *                 pattern: "^[0-9]{10}$"
+ *                 example: "0901234568"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 user:
+ *                   _id: "665a1b2c3d4e5f6a7b8c9d0e"
+ *                   email: "user@example.com"
+ *                   fullName: "Nguyen Van B"
+ *                   phone: "0901234568"
+ *                   roleId:
+ *                     _id: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                     roleName: "CUSTOMER"
+ *                   status: "ACTIVE"
+ *                   createdAt: "2026-05-20T10:00:00.000Z"
+ *                   updatedAt: "2026-06-15T10:00:00.000Z"
+ *               message: "Profile updated successfully"
+ *       400:
+ *         description: Validation error - invalid data or no fields provided
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.put(
+    "/my-profile",
+    authentication,
+    validateData(updateMyProfileSchema),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.updateMyProfile(req, res, next);
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}:
+ *   put:
+ *     summary: Update user by ID (Admin/Manager)
+ *     description: |
+ *       Update any user's information by their ID.
+ *       Only accessible by ADMIN and MANAGER.
+ *       Can update: fullName, phone, status, roleId.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The user ObjectId
+ *         example: "665a1b2c3d4e5f6a7b8c9d0e"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 30
+ *                 example: "Nguyen Van C"
+ *               phone:
+ *                 type: string
+ *                 pattern: "^[0-9]{10}$"
+ *                 example: "0901234599"
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, LOCKED]
+ *                 example: "LOCKED"
+ *               roleId:
+ *                 type: string
+ *                 description: Role ObjectId
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 user:
+ *                   _id: "665a1b2c3d4e5f6a7b8c9d0e"
+ *                   email: "user@example.com"
+ *                   fullName: "Nguyen Van C"
+ *                   phone: "0901234599"
+ *                   roleId:
+ *                     _id: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                     roleName: "CUSTOMER"
+ *                   status: "LOCKED"
+ *                   createdAt: "2026-05-20T10:00:00.000Z"
+ *                   updatedAt: "2026-06-15T19:00:00.000Z"
+ *               message: "User updated successfully"
+ *       400:
+ *         description: Validation error or no fields provided
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: User or Role not found
+ */
+router.put(
+    "/:userId",
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER']),
+    validateData(updateUserByIdSchema),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.updateUserById(req, res, next);
     }
 );
 

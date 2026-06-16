@@ -105,7 +105,7 @@ class AuthService {
         } = await this.#tokenService.generateToken({
             userId: user._id,
             fullName: user.fullName,
-            roleId: user.roleId,
+            roleId: user.roleId._id,
             roleName: user.roleId.roleName,
             deviceId: decode.deviceId,
         })

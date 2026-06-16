@@ -65,5 +65,94 @@ class VehicleService {
         }
         return vehicles;
     }
+
+    updateVehicle = async ({ userId, vehicleId, updateData }) => {
+        const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
+        if (!existingVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        if (existingVehicle.userId.toString() !== userId) {
+            throw new BadRequestError("You can only update your own vehicle");
+        }
+
+        if (updateData.vehicleTypeId) {
+            const checkType = await this.#vehicleRepository.getVehicleTypeById({
+                vehicleTypeId: updateData.vehicleTypeId
+            });
+            if (!checkType) {
+                throw new NotFoundError("Vehicle type not found");
+            }
+        }
+
+        if (updateData.licensePlate) {
+            const duplicate = await this.#vehicleRepository.getVehicleByLicensePlate({
+                licensePlate: updateData.licensePlate
+            });
+            if (duplicate && duplicate._id.toString() !== vehicleId) {
+                throw new ConflictError("License plate already exists");
+            }
+            updateData.licensePlate = updateData.licensePlate.toUpperCase();
+        }
+
+        const updatedVehicle = await this.#vehicleRepository.updateVehicle({
+            vehicleId,
+            updateData
+        });
+        return updatedVehicle;
+    }
+
+    adminUpdateVehicle = async ({ vehicleId, updateData }) => {
+        const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
+        if (!existingVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        if (updateData.vehicleTypeId) {
+            const checkType = await this.#vehicleRepository.getVehicleTypeById({
+                vehicleTypeId: updateData.vehicleTypeId
+            });
+            if (!checkType) {
+                throw new NotFoundError("Vehicle type not found");
+            }
+        }
+
+        if (updateData.licensePlate) {
+            const duplicate = await this.#vehicleRepository.getVehicleByLicensePlate({
+                licensePlate: updateData.licensePlate
+            });
+            if (duplicate && duplicate._id.toString() !== vehicleId) {
+                throw new ConflictError("License plate already exists");
+            }
+            updateData.licensePlate = updateData.licensePlate.toUpperCase();
+        }
+
+        const updatedVehicle = await this.#vehicleRepository.updateVehicle({
+            vehicleId,
+            updateData
+        });
+        return updatedVehicle;
+    }
+
+    softDeleteVehicle = async ({ userId, vehicleId }) => {
+        const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
+        if (!existingVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        if (existingVehicle.userId.toString() !== userId) {
+            throw new BadRequestError("You can only delete your own vehicle");
+        }
+
+        if (existingVehicle.status === "INACTIVE") {
+            throw new BadRequestError("Vehicle is already deleted");
+        }
+
+        const deletedVehicle = await this.#vehicleRepository.softDeleteVehicle({ vehicleId });
+        if (!deletedVehicle) {
+            throw new Error("Failed to soft delete vehicle");
+        }
+        return deletedVehicle;
+    }
 }
 export default VehicleService;

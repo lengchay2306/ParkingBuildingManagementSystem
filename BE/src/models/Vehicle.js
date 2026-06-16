@@ -22,6 +22,12 @@ const vehicleSchema = mongoose.Schema({
         ref: "MonthlyCard",
         default: null,
     },
+    status: {
+        type: String,
+        required: true,
+        enum: ["ACTIVE", "INACTIVE"],
+        default: "ACTIVE",
+    },
 }, { timestamps: true });
 
 vehicleSchema.set('toJSON', { virtuals: true });

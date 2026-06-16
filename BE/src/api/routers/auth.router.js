@@ -36,7 +36,20 @@ const router = express.Router()
  *                 example: password123
  *     responses:
  *       201:
- *         description: Login successful
+ *         description: Login successful. Tokens are set in httpOnly cookies, user info is returned in body.
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 user:
+ *                   _id: "665a1b2c3d4e5f6a7b8c9d0e"
+ *                   email: "admin@example.com"
+ *                   fullName: "Admin User"
+ *                   phone: "0123456780"
+ *                   roleName: "ADMIN"
+ *                   status: "ACTIVE"
+ *                 message: "login successfully"
  *       400:
  *         description: Invalid credentials or account banned
  */
@@ -81,6 +94,8 @@ router.post(
  *   delete:
  *     summary: User logout
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successfully

@@ -44,7 +44,37 @@ class UserController {
         } catch (error) {
             next(error);
         }
-    };
+    }
+
+    updateMyProfile = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const updateData = req.body;
+            const updatedUser = await this.#userService.updateMyProfile({ userId, updateData });
+            res.status(200).json({
+                status: 'success',
+                data: { user: updatedUser },
+                message: 'Profile updated successfully',
+            }); 
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    updateUserById = async (req, res, next) => {
+        try {
+            const { userId } = req.params;
+            const updateData = req.body;
+            const updatedUser = await this.#userService.updateUserById({ userId, updateData });
+            res.status(200).json({
+                status: 'success',
+                data: { user: updatedUser },
+                message: 'User updated successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export default UserController;

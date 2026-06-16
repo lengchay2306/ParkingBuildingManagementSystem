@@ -19,7 +19,7 @@ class AuthController {
     
             const { deviceName } = req.device
     
-            const { accessToken, refreshToken } = await this.#authService.login({
+            const { accessToken, refreshToken, user } = await this.#authService.login({
                 email: email,
                 password: password,
                 deviceName: deviceName,
@@ -38,7 +38,8 @@ class AuthController {
             res.status(201).json({
                 status: 'success',
                 data: {
-                    message: "login successfully"
+                    user,
+                    message: "login successfully",
                 }
             })
         } catch (error) {
@@ -61,7 +62,7 @@ class AuthController {
 
             const { deviceName } = req.device
 
-            const { accessToken, refreshToken } = await this.#authService.refreshToken({
+            const { accessToken, refreshToken, user } = await this.#authService.refreshToken({
                 oldRefreshToken,
                 deviceName,
             })
@@ -78,7 +79,8 @@ class AuthController {
             res.status(201).json({
                 status: 'success',
                 data: {
-                    message: "refresh token successfully"
+                    user,
+                    message: "refresh token successfully",
                 }
             })
         } catch (error) {

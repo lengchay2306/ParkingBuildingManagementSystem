@@ -21,6 +21,14 @@ type AuthPayload = {
   data?: {
     message?: string;
     roleName?: string;
+    user?: {
+      _id?: string;
+      email?: string;
+      fullName?: string;
+      phone?: string;
+      roleName?: string;
+      status?: string;
+    };
   };
 };
 
@@ -30,6 +38,7 @@ type AccessTokenPayload = {
 
 const getRoleNameFromAccessCookie = createServerFn({ method: "GET" }).handler(async () => {
   const token = getCookie("accessToken");
+  console.log("access token: ", token);
   if (!token) {
     return null;
   }
@@ -91,7 +100,9 @@ export const login = async (email: string, password: string): Promise<RoleName> 
   if (!response.ok) {
     throw new Error(payload.data?.message || payload.message || "Login failed");
   }
-  let role = normalizeRole(payload.data?.roleName);
+  let role =
+    normalizeRole(payload.data?.user?.roleName) ??
+    normalizeRole(payload.data?.roleName);
   if (!role) {
     const roleFromToken = await getRoleNameFromAccessCookie();
     role = normalizeRole(roleFromToken);
@@ -118,7 +129,9 @@ export const refreshSession = async (): Promise<RoleName | null> => {
   if (!response.ok) {
     throw new Error(payload.data?.message || payload.message || "Refresh token failed");
   }
-  let role = normalizeRole(payload.data?.roleName);
+  let role =
+    normalizeRole(payload.data?.user?.roleName) ??
+    normalizeRole(payload.data?.roleName);
   if (!role) {
     const roleFromToken = await getRoleNameFromAccessCookie();
     role = normalizeRole(roleFromToken);

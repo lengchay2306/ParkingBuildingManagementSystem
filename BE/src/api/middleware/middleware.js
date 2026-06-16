@@ -6,15 +6,19 @@ import {
 } from "../../error/error.js";
 
 export const authentication = async (req, res, next) => {
-    //get access token
-    const accessToken = req.cookies.accessToken
+    let accessToken = req.cookies.accessToken;
 
-    //verify accesstoken
+    if (!accessToken) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            accessToken = authHeader.split(' ')[1];
+        }
+    }
+
     if (!accessToken) {
         throw new AuthenticationError(`Token Expired or does not exist!`);
     }
 
-    //decode
     const tokenService = req.container.resolve('tokenService');
 
     const decode = await tokenService.verifyAccessToken({

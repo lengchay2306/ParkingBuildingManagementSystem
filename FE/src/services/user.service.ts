@@ -89,6 +89,68 @@ export const getMyProfile = async () => {
   return user;
 };
 
+export type UpdateMyProfileRequest = {
+  fullName?: string;
+  phone?: string;
+};
+
+export const updateMyProfile = async (payload: UpdateMyProfileRequest) => {
+  const response = await fetch(`${API_BASE}/api/v1/users/my-profile`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await parseJson<{ user?: UserProfile }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 400
+        ? "Invalid data or no fields provided."
+        : userErrorMessage(response.status);
+    throw new UserApiError(response.status, result.message || fallback);
+  }
+
+  const user = result.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "Update response data is missing.");
+  }
+
+  return user;
+};
+
+export type UpdateUserByIdRequest = {
+  fullName?: string;
+  phone?: string;
+  status?: "ACTIVE" | "LOCKED";
+  roleId?: string;
+};
+
+export const updateUserById = async (userId: string, payload: UpdateUserByIdRequest) => {
+  const response = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await parseJson<{ user?: UserProfile }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 400
+        ? "Invalid data or no fields provided."
+        : userErrorMessage(response.status);
+    throw new UserApiError(response.status, result.message || fallback);
+  }
+
+  const user = result.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "Update response data is missing.");
+  }
+
+  return user;
+};
+
 export const getAllUsers = async ({
   page = 1,
   limit = 100,
