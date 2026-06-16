@@ -42,7 +42,7 @@ class ReservationService {
         }
 
         const reservedAt = new Date();
-        const expiryAt = new Date(expectedArrival.getTime() + 1000 * 60 * 30);
+        const expiryAt = new Date(expectedArrival.getTime() + 1000 * 60 * 15);
 
         const reservation = await this.#reservationRepository.createReservation({
             driverId,
@@ -64,6 +64,38 @@ class ReservationService {
         });
 
         return reservations;
+    }
+
+    getAllReservations = async ({ page, limit, status }) => {
+        const filter = {};
+        if (status) {
+            filter.status = status;
+        }
+
+        return await this.#reservationRepository.getAllReservations({ filter, page, limit });
+    }
+
+    cancelReservation = async ({ driverId, reservationId }) => {
+        const existingReservation = await this.#reservationRepository.findReservationById({ reservationId });
+        if (!existingReservation) {
+            throw new NotFoundError("Reservation not found");
+        }
+
+        if (existingReservation.driverId.toString() !== driverId.toString()) {
+            throw new BadRequestError("This reservation does not belong to you");
+        }
+
+        if (existingReservation.status !== "PENDING") {
+            throw new BadRequestError("Only PENDING reservations can be cancelled");
+        }
+
+        const fifteenMinFromNow = new Date(Date.now() + 1000 * 60 * 15);
+        if (new Date(existingReservation.expectedArrival) < fifteenMinFromNow) {
+            throw new BadRequestError("Cannot cancel: reservation is within 15 minutes of expected arrival");
+        }
+
+        const cancelledReservation = await this.#reservationRepository.cancelReservation({ reservationId });
+        return cancelledReservation;
     }
 }
 
