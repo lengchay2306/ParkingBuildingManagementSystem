@@ -65,6 +65,7 @@ class AuthService {
         return {
             accessToken,
             refreshToken,
+            roleName: existingUser.roleId.roleName,
         }
     }
 
@@ -117,7 +118,11 @@ class AuthService {
             deviceName: deviceName,
         });
 
-        return { accessToken, refreshToken }
+        return {
+            accessToken,
+            refreshToken,
+            roleName: user.roleId.roleName,
+        }
     }
 
     logout = async ({
