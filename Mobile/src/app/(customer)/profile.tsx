@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -25,6 +26,11 @@ import {
   type UserProfile,
   type UserVehicle,
 } from '@/lib/auth-api';
+import {
+  buildProfileUpdatePayload,
+  updateMyProfile,
+  validateProfileUpdate,
+} from '@/roles/customer/profile';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
 function formatDate(value: string | undefined) {
@@ -135,6 +141,10 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useProtectedSession();
@@ -165,6 +175,52 @@ export default function ProfileScreen() {
   React.useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  function startEditing() {
+    if (!profile) {
+      return;
+    }
+    setEditFullName(profile.fullName);
+    setEditPhone(profile.phone ?? '');
+    setIsEditing(true);
+  }
+
+  function cancelEditing() {
+    setIsEditing(false);
+    setEditFullName('');
+    setEditPhone('');
+  }
+
+  async function handleSaveProfile() {
+    if (!profile) {
+      return;
+    }
+
+    const payload = buildProfileUpdatePayload(profile, editFullName, editPhone);
+    const validationError = validateProfileUpdate(payload, t);
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateMyProfile(payload);
+      const refreshed = await getMyProfile();
+      setProfile(refreshed);
+      setIsEditing(false);
+      showToast(t('Đã cập nhật hồ sơ', 'Profile updated'), 'success');
+    } catch (saveError) {
+      showToast(
+        saveError instanceof Error
+          ? saveError.message
+          : t('Không thể cập nhật hồ sơ', 'Could not update profile'),
+        'error',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   async function handleLogout() {
     setIsLoggingOut(true);
@@ -256,15 +312,92 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.card}>
-          <ThemedText style={styles.sectionTitle}>{t('Thông tin liên hệ', 'Contact info')}</ThemedText>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
-            <ThemedText style={styles.infoValue}>{profile?.phone ?? '—'}</ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>{t('Thông tin liên hệ', 'Contact info')}</ThemedText>
+            {!isEditing ? (
+              <Pressable
+                onPress={startEditing}
+                style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]}
+                accessibilityLabel={t('Chỉnh sửa', 'Edit')}
+              >
+                <Ionicons name="create-outline" size={18} color={DesignColors.primary} />
+              </Pressable>
+            ) : null}
           </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>{t('Email', 'Email')}</ThemedText>
-            <ThemedText style={styles.infoValue}>{profile?.email}</ThemedText>
-          </View>
+
+          {isEditing ? (
+            <>
+              <View style={styles.field}>
+                <ThemedText style={styles.fieldLabel}>{t('Họ tên', 'Full name')}</ThemedText>
+                <TextInput
+                  value={editFullName}
+                  onChangeText={setEditFullName}
+                  autoCapitalize="words"
+                  maxLength={30}
+                  placeholder={t('Nhập họ tên', 'Enter full name')}
+                  placeholderTextColor={DesignColors.inkSubtle}
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.field}>
+                <ThemedText style={styles.fieldLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
+                <TextInput
+                  value={editPhone}
+                  onChangeText={setEditPhone}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  placeholder={t('10 chữ số', '10 digits')}
+                  placeholderTextColor={DesignColors.inkSubtle}
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>{t('Email', 'Email')}</ThemedText>
+                <ThemedText style={styles.infoValue}>{profile?.email}</ThemedText>
+              </View>
+              <View style={styles.editActions}>
+                <Pressable
+                  disabled={isSaving}
+                  onPress={cancelEditing}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <ThemedText style={styles.secondaryButtonText}>{t('Hủy', 'Cancel')}</ThemedText>
+                </Pressable>
+                <Pressable
+                  disabled={isSaving}
+                  onPress={handleSaveProfile}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color={DesignColors.onPrimary} size="small" />
+                  ) : (
+                    <ThemedText style={styles.primaryButtonText}>{t('Lưu', 'Save')}</ThemedText>
+                  )}
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>{t('Họ tên', 'Full name')}</ThemedText>
+                <ThemedText style={styles.infoValue}>{profile?.fullName}</ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
+                <ThemedText style={styles.infoValue}>{profile?.phone ?? '—'}</ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <ThemedText style={styles.infoLabel}>{t('Email', 'Email')}</ThemedText>
+                <ThemedText style={styles.infoValue}>{profile?.email}</ThemedText>
+              </View>
+            </>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -454,6 +587,65 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     sectionCount: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
+    },
+    editButton: {
+      width: 32,
+      height: 32,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    field: {
+      gap: Spacing.xs,
+    },
+    fieldLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      textTransform: 'uppercase',
+    },
+    input: {
+      ...Typography.body,
+      color: DesignColors.ink,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 10,
+    },
+    editActions: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      marginTop: Spacing.xs,
+    },
+    secondaryButton: {
+      flex: 1,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    secondaryButtonText: {
+      ...Typography.button,
+      color: DesignColors.ink,
+    },
+    primaryButton: {
+      flex: 1,
+      borderRadius: Radius.md,
+      backgroundColor: DesignColors.primary,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 40,
+    },
+    primaryButtonText: {
+      ...Typography.button,
+      color: DesignColors.onPrimary,
     },
     infoRow: {
       flexDirection: 'row',

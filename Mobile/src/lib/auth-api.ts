@@ -338,6 +338,26 @@ export async function getMyProfile(): Promise<UserProfile> {
   return user;
 }
 
+export type UpdateMyProfilePayload = {
+  fullName?: string;
+  phone?: string;
+};
+
+/** PUT /users/my-profile — at least one of fullName or phone is required. */
+export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfile> {
+  const response = await authFetch('/users/my-profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const result = (await parseApiResponse(response)) as AuthResponse | null;
+  const user = result?.data?.user;
+  if (!user) {
+    throw new Error(result?.message ?? 'Update response is missing user data');
+  }
+  return user;
+}
+
 export async function logout() {
   const response = await authFetch('/auth/logout', {
     method: 'DELETE',
