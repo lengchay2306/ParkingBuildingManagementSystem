@@ -10,25 +10,26 @@ configDotenv();
 
 const app = express();
 
-// FRONTEND_URL can be a comma-separated list, e.g.
-// "https://fe-beryl-sigma.vercel.app,http://localhost:8080"
-const allowedOrigins = (process.env.FRONTEND_URL || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+// // FRONTEND_URL can be a comma-separated list, e.g.
+// // "https://fe-beryl-sigma.vercel.app,http://localhost:8080"
+// const allowedOrigins = (process.env.FRONTEND_URL || "")
+//     .split(",")
+//     .map((origin) => origin.trim())
+//     .filter(Boolean);
 
 app.use(cors({
-    origin(origin, callback) {
-        // Allow non-browser clients (curl, mobile, server-to-server) which send no Origin,
-        // and any origin in the allow-list. Reflecting the exact origin is required because
-        // credentials (cookies) cannot be used with a wildcard "*".
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        // Disallowed origin: don't set CORS headers, but don't throw either so the
-        // request can still be served (the browser is what enforces the block).
-        return callback(null, false);
-    },
+    origin: process.env.FRONTEND_URL,
+    // origin(origin, callback) {
+    //     // Allow non-browser clients (curl, mobile, server-to-server) which send no Origin,
+    //     // and any origin in the allow-list. Reflecting the exact origin is required because
+    //     // credentials (cookies) cannot be used with a wildcard "*".
+    //     if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    //         return callback(null, true);
+    //     }
+    //     // Disallowed origin: don't set CORS headers, but don't throw either so the
+    //     // request can still be served (the browser is what enforces the block).
+    //     return callback(null, false);
+    // },
     credentials: true, //cho phép call cross-site
 }));
 
