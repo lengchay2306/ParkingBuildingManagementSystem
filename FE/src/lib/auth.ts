@@ -34,16 +34,19 @@ type AuthPayload = {
 
 type AccessTokenPayload = {
   roleName?: string;
+  exp?: number;
 };
 
 const getRoleNameFromAccessCookie = createServerFn({ method: "GET" }).handler(async () => {
   const token = getCookie("accessToken");
-  console.log("access token: ", token);
   if (!token) {
     return null;
   }
   try {
     const payload = jwtDecode<AccessTokenPayload>(token);
+    if (payload.exp && payload.exp * 1000 <= Date.now()) {
+      return null;
+    }
     return payload.roleName ?? null;
   } catch {
     return null;
@@ -143,6 +146,25 @@ export const refreshSession = async (): Promise<RoleName | null> => {
   return role;
 };
 
+export const getSessionRole = async (): Promise<RoleName | null> => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const roleFromToken = normalizeRole(await getRoleNameFromAccessCookie());
+  if (roleFromToken) {
+    setStoredRole(roleFromToken);
+    return roleFromToken;
+  }
+
+  try {
+    return await refreshSession();
+  } catch {
+    setStoredRole(null);
+    return null;
+  }
+};
+
 export const logout = async () => {
   const response = await fetch(`${API_BASE}/api/v1/auth/logout`, {
     method: "DELETE",
@@ -159,14 +181,9 @@ export const requireGuest = async () => {
   if (typeof window === "undefined") {
     return;
   }
-  const stored = getStoredRole();
-  if (stored) {
-    throw redirect({ to: getRoleHome(stored) });
-  }
-  const roleFromToken = normalizeRole(await getRoleNameFromAccessCookie());
-  if (roleFromToken) {
-    setStoredRole(roleFromToken);
-    throw redirect({ to: getRoleHome(roleFromToken) });
+  const role = await getSessionRole();
+  if (role) {
+    throw redirect({ to: getRoleHome(role) });
   }
 };
 
@@ -174,33 +191,12 @@ export const requireRole = async (required: RoleName) => {
   if (typeof window === "undefined") {
     return required;
   }
-  const stored = getStoredRole();
-  if (stored) {
-    if (stored !== required) {
-      throw redirect({ to: getRoleHome(stored) });
-    }
-    return stored;
-  }
-  const roleFromToken = normalizeRole(await getRoleNameFromAccessCookie());
-  if (roleFromToken) {
-    setStoredRole(roleFromToken);
-    if (roleFromToken !== required) {
-      throw redirect({ to: getRoleHome(roleFromToken) });
-    }
-    return roleFromToken;
-  }
-  let refreshed: RoleName | null = null;
-  try {
-    refreshed = await refreshSession();
-  } catch {
-    setStoredRole(null);
+  const role = await getSessionRole();
+  if (!role) {
     throw redirect({ to: "/login" });
   }
-  if (!refreshed) {
-    throw redirect({ to: "/login" });
+  if (role !== required) {
+    throw redirect({ to: getRoleHome(role) });
   }
-  if (refreshed !== required) {
-    throw redirect({ to: getRoleHome(refreshed) });
-  }
-  return refreshed;
+  return role;
 };
