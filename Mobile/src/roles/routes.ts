@@ -14,8 +14,20 @@ export const CUSTOMER_ROUTES = {
 } as const;
 
 export const STAFF_ROUTES = {
-  home: '/staff',
+  home: '/staff-home',
+  checkIn: '/staff-check-in',
+  slots: '/staff-slots',
+  slotDetail: '/staff-slots/[slotId]',
+  operations: '/staff-operations',
+  profile: '/staff-profile',
+  settings: '/staff-settings',
+  /** Legacy alias — redirects to home. */
+  legacy: '/staff',
 } as const;
+
+export function staffSlotDetailPath(slotId: string) {
+  return `/staff-slots/${slotId}` as const;
+}
 
 export const MANAGER_ROUTES = {
   home: '/manager',

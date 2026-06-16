@@ -8,13 +8,8 @@ import {
   View,
 } from 'react-native';
 import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
-import { Renderer } from 'expo-three';
+import { Renderer, THREE } from 'expo-three';
 import { useRouter } from 'expo-router';
-import * as THREE from 'three';
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
-import { Font, FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
-
-import helvetikerFont from '@/assets/fonts/helvetiker_regular.typeface.json';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DesignColorPalette, DesignColors, Radius, Spacing, Typography } from '@/constants/design';
@@ -23,6 +18,13 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useGrayscale } from '@/hooks/use-grayscale';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useThemePreference } from '@/hooks/theme-preference';
+import {
+  floorLabel,
+  floorTabLabel,
+  PARKING_FLOORS,
+  vehicleTypeLabel,
+  type ParkingFloorConfig,
+} from '@/lib/parking-floor-config';
 
 /* ── Map palette — realistic parking garage tones ───────────── */
 type MapPalette = {
@@ -115,7 +117,6 @@ const selectionAccentColor = (
   return resolvedScheme === 'light' ? '#3f5f8a' : '#8aa6d9';
 };
 
-/** Quy chuẩn kích thước (đơn vị ≈ mét) — ITE / bãi hầm phổ biến */
 type ParkingClass = 'motorcycle' | 'car' | 'car-large';
 
 type ParkingStandard = {
@@ -133,117 +134,9 @@ const PARKING_STANDARDS: Record<ParkingClass, ParkingStandard> = {
   'car-large': { stallW: 2.8, stallD: 5.4, aisleW: 6.0, gap: 0.16, rampW: 0.45, crossW: 6.0 },
 };
 
-type FloorConfig = {
-  id: string;
-  label: string;
-  tabLabel: string;
-  vehicleType: string;
-  parkingClass: ParkingClass;
-  /** Số làn chạy dọc (song song, một chiều) */
-  aisleCount: number;
-  /** Số ô mỗi bên làn (đỗ vuông góc 90°) */
-  stallsAlongAisle: number;
-};
+type FloorConfig = ParkingFloorConfig;
 
-const FLOORS: FloorConfig[] = [
-  {
-    id: 'B1',
-    label: 'Tầng hầm',
-    tabLabel: 'Hầm',
-    vehicleType: 'Xe máy',
-    parkingClass: 'motorcycle',
-    aisleCount: 5,
-    stallsAlongAisle: 44,
-  },
-  {
-    id: '1',
-    label: 'Tầng 1',
-    tabLabel: 'T1',
-    vehicleType: 'Xe máy điện',
-    parkingClass: 'motorcycle',
-    aisleCount: 4,
-    stallsAlongAisle: 40,
-  },
-  {
-    id: '2',
-    label: 'Tầng 2',
-    tabLabel: 'T2',
-    vehicleType: 'Ô tô điện',
-    parkingClass: 'car',
-    aisleCount: 2,
-    stallsAlongAisle: 14,
-  },
-  {
-    id: '3',
-    label: 'Tầng 3',
-    tabLabel: 'T3',
-    vehicleType: 'Sedan',
-    parkingClass: 'car',
-    aisleCount: 2,
-    stallsAlongAisle: 13,
-  },
-  {
-    id: '4',
-    label: 'Tầng 4',
-    tabLabel: 'T4',
-    vehicleType: 'SUV',
-    parkingClass: 'car-large',
-    aisleCount: 2,
-    stallsAlongAisle: 12,
-  },
-  {
-    id: '5',
-    label: 'Tầng 5',
-    tabLabel: 'T5',
-    vehicleType: 'Bán tải',
-    parkingClass: 'car-large',
-    aisleCount: 2,
-    stallsAlongAisle: 11,
-  },
-];
-
-const floorLabel = (floor: FloorConfig, t: (vi: string, en: string) => string): string => {
-  switch (floor.id) {
-    case 'B1':
-      return t('Tầng hầm', 'Basement');
-    case '1':
-      return t('Tầng 1', 'Level 1');
-    case '2':
-      return t('Tầng 2', 'Level 2');
-    case '3':
-      return t('Tầng 3', 'Level 3');
-    case '4':
-      return t('Tầng 4', 'Level 4');
-    case '5':
-      return t('Tầng 5', 'Level 5');
-    default:
-      return floor.label;
-  }
-};
-
-const floorTabLabel = (floor: FloorConfig, t: (vi: string, en: string) => string): string => {
-  if (floor.id === 'B1') return t('Hầm', 'B1');
-  return floor.tabLabel;
-};
-
-const vehicleTypeLabel = (floor: FloorConfig, t: (vi: string, en: string) => string): string => {
-  switch (floor.id) {
-    case 'B1':
-      return t('Xe máy', 'Motorbike');
-    case '1':
-      return t('Xe máy điện', 'Electric motorbike');
-    case '2':
-      return t('Ô tô điện', 'Electric car');
-    case '3':
-      return t('Sedan', 'Sedan');
-    case '4':
-      return t('SUV', 'SUV');
-    case '5':
-      return t('Bán tải', 'Pickup');
-    default:
-      return floor.vehicleType;
-  }
-};
+const FLOORS = PARKING_FLOORS;
 
 const FLOOR_COUNT = FLOORS.length;
 const PLATFORM_PAD = 0.28;
@@ -252,30 +145,52 @@ const SLOT_LIFT = 0.035;
 const FOCUS_OFFSET = 0.1;
 const FLOOR_VISIBLE_THRESHOLD = 0.12;
 const SELECTION_PAD = 0.08;
-const STRUCTURE_WALL_HEIGHT = 0.12;
 const ALL_MODE_EXPLODE_GAP = 2.25;
 const ALL_MODE_SPREAD_X = 0.42;
 const ALL_MODE_SPREAD_Z = 0.18;
 const DASH_MARK_HEIGHT = 0.006;
 const STOP_MARK_HEIGHT = 0.008;
+const ROAD_THICKNESS = 0.022;
 
-const LANE_SURFACE_Y = 0.024;
-const RAMP_SURFACE_Y = 0.017;
+/** Explicit Y layers — prevents z-fighting on expo-gl mobile. */
+const MAP_LAYER = {
+  platform: 0.02,
+  road: 0.048,
+  roadMark: 0.062,
+  slot: 0.078,
+  wall: 0.09,
+} as const;
 
-let diagramFont: Font | null = null;
+const RENDER_LAYER = {
+  platform: 0,
+  road: 1,
+  roadMark: 2,
+  slot: 3,
+  wall: 4,
+  selection: 5,
+} as const;
 
-function getDiagramFont(): Font {
-  if (!diagramFont) {
-    diagramFont = new FontLoader().parse(helvetikerFont);
-  }
-  return diagramFont;
+function createMapMaterial(
+  color: string,
+  renderLayer: number,
+  options?: { transparent?: boolean; opacity?: number },
+): THREE.MeshBasicMaterial {
+  const transparent = options?.transparent ?? false;
+  return new THREE.MeshBasicMaterial({
+    color,
+    toneMapped: false,
+    depthTest: true,
+    depthWrite: !transparent,
+    transparent,
+    opacity: options?.opacity ?? 1,
+    polygonOffset: renderLayer > 0,
+    polygonOffsetFactor: -renderLayer * 2,
+    polygonOffsetUnits: -renderLayer * 2,
+  });
 }
 
-function toAsciiLabel(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase();
+function applyMeshLayer(mesh: THREE.Mesh, renderLayer: number) {
+  mesh.renderOrder = renderLayer;
 }
 
 type SlotInfo = {
@@ -331,8 +246,9 @@ type FloorTarget = { x: number; y: number; z: number; opacity: number; scale: nu
 
 type FloorMeshSet = {
   group: THREE.Group;
-  slotMesh: THREE.InstancedMesh;
-  slotMap: Array<SlotInfo | null>;
+  slotGroup: THREE.Group;
+  slotMeshes: THREE.Mesh[];
+  slotMap: SlotInfo[];
   base: THREE.Mesh;
   baseMaterial: THREE.MeshBasicMaterial;
   slotDims: { width: number; depth: number; height: number };
@@ -340,7 +256,7 @@ type FloorMeshSet = {
 
 type SelectionAnchor = {
   floorIndex: number;
-  instanceId: number;
+  slotIndex: number;
 };
 
 function getStd(config: FloorConfig): ParkingStandard {
@@ -422,7 +338,32 @@ function computeFloorLayout(config: FloorConfig): FloorLayout {
     });
   });
 
-  return { slots: filteredSlots, lanes, roads, stallW, stallD, aisleW, totalWidth, totalDepth };
+  const numberedSlots = renumberSlotRows(filteredSlots);
+
+  return { slots: numberedSlots, lanes, roads, stallW, stallD, aisleW, totalWidth, totalDepth };
+}
+
+/** After road overlap filtering, label rows L1..Ln per aisle/side (not grid index). */
+function renumberSlotRows(slots: SlotPlacement[]): SlotPlacement[] {
+  const byGroup = new Map<string, SlotPlacement[]>();
+  for (const slot of slots) {
+    const key = `${slot.aisle}:${slot.side}`;
+    const group = byGroup.get(key) ?? [];
+    group.push(slot);
+    byGroup.set(key, group);
+  }
+
+  const renumbered: SlotPlacement[] = [];
+  const sortedKeys = [...byGroup.keys()].sort((a, b) => a.localeCompare(b));
+  for (const key of sortedKeys) {
+    const group = byGroup.get(key) ?? [];
+    group.sort((a, b) => a.z - b.z || a.x - b.x);
+    group.forEach((slot, index) => {
+      renumbered.push({ ...slot, row: index });
+    });
+  }
+
+  return renumbered;
 }
 
 /** Lộ trình chuẩn: cổng Nam → ngang phân luồng → làn một chiều Bắc → ramp */
@@ -524,32 +465,6 @@ function clampRadius(radius: number, limits: ZoomLimits) {
   return Math.min(limits.max, Math.max(limits.min, radius));
 }
 
-function nextFloorLabel(floorIndex: number): string {
-  if (floorIndex >= FLOOR_COUNT - 1) return 'RA CONG';
-  return `LEN ${toAsciiLabel(FLOORS[floorIndex + 1].label)}`;
-}
-
-function flowToRotationY(flow: RoadFlow): number {
-  switch (flow) {
-    case 'pz':
-      return Math.PI / 2;
-    case 'nz':
-      return -Math.PI / 2;
-    case 'px':
-      return 0;
-    case 'nx':
-      return Math.PI;
-    default:
-      return 0;
-  }
-}
-
-function surfaceYForRoad(kind: RoadKind): number {
-  return kind === 'ramp-up' || kind === 'ramp-down' || kind === 'ramp-side'
-    ? RAMP_SURFACE_Y
-    : LANE_SURFACE_Y;
-}
-
 function roadBaseColor(road: RoadSegment): string {
   if (road.kind === 'lane' || road.kind === 'cross-in' || road.kind === 'cross-out') {
     return MapColors.lane;
@@ -574,66 +489,9 @@ function roadBaseColor(road: RoadSegment): string {
   return MapColors.lane;
 }
 
-function createGroundText(
-  text: string,
-  size: number,
-  color: string,
-  rotationY = 0,
-): THREE.Mesh {
-  const geometry = new TextGeometry(toAsciiLabel(text), {
-    font: getDiagramFont(),
-    size,
-    depth: 0.001,
-    curveSegments: 3,
-    bevelEnabled: false,
-  });
-  geometry.center();
-  const mesh = new THREE.Mesh(
-    geometry,
-    new THREE.MeshBasicMaterial({ color, toneMapped: false }),
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.rotation.y = rotationY;
-  return mesh;
-}
-
-function placeLabelOnRoad(
-  target: THREE.Group,
-  text: string,
-  road: RoadSegment,
-  size: number,
-  color: string,
-) {
-  const label = createGroundText(text, size, color, flowToRotationY(road.flow));
-  label.position.set(road.cx, surfaceYForRoad(road.kind), road.cz);
-  target.add(label);
-}
-
-function createRoundedRoadSurfaceGeometry(width: number, depth: number, radius: number): THREE.ShapeGeometry {
-  const halfW = width / 2;
-  const halfD = depth / 2;
-  const r = Math.max(0.001, Math.min(radius, halfW, halfD));
-  const shape = new THREE.Shape();
-  shape.moveTo(-halfW + r, -halfD);
-  shape.lineTo(halfW - r, -halfD);
-  shape.quadraticCurveTo(halfW, -halfD, halfW, -halfD + r);
-  shape.lineTo(halfW, halfD - r);
-  shape.quadraticCurveTo(halfW, halfD, halfW - r, halfD);
-  shape.lineTo(-halfW + r, halfD);
-  shape.quadraticCurveTo(-halfW, halfD, -halfW, halfD - r);
-  shape.lineTo(-halfW, -halfD + r);
-  shape.quadraticCurveTo(-halfW, -halfD, -halfW + r, -halfD);
-  return new THREE.ShapeGeometry(shape, 16);
-}
-
 function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
-  const edgeMat = new THREE.LineBasicMaterial({
-    color: MapColors.laneMark,
-    transparent: true,
-    opacity: 0.55,
-  });
-  const laneMarkMat = new THREE.MeshBasicMaterial({ color: MapColors.laneMark, toneMapped: false });
-  const stopMarkMat = new THREE.MeshBasicMaterial({ color: '#f4f5f7', toneMapped: false });
+  const laneMarkMat = createMapMaterial(MapColors.laneMark, RENDER_LAYER.roadMark);
+  const stopMarkMat = createMapMaterial('#f4f5f7', RENDER_LAYER.roadMark);
 
   const laneRoads = roads.filter((r) => r.kind === 'lane');
   const crossRoads = roads.filter((r) => r.kind === 'cross-in' || r.kind === 'cross-out');
@@ -664,10 +522,11 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
         road.flow === 'pz' || road.flow === 'nz'
           ? new THREE.Mesh(new THREE.BoxGeometry(stripeW, DASH_MARK_HEIGHT, dashLen), laneMarkMat)
           : new THREE.Mesh(new THREE.BoxGeometry(dashLen, DASH_MARK_HEIGHT, stripeW), laneMarkMat);
+      applyMeshLayer(mark, RENDER_LAYER.roadMark);
       if (road.flow === 'pz' || road.flow === 'nz') {
-        mark.position.set(road.cx, surfaceYForRoad(road.kind) + 0.002, road.cz + cursor + dashLen / 2);
+        mark.position.set(road.cx, MAP_LAYER.roadMark, road.cz + cursor + dashLen / 2);
       } else {
-        mark.position.set(road.cx + cursor + dashLen / 2, surfaceYForRoad(road.kind) + 0.002, road.cz);
+        mark.position.set(road.cx + cursor + dashLen / 2, MAP_LAYER.roadMark, road.cz);
       }
       group.add(mark);
       cursor += dashLen + gapLen;
@@ -681,41 +540,20 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
       stopMarkMat,
     );
     const z = road.flow === 'nz' ? road.cz + road.depth * 0.33 : road.cz - road.depth * 0.33;
-    stop.position.set(road.cx, surfaceYForRoad(road.kind) + 0.003, z);
+    stop.position.set(road.cx, MAP_LAYER.roadMark, z);
+    applyMeshLayer(stop, RENDER_LAYER.roadMark);
     group.add(stop);
   };
 
   roads.forEach((road) => {
-    const mat = new THREE.MeshBasicMaterial({ color: roadBaseColor(road), toneMapped: false });
-    const cornerRadius =
-      road.kind === 'cross-in' || road.kind === 'cross-out'
-          ? Math.min(road.depth * 0.36, road.width * 0.06)
-          : 0;
-    const useRounded = cornerRadius > 0.02;
-    const mesh = useRounded
-      ? new THREE.Mesh(createRoundedRoadSurfaceGeometry(road.width, road.depth, cornerRadius), mat)
-      : new THREE.Mesh(new THREE.BoxGeometry(road.width, 0.022, road.depth), mat);
-    const roadY = 0.013;
-    if (useRounded) {
-      mesh.rotation.x = -Math.PI / 2;
-    }
-    mesh.position.set(road.cx, roadY, road.cz);
+    const mat = createMapMaterial(roadBaseColor(road), RENDER_LAYER.road);
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(road.width, ROAD_THICKNESS, road.depth),
+      mat,
+    );
+    mesh.position.set(road.cx, MAP_LAYER.road + ROAD_THICKNESS / 2, road.cz);
+    applyMeshLayer(mesh, RENDER_LAYER.road);
     group.add(mesh);
-
-    const showRoadEdge = road.kind === 'entry-in' || road.kind === 'entry-out' || road.kind === 'ramp-side';
-    if (showRoadEdge) {
-      const edges = new THREE.LineSegments(
-        useRounded
-          ? new THREE.EdgesGeometry(createRoundedRoadSurfaceGeometry(road.width, road.depth, cornerRadius))
-          : new THREE.EdgesGeometry(new THREE.BoxGeometry(road.width, 0.023, road.depth)),
-        edgeMat,
-      );
-      if (useRounded) {
-        edges.rotation.x = -Math.PI / 2;
-      }
-      edges.position.copy(mesh.position);
-      group.add(edges);
-    }
 
     if (
       road.kind === 'lane' ||
@@ -805,19 +643,20 @@ function buildRoundedIntersections(
 }
 
 function buildFloorEnvelope(group: THREE.Group, width: number, depth: number) {
-  const wallMat = new THREE.MeshBasicMaterial({
-    color: DesignColors.hairline,
+  const wallMat = createMapMaterial(DesignColors.hairline, RENDER_LAYER.wall, {
     transparent: true,
     opacity: 0.9,
   });
   const rail = new THREE.Mesh(new THREE.BoxGeometry(width, 0.03, 0.06), wallMat);
-  rail.position.set(0, STRUCTURE_WALL_HEIGHT, depth / 2 + 0.03);
+  applyMeshLayer(rail, RENDER_LAYER.wall);
+  rail.position.set(0, MAP_LAYER.wall, depth / 2 + 0.03);
   group.add(rail);
   const rail2 = rail.clone();
   rail2.position.z = -depth / 2 - 0.03;
   group.add(rail2);
   const sideRail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, depth + 0.12), wallMat);
-  sideRail.position.set(width / 2 + 0.03, STRUCTURE_WALL_HEIGHT, 0);
+  applyMeshLayer(sideRail, RENDER_LAYER.wall);
+  sideRail.position.set(width / 2 + 0.03, MAP_LAYER.wall, 0);
   group.add(sideRail);
   const sideRail2 = sideRail.clone();
   sideRail2.position.x = -width / 2 - 0.03;
@@ -831,19 +670,20 @@ function buildCurvedRampGuides(group: THREE.Group, roads: RoadSegment[]) {
   if (!rampSide || !crossIn || !crossOut) return;
 
   const makeCurve = (startZ: number, endZ: number, rise: number, color: string) => {
-    const start = new THREE.Vector3(rampSide.cx - 0.6, 0.014, startZ);
+    const start = new THREE.Vector3(rampSide.cx - 0.6, MAP_LAYER.roadMark, startZ);
     const control = new THREE.Vector3(rampSide.cx + 0.8, rise * 0.6, (startZ + endZ) / 2);
     const end = new THREE.Vector3(rampSide.cx, rise, endZ);
     const curve = new THREE.QuadraticBezierCurve3(start, control, end);
     const tube = new THREE.Mesh(
       new THREE.TubeGeometry(curve, 22, 0.06, 6, false),
-      new THREE.MeshBasicMaterial({ color, toneMapped: false }),
+      createMapMaterial(color, RENDER_LAYER.roadMark),
     );
+    applyMeshLayer(tube, RENDER_LAYER.roadMark);
     group.add(tube);
   };
 
-  makeCurve(crossOut.cz + 0.35, crossOut.cz + 1.3, 0.24, MapColors.rampMark);
-  makeCurve(crossIn.cz - 0.35, crossIn.cz - 1.1, 0.02, MapColors.laneMark);
+  makeCurve(crossOut.cz + 0.35, crossOut.cz + 1.3, MAP_LAYER.roadMark + 0.02, MapColors.rampMark);
+  makeCurve(crossIn.cz - 0.35, crossIn.cz - 1.1, MAP_LAYER.roadMark, MapColors.laneMark);
 }
 
 function buildHelicalInterFloorRamp(
@@ -897,109 +737,15 @@ function buildHelicalInterFloorRamp(
   }
 }
 
-function buildSlotOutlines(
-  group: THREE.Group,
-  layout: FloorLayout,
-) {
-  const lineMat = new THREE.LineBasicMaterial({
-    color: MapColors.stallLine,
-    transparent: true,
-    opacity: 0.35,
-  });
-  layout.slots.forEach((slot) => {
-    const frame = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.BoxGeometry(layout.stallD * 0.96, 0.01, layout.stallW * 0.96)),
-      lineMat,
-    );
-    frame.position.set(slot.x, SLOT_LIFT + 0.008, slot.z);
-    group.add(frame);
-  });
-}
-
+/** 3D text labels removed — TextGeometry breaks expo-gl on mobile (vertex spikes). */
 function buildFloorAnnotations(
-  group: THREE.Group,
-  config: FloorConfig,
-  layout: FloorLayout,
-  floorIndex: number,
-  roads: RoadSegment[],
+  _group: THREE.Group,
+  _config?: FloorConfig,
+  _layout?: FloorLayout,
+  _floorIndex?: number,
+  _roads?: RoadSegment[],
 ) {
-  const annotations = new THREE.Group();
-  annotations.name = 'diagram-annotations';
-  const labelSize = floorIndex <= 1 ? 0.085 : 0.1;
-
-  const entryRoad = roads.find((r) => r.kind === 'entry-in');
-  const exitRoad = roads.find((r) => r.kind === 'entry-out');
-  const crossIn = roads.find((r) => r.kind === 'cross-in');
-  const crossOut = roads.find((r) => r.kind === 'cross-out');
-  const rampUp = roads.find((r) => r.kind === 'ramp-up');
-  const rampDown = roads.find((r) => r.kind === 'ramp-down');
-  const rampSide = roads.find((r) => r.kind === 'ramp-side');
-  const laneRoads = roads.filter((r) => r.kind === 'lane');
-
-  if (entryRoad) {
-    placeLabelOnRoad(annotations, 'CONG VAO', entryRoad, labelSize, DesignColors.ink);
-  }
-  if (exitRoad) {
-    placeLabelOnRoad(annotations, 'CONG RA', exitRoad, labelSize * 0.82, DesignColors.inkSubtle);
-  }
-
-  if (crossIn) {
-    placeLabelOnRoad(annotations, 'PHAN LUONG', crossIn, labelSize * 0.78, DesignColors.inkMuted);
-  }
-
-  laneRoads.forEach((lane, index) => {
-    placeLabelOnRoad(
-      annotations,
-      `AISLE ${index + 1}`,
-      lane,
-      labelSize * 0.68,
-      DesignColors.inkMuted,
-    );
-  });
-
-  if (crossOut) {
-    placeLabelOnRoad(annotations, 'RA RAMP', crossOut, labelSize * 0.78, DesignColors.inkMuted);
-  }
-
-  if (rampUp) {
-    placeLabelOnRoad(annotations, nextFloorLabel(floorIndex), rampUp, labelSize * 0.88, DesignColors.ink);
-  }
-
-  if (rampDown) {
-    placeLabelOnRoad(annotations, 'XUONG TANG', rampDown, labelSize * 0.76, DesignColors.inkSubtle);
-  }
-
-  if (rampSide) {
-    placeLabelOnRoad(annotations, 'RAM DOC', rampSide, labelSize * 0.75, DesignColors.inkMuted);
-  }
-
-  const titleRoad: RoadSegment = entryRoad ?? {
-    cx: 0,
-    cz: -layout.totalDepth / 2 - 0.5,
-    width: 1,
-    depth: 1,
-    flow: 'pz',
-    kind: 'entry-in',
-  };
-  placeLabelOnRoad(
-    annotations,
-    `${config.tabLabel} · ${toAsciiLabel(config.vehicleType)}`,
-    { ...titleRoad, cz: titleRoad.cz - 0.35, depth: titleRoad.depth },
-    labelSize * 0.95,
-    DesignColors.inkMuted,
-  );
-
-  const compass: RoadSegment = {
-    cx: -layout.totalWidth / 2 - 0.28,
-    cz: layout.totalDepth / 2 + 0.3,
-    width: 0.4,
-    depth: 0.4,
-    flow: 'pz',
-    kind: 'cross-in',
-  };
-  placeLabelOnRoad(annotations, 'BAC', compass, labelSize * 0.7, DesignColors.inkSubtle);
-
-  group.add(annotations);
+  // Floor info is shown in the 2D header above the canvas.
 }
 
 export default function ParkingMapScreen() {
@@ -1040,7 +786,6 @@ export default function ParkingMapScreen() {
   const pointerNdcRef = useRef(new THREE.Vector2());
   const floorMeshesRef = useRef<FloorMeshSet[]>([]);
   const floorTargetsRef = useRef<FloorTarget[]>([]);
-  const selectionRef = useRef<THREE.LineSegments | null>(null);
   const selectionFillRef = useRef<THREE.Mesh | null>(null);
   const selectionAnchorRef = useRef<SelectionAnchor | null>(null);
   const viewModeRef = useRef<'all' | 'single'>('all');
@@ -1049,7 +794,6 @@ export default function ParkingMapScreen() {
   const buildingRef = useRef<THREE.Group | null>(null);
   const zoomLimitsRef = useRef<ZoomLimits>({ min: 2, max: 30, default: 10 });
   const tempColor = useRef(new THREE.Color());
-  const tempMatrix = useRef(new THREE.Matrix4());
   const tempPosition = useRef(new THREE.Vector3());
 
   useEffect(() => {
@@ -1137,9 +881,6 @@ export default function ParkingMapScreen() {
 
   const clearSelection = useCallback(() => {
     selectionAnchorRef.current = null;
-    if (selectionRef.current) {
-      selectionRef.current.visible = false;
-    }
     if (selectionFillRef.current) {
       selectionFillRef.current.visible = false;
     }
@@ -1182,36 +923,27 @@ export default function ParkingMapScreen() {
 
   const syncSelectionHighlight = useCallback(() => {
     const anchor = selectionAnchorRef.current;
-    const selection = selectionRef.current;
     const selectionFill = selectionFillRef.current;
-    if (!anchor || !selection || !selectionFill) return;
+    if (!anchor || !selectionFill) return;
 
     const floorMesh = floorMeshesRef.current[anchor.floorIndex];
     const target = floorTargetsRef.current[anchor.floorIndex];
     if (!floorMesh || !target || target.opacity < FLOOR_VISIBLE_THRESHOLD) {
-      selection.visible = false;
       selectionFill.visible = false;
       return;
     }
 
     if (viewModeRef.current === 'single' && anchor.floorIndex !== activeFloorRef.current) {
-      selection.visible = false;
       selectionFill.visible = false;
       return;
     }
 
     const { width, depth, height } = floorMesh.slotDims;
-    selection.scale.set(width + SELECTION_PAD, height * 2.4, depth + SELECTION_PAD);
     selectionFill.scale.set(width + SELECTION_PAD * 0.82, height * 1.3, depth + SELECTION_PAD * 0.82);
 
-    floorMesh.slotMesh.getMatrixAt(anchor.instanceId, tempMatrix.current);
-    tempPosition.current.setFromMatrixPosition(tempMatrix.current);
-    floorMesh.group.localToWorld(tempPosition.current);
-    selection.position.copy(tempPosition.current);
-    selection.position.y += height / 2 + 0.025;
-    selectionFill.position.copy(selection.position);
-    selectionFill.position.y -= 0.004;
-    selection.visible = true;
+    floorMesh.slotMeshes[anchor.slotIndex].getWorldPosition(tempPosition.current);
+    selectionFill.position.copy(tempPosition.current);
+    selectionFill.position.y += height / 2 + 0.02;
     selectionFill.visible = true;
   }, []);
 
@@ -1220,26 +952,31 @@ export default function ParkingMapScreen() {
 
   const applySlotColors = useCallback((grayscale: boolean) => {
     floorMeshesRef.current.forEach((floorMesh) => {
-      const { slotMesh, slotMap } = floorMesh;
-      slotMap.forEach((slot, index) => {
+      floorMesh.slotMeshes.forEach((mesh, index) => {
+        const slot = floorMesh.slotMap[index];
         if (!slot) return;
         const effectiveStatus = slotStatusOverrides[slot.id] ?? slot.status;
-        tempColor.current.set(statusColor(effectiveStatus, grayscale, resolvedScheme));
-        slotMesh.setColorAt(index, tempColor.current);
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.color.set(statusColor(effectiveStatus, grayscale, resolvedScheme));
       });
-      if (slotMesh.instanceColor) {
-        slotMesh.instanceColor.needsUpdate = true;
-      }
     });
   }, [slotStatusOverrides, resolvedScheme]);
 
   const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
     const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
 
-    const renderer = new Renderer({ gl }) as THREE.WebGLRenderer;
+    const renderer = new Renderer({
+      gl,
+      logarithmicDepthBuffer: false,
+      alpha: false,
+      antialias: true,
+      precision: 'highp',
+    });
     renderer.setSize(width, height);
     renderer.setPixelRatio(1);
     renderer.setClearColor(DesignColors.canvas, 1);
+    renderer.autoClear = true;
+    renderer.sortObjects = true;
     renderer.toneMapping = THREE.NoToneMapping;
     rendererRef.current = renderer;
 
@@ -1247,7 +984,7 @@ export default function ParkingMapScreen() {
     scene.background = new THREE.Color(DesignColors.canvas);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(50, width / height, 0.05, 600);
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.15, 400);
     cameraRef.current = camera;
     updateFocus('all', 0);
     camera.position.copy(targetCamera.current);
@@ -1269,28 +1006,22 @@ export default function ParkingMapScreen() {
       const platformW = uniformLayoutBounds.width + PLATFORM_PAD * 2;
       const platformD = uniformLayoutBounds.depth + PLATFORM_PAD * 2;
 
-      const baseMaterial = new THREE.MeshBasicMaterial({
-        color: MapColors.platform,
+      const baseMaterial = createMapMaterial(MapColors.platform, RENDER_LAYER.platform, {
         transparent: true,
         opacity: 1,
       });
-      const base = new THREE.Mesh(new THREE.BoxGeometry(platformW, 0.1, platformD), baseMaterial);
-      base.position.y = -0.05;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(platformW, 0.08, platformD), baseMaterial);
+      applyMeshLayer(base, RENDER_LAYER.platform);
+      base.position.y = MAP_LAYER.platform;
       group.add(base);
 
       buildRoadMeshes(group, layout.roads);
       buildFloorEnvelope(group, platformW, platformD);
       buildCurvedRampGuides(group, layout.roads);
 
-      const totalSlots = layout.slots.length;
-      const slotGeometry = new THREE.BoxGeometry(layout.stallD, SLOT_LIFT, layout.stallW);
-      const slotMaterial = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        toneMapped: false,
-      });
-      const slotMesh = new THREE.InstancedMesh(slotGeometry, slotMaterial, totalSlots);
-      const dummy = new THREE.Object3D();
-      const slotMap: Array<SlotInfo | null> = [];
+      const slotGroup = new THREE.Group();
+      const slotMeshes: THREE.Mesh[] = [];
+      const slotMap: SlotInfo[] = [];
 
       layout.slots.forEach((placement, slotIndex) => {
         const { x, z, row, aisle, side } = placement;
@@ -1298,12 +1029,19 @@ export default function ParkingMapScreen() {
         const status = hashSlotStatus(floorIndex, row, aisle, sideIdx);
         const id = `${config.id}-A${aisle + 1}-${side}${row + 1}`;
 
-        dummy.position.set(x, SLOT_LIFT / 2 + 0.012, z);
-            dummy.updateMatrix();
-            slotMesh.setMatrixAt(slotIndex, dummy.matrix);
-
-        tempColor.current.set(statusColor(status, false, resolvedScheme));
-            slotMesh.setColorAt(slotIndex, tempColor.current);
+        const slotMaterial = createMapMaterial(
+          statusColor(status, false, resolvedScheme),
+          RENDER_LAYER.slot,
+        );
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(layout.stallD, SLOT_LIFT, layout.stallW),
+          slotMaterial,
+        );
+        mesh.position.set(x, MAP_LAYER.slot + SLOT_LIFT / 2, z);
+        mesh.userData.slotIndex = slotIndex;
+        applyMeshLayer(mesh, RENDER_LAYER.slot);
+        slotGroup.add(mesh);
+        slotMeshes.push(mesh);
 
         slotMap[slotIndex] = {
           id,
@@ -1315,15 +1053,8 @@ export default function ParkingMapScreen() {
         };
       });
 
-      slotMesh.instanceMatrix.needsUpdate = true;
-      if (slotMesh.instanceColor) {
-        slotMesh.instanceColor.needsUpdate = true;
-      }
-      group.add(slotMesh);
+      group.add(slotGroup);
 
-      if (config.parkingClass !== 'motorcycle') {
-        buildSlotOutlines(group, layout);
-      }
       const localizedConfig: FloorConfig = {
         ...config,
         tabLabel: floorTabLabel(config, t),
@@ -1333,7 +1064,8 @@ export default function ParkingMapScreen() {
 
       floorMeshesRef.current.push({
         group,
-        slotMesh,
+        slotGroup,
+        slotMeshes,
         slotMap,
         base,
         baseMaterial,
@@ -1357,30 +1089,15 @@ export default function ParkingMapScreen() {
     bounds.getCenter(center);
     building.position.sub(center);
 
-    const selectionMesh = new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
-      new THREE.LineBasicMaterial({
-        color: selectionAccentColor(resolvedScheme, isGrayscale),
-        transparent: true,
-        opacity: 0.98,
-      }),
-    );
-    selectionMesh.visible = false;
-    selectionMesh.renderOrder = 2;
-    scene.add(selectionMesh);
-    selectionRef.current = selectionMesh;
-
     const selectionFill = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({
-        color: selectionAccentColor(resolvedScheme, isGrayscale),
+      createMapMaterial(selectionAccentColor(resolvedScheme, isGrayscale), RENDER_LAYER.selection, {
         transparent: true,
-        opacity: 0.22,
-        depthWrite: false,
+        opacity: 0.32,
       }),
     );
     selectionFill.visible = false;
-    selectionFill.renderOrder = 1;
+    applyMeshLayer(selectionFill, RENDER_LAYER.selection);
     scene.add(selectionFill);
     selectionFillRef.current = selectionFill;
 
@@ -1408,6 +1125,7 @@ export default function ParkingMapScreen() {
 
       syncSelectionHighlightRef.current();
 
+      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
       renderer.render(scene, camera);
       gl.endFrameEXP();
       animationRef.current = requestAnimationFrame(animate);
@@ -1425,10 +1143,6 @@ export default function ParkingMapScreen() {
     });
     applySlotColors(isGrayscale);
 
-    if (selectionRef.current) {
-      const mat = selectionRef.current.material as THREE.LineBasicMaterial;
-      mat.color.set(selectionAccentColor(resolvedScheme, isGrayscale));
-    }
     if (selectionFillRef.current) {
       const mat = selectionFillRef.current.material as THREE.MeshBasicMaterial;
       mat.color.set(selectionAccentColor(resolvedScheme, isGrayscale));
@@ -1530,7 +1244,7 @@ export default function ParkingMapScreen() {
             if (viewModeRef.current === 'single' && floorIndex !== activeFloorRef.current) {
               return;
             }
-            intersects.push(...raycasterRef.current.intersectObject(floorMesh.slotMesh, false));
+            intersects.push(...raycasterRef.current.intersectObjects(floorMesh.slotGroup.children, false));
           });
 
           if (!intersects.length) {
@@ -1540,16 +1254,16 @@ export default function ParkingMapScreen() {
 
           intersects.sort((a, b) => a.distance - b.distance);
           const [hit] = intersects;
-          const hitMesh = hit.object as THREE.InstancedMesh;
-          const instanceId = hit.instanceId ?? -1;
-          const floorIndex = floorMeshesRef.current.findIndex((item) => item.slotMesh === hitMesh);
+          const hitMesh = hit.object as THREE.Mesh;
+          const slotIndex = hitMesh.userData.slotIndex as number;
+          const floorIndex = floorMeshesRef.current.findIndex((item) => item.slotGroup === hitMesh.parent);
           const floorMesh = floorMeshesRef.current[floorIndex];
-          if (!floorMesh || instanceId < 0) return;
+          if (!floorMesh || slotIndex < 0) return;
 
-          const slotInfo = floorMesh.slotMap[instanceId];
+          const slotInfo = floorMesh.slotMap[slotIndex];
           if (!slotInfo) return;
 
-          selectionAnchorRef.current = { floorIndex, instanceId };
+          selectionAnchorRef.current = { floorIndex, slotIndex };
           syncSelectionHighlight();
           setSelectedSlot(slotInfo);
         },

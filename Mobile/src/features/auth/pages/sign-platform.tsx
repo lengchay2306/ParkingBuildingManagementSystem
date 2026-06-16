@@ -13,11 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAppToast } from '@/components/app-toast';
+import { useAppToast, useSuppressErrorToasts } from '@/components/app-toast';
 import { MascotSpeechBubble } from '@/components/mascot-speech-bubble';
 import {
   SIGN_MASCOT_CIRCLE_SIZE,
-  SIGN_MASCOT_COLORS,
   SIGN_MASCOT_FRAME,
   SignMascotDisplay,
   type SignMascotPose,
@@ -25,6 +24,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { useSessionRole } from '@/hooks/session-role';
 import { useSignMascotInteraction } from '@/hooks/use-sign-mascot-interaction';
 import { useThemePreference } from '@/hooks/theme-preference';
 import {
@@ -118,6 +118,8 @@ const TRANSITION_EASING = Easing.bezier(0.4, 0, 0.2, 1);
 export default function SignPlatformScreen() {
   const router = useRouter();
   const { showToast } = useAppToast();
+  const { refreshRole } = useSessionRole();
+  useSuppressErrorToasts();
   const { t, language, setLanguage } = useLanguagePreference();
   const { resolvedScheme, setThemePreference } = useThemePreference();
   const palette = resolvedScheme === 'dark' ? darkPalette : lightPalette;
@@ -300,25 +302,28 @@ export default function SignPlatformScreen() {
   const blobSecondary = isDark ? 'rgba(99, 102, 241, 0.04)' : 'rgba(99, 102, 241, 0.05)';
 
   async function handleSignIn() {
-    if (!canSignInSubmit) return;
+    if (!mascot.validateSignInForm()) return;
+    if (isSigningIn) return;
     setIsSigningIn(true);
     try {
       await login(loginEmail.trim(), loginPassword);
       const roleName = await resolveRoleAfterLogin();
       const route = resolvePostLoginRoute(roleName);
       await setStoredPostLoginRoute(route);
+      await refreshRole();
       showToast(t('Đăng nhập thành công', 'Login successful'), 'success');
       setLoginPassword('');
       router.replace(route as never);
     } catch (error) {
-      showToast(error instanceof Error ? error.message : t('Không thể đăng nhập', 'Cannot login'), 'error');
+      mascot.speakAuthError(error);
     } finally {
       setIsSigningIn(false);
     }
   }
 
   async function handleSignUp() {
-    if (!canSignUpSubmit) return;
+    if (!mascot.validateSignUpForm()) return;
+    if (isSigningUp) return;
     setIsSigningUp(true);
     try {
       await register({
@@ -336,7 +341,7 @@ export default function SignPlatformScreen() {
       setSignupPassword('');
       animateToLogin();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : t('Không thể đăng ký', 'Cannot register'), 'error');
+      mascot.speakRegisterError(error);
     } finally {
       setIsSigningUp(false);
     }
@@ -433,7 +438,7 @@ export default function SignPlatformScreen() {
                 ]}>
                 <View style={styles.branding}>
                   <View style={styles.mascotCluster}>
-                    <MascotSpeechBubble message={mascot.mascotSpeech} textColor={SIGN_MASCOT_COLORS.pupil} />
+                    <MascotSpeechBubble speech={mascot.mascotSpeech} />
                     <View
                       style={[
                         styles.logoCircle,
@@ -501,12 +506,18 @@ export default function SignPlatformScreen() {
                           palette={palette}>
                           <TextInput
                             value={signupEmail}
-                            onChangeText={setSignupEmail}
+                            onChangeText={(text) => {
+                              setSignupEmail(text);
+                              mascot.handleSignupEmailChange(text);
+                            }}
                             onFocus={() => {
                               setFocusedField('signupEmail');
                               mascot.handleSignupEmailFocus();
                             }}
-                            onBlur={() => setFocusedField(null)}
+                            onBlur={() => {
+                              mascot.handleSignupEmailBlur();
+                              setFocusedField(null);
+                            }}
                             autoCapitalize="none"
                             autoCorrect={false}
                             keyboardType="email-address"
@@ -525,8 +536,14 @@ export default function SignPlatformScreen() {
                             onChangeText={(text) =>
                               setSignupPhone(text.replace(/\D/g, '').slice(0, 10))
                             }
-                            onFocus={() => setFocusedField('signupPhone')}
-                            onBlur={() => setFocusedField(null)}
+                            onFocus={() => {
+                              setFocusedField('signupPhone');
+                              mascot.handleSignupPhoneFocus();
+                            }}
+                            onBlur={() => {
+                              mascot.handleSignupPhoneBlur();
+                              setFocusedField(null);
+                            }}
                             keyboardType="phone-pad"
                             autoComplete="tel"
                             placeholder=""
@@ -560,12 +577,15 @@ export default function SignPlatformScreen() {
                         </FieldRow>
                       </View>
                       <Pressable
-                        disabled={!canSignUpSubmit}
-                        onPress={handleSignUp}
+                        disabled={isSigningUp}
+                        onPress={() => void handleSignUp()}
                         style={({ pressed }) => [
                           styles.primaryButton,
-                          { backgroundColor: palette.primary },
-                          (!canSignUpSubmit || pressed) && { backgroundColor: palette.primaryPressed },
+                          {
+                            backgroundColor: palette.primary,
+                            opacity: canSignUpSubmit ? 1 : 0.55,
+                          },
+                          (canSignUpSubmit && pressed) && { backgroundColor: palette.primaryPressed },
                           pressed && styles.pressedScale,
                         ]}>
                         {isSigningUp ? (
@@ -588,7 +608,7 @@ export default function SignPlatformScreen() {
                           { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
                           pressed && styles.pressedScale,
                         ]}
-                        onPress={() => showToast(t('Đăng ký Google chưa khả dụng', 'Google sign-up is not available yet'), 'error')}>
+                        onPress={mascot.speakGoogleUnavailable}>
                         <Ionicons name="logo-google" size={16} color="#111827" />
                         <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
                           Google
@@ -651,7 +671,7 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <View style={styles.passwordTopRow}>
-                          <Pressable onPress={() => showToast(t('Đặt lại mật khẩu chưa khả dụng', 'Reset password is not available yet'), 'error')}>
+                          <Pressable onPress={mascot.speakForgotPasswordUnavailable}>
                             <ThemedText style={[styles.forgotText, { color: palette.primary }]}>
                               {t('Quên mật khẩu?', 'Forgot password?')}
                             </ThemedText>
@@ -684,12 +704,15 @@ export default function SignPlatformScreen() {
                         </FieldRow>
                       </View>
                       <Pressable
-                        disabled={!canSignInSubmit}
-                        onPress={handleSignIn}
+                        disabled={isSigningIn}
+                        onPress={() => void handleSignIn()}
                         style={({ pressed }) => [
                           styles.primaryButton,
-                          { backgroundColor: palette.primary },
-                          (!canSignInSubmit || pressed) && { backgroundColor: palette.primaryPressed },
+                          {
+                            backgroundColor: palette.primary,
+                            opacity: canSignInSubmit ? 1 : 0.55,
+                          },
+                          (canSignInSubmit && pressed) && { backgroundColor: palette.primaryPressed },
                           pressed && styles.pressedScale,
                         ]}>
                         {isSigningIn ? (
@@ -712,7 +735,7 @@ export default function SignPlatformScreen() {
                           { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
                           pressed && styles.pressedScale,
                         ]}
-                        onPress={() => showToast(t('Đăng nhập Google chưa khả dụng', 'Google sign-in is not available yet'), 'error')}>
+                        onPress={mascot.speakGoogleUnavailable}>
                         <Ionicons name="logo-google" size={16} color="#111827" />
                         <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
                           Google

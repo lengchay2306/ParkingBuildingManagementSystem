@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { SIGN_MASCOT_COLORS } from '@/components/sign-mascot';
+import { getMascotSpeechColor, type MascotSpeech } from '@/lib/sign-mascot-utils';
 
 /** Gap between bubble tail and the mascot circle (overlay only — no layout height). */
 export const MASCOT_SPEECH_GAP = 8;
@@ -10,11 +11,12 @@ export const MASCOT_SPEECH_GAP = 8;
 export const MASCOT_SPEECH_MAX_WIDTH = 320;
 
 type MascotSpeechBubbleProps = {
-  message: string | null;
-  textColor: string;
+  speech: MascotSpeech | null;
 };
 
-export function MascotSpeechBubble({ message, textColor }: MascotSpeechBubbleProps) {
+export function MascotSpeechBubble({ speech }: MascotSpeechBubbleProps) {
+  const message = speech?.text ?? null;
+  const textColor = speech ? getMascotSpeechColor(speech.tone) : getMascotSpeechColor('hint');
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(4)).current;
 
