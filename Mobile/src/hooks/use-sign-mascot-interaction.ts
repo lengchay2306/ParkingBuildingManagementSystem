@@ -19,6 +19,7 @@ type FocusField =
   | 'loginPassword'
   | 'signupFullName'
   | 'signupEmail'
+  | 'signupPhone'
   | 'signupPassword'
   | null;
 
@@ -29,6 +30,7 @@ type Params = {
   loginEmail: string;
   loginPassword: string;
   signupEmail: string;
+  signupPhone: string;
   signupPassword: string;
   signupFullName: string;
   isSigningIn: boolean;
@@ -46,6 +48,7 @@ export function useSignMascotInteraction({
   loginEmail,
   loginPassword,
   signupEmail,
+  signupPhone,
   signupPassword,
   signupFullName,
   isSigningIn,
@@ -94,8 +97,9 @@ export function useSignMascotInteraction({
     if (focusedField === 'loginEmail') return emailLengthToLookX(loginEmail.length);
     if (focusedField === 'signupEmail') return emailLengthToLookX(signupEmail.length);
     if (focusedField === 'signupFullName') return emailLengthToLookX(signupFullName.length);
+    if (focusedField === 'signupPhone') return emailLengthToLookX(signupPhone.length);
     return 0;
-  }, [focusedField, loginEmail, signupEmail, signupFullName]);
+  }, [focusedField, loginEmail, signupEmail, signupFullName, signupPhone]);
 
   const clearPasswordTypingTimer = useCallback(() => {
     if (passwordTypingStopTimerRef.current) {
