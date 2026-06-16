@@ -30,6 +30,27 @@ type AuthResponse = {
   message?: string;
 };
 
+export type VehicleTypeRef = {
+  _id?: string;
+  type?: string;
+};
+
+export type MonthlyCardRef = {
+  _id?: string;
+  cardCode?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+};
+
+export type UserVehicle = {
+  _id: string;
+  licensePlate: string;
+  vehicleTypeId?: VehicleTypeRef;
+  monthlyCardId?: MonthlyCardRef | null;
+  status?: string;
+};
+
 export type UserProfile = {
   _id: string;
   email: string;
@@ -43,6 +64,9 @@ export type UserProfile = {
     | string;
   roleName?: string;
   status?: string;
+  vehicles?: UserVehicle[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type PostLoginRoute = '/staff' | '/home_check1';

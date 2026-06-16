@@ -105,6 +105,15 @@ function RootNavigator() {
                     />
                   );
                 }
+                if (route.name === 'profile') {
+                  return (
+                    <Ionicons
+                      name={focused ? 'person' : 'person-outline'}
+                      size={iconSize}
+                      color={color}
+                    />
+                  );
+                }
                 if (route.name === 'settings') {
                   return (
                     <Ionicons
@@ -125,6 +134,7 @@ function RootNavigator() {
             <Tabs.Screen name="home_check2" options={{ title: t('Trang chủ 2', 'Homeless') }} />
             <Tabs.Screen name="parking-map" options={{ title: t('Bản đồ', 'Map') }} />
             <Tabs.Screen name="flow" options={{ title: t('Luồng', 'Flow') }} />
+            <Tabs.Screen name="profile" options={{ title: t('Hồ sơ', 'Profile') }} />
             <Tabs.Screen name="settings" options={{ href: null }} />
             <Tabs.Screen name="manager" options={{ href: null }} />
             <Tabs.Screen

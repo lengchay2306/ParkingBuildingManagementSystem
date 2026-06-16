@@ -8,20 +8,22 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference, type AppLanguage } from '@/hooks/language-preference';
 import { useThemePreference, type ThemePreference } from '@/hooks/theme-preference';
 
-const OPTIONS: { key: ThemePreference; title: string; desc: string }[] = [
-  { key: 'system', title: 'Theo thiet bi', desc: 'Tu dong dong bo theo he thong' },
-  { key: 'dark', title: 'Toi', desc: 'Nen toi, chuan theo DESIGN.md' },
-  { key: 'light', title: 'Sang', desc: 'Nen sang, de doc ngoai troi' },
-];
+const getThemeOptions = (t: (vi: string, en: string) => string) =>
+  [
+    { key: 'system' as const, title: t('Theo thiết bị', 'System') },
+    { key: 'dark' as const, title: t('Tối', 'Dark') },
+    { key: 'light' as const, title: t('Sáng', 'Light') },
+  ] satisfies { key: ThemePreference; title: string }[];
 
 export default function SettingsScreen() {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const { language, setLanguage, t } = useLanguagePreference();
   const { themePreference, resolvedScheme, setThemePreference } = useThemePreference();
-  const languageOptions: { key: AppLanguage; title: string; desc: string }[] = [
-    { key: 'vi', title: 'Tiếng Việt', desc: 'Hiển thị toàn bộ giao diện bằng tiếng Việt' },
-    { key: 'en', title: 'English', desc: 'Display the interface in English' },
+  const themeOptions = useMemo(() => getThemeOptions(t), [t]);
+  const languageOptions: { key: AppLanguage; title: string }[] = [
+    { key: 'vi', title: 'Tiếng Việt' },
+    { key: 'en', title: 'English' },
   ];
 
   return (
@@ -38,7 +40,7 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.card}>
-        {OPTIONS.map((item) => {
+        {themeOptions.map((item) => {
           const active = themePreference === item.key;
           return (
             <Pressable
@@ -56,7 +58,6 @@ export default function SettingsScreen() {
                 </ThemedText>
                 <View style={[styles.radio, active && styles.radioActive]} />
               </View>
-              <ThemedText style={styles.optionDesc}>{item.desc}</ThemedText>
             </Pressable>
           );
         })}
@@ -88,7 +89,6 @@ export default function SettingsScreen() {
                 </ThemedText>
                 <View style={[styles.radio, active && styles.radioActive]} />
               </View>
-              <ThemedText style={styles.optionDesc}>{item.desc}</ThemedText>
             </Pressable>
           );
         })}
@@ -132,7 +132,6 @@ const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: DesignColors.hairline,
-    gap: 6,
   },
   optionPressed: {
     backgroundColor: DesignColors.surface2,
@@ -152,10 +151,6 @@ const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
   },
   optionTitleActive: {
     color: DesignColors.primaryHover,
-  },
-  optionDesc: {
-    ...Typography.caption,
-    color: DesignColors.inkSubtle,
   },
   radio: {
     width: 16,
