@@ -50,8 +50,8 @@ class AuthService {
             deviceId,
         } = await this.#tokenService.generateToken({
             userId: existingUser._id,
-            fullName: existingUser,
-            roleId: existingUser.roleId,
+            fullName: existingUser.fullName,
+            roleId: existingUser.roleId._id,
             roleName: existingUser.roleId.roleName,
         })
 
@@ -65,8 +65,6 @@ class AuthService {
         return {
             accessToken,
             refreshToken,
-            // roleName: existingUser.roleId.roleName,
-
         }
     }
 
@@ -107,7 +105,7 @@ class AuthService {
         } = await this.#tokenService.generateToken({
             userId: user._id,
             fullName: user.fullName,
-            roleId: user.roleId,
+            roleId: user.roleId._id,
             roleName: user.roleId.roleName,
             deviceId: decode.deviceId,
         })
@@ -120,11 +118,6 @@ class AuthService {
         });
 
         return { accessToken, refreshToken }
-        //  return {
-        //     accessToken,
-        //     refreshToken,
-        //     roleName: user.roleId.roleName,
-        // }
     }
 
     logout = async ({
