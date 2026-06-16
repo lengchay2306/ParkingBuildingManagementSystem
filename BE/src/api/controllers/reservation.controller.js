@@ -87,6 +87,22 @@ class ReservationController {
             next(error);
         }
     }
+
+    deleteReservation = async (req, res, next) => {
+        try {
+            const { reservationId } = req.params;
+            const deletedReservation = await this.#reservationService.deleteReservation({ reservationId });
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    deletedReservation,
+                },
+                message: 'Reservation deleted successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export default ReservationController;

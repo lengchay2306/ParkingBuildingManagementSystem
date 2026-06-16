@@ -107,6 +107,11 @@ class ReservationRepository {
         const cancelledReservation = await Reservation.findByIdAndUpdate(reservationId, { status: "CANCELLED" }, { new: true });
         return cancelledReservation;
     }
+
+    deleteReservation = async ({ reservationId }) => {
+        const deletedReservation = await Reservation.findByIdAndDelete(reservationId);
+        return deletedReservation;
+    }
 }
 
 export default ReservationRepository;
