@@ -3,6 +3,10 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -31,6 +35,17 @@ import {
   updateMyProfile,
   validateProfileUpdate,
 } from '@/roles/customer/profile';
+import {
+  buildVehicleUpdatePayload,
+  createVehicle,
+  getVehicleTypes,
+  resolveVehicleTypeId,
+  softDeleteVehicle,
+  updateVehicle,
+  validateVehicleRegistration,
+  validateVehicleUpdate,
+  type VehicleType,
+} from '@/roles/customer/vehicles';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
 function formatDate(value: string | undefined) {
@@ -74,11 +89,17 @@ function VehicleCard({
   t,
   styles,
   DesignColors,
+  onEdit,
+  onDelete,
+  isDeleting,
 }: {
   vehicle: UserVehicle;
   t: (vi: string, en: string) => string;
   styles: ReturnType<typeof createStyles>;
   DesignColors: DesignColorPalette;
+  onEdit: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
 }) {
   const card = vehicle.monthlyCardId;
   const vehicleType = vehicle.vehicleTypeId?.type ?? '—';
@@ -90,10 +111,32 @@ function VehicleCard({
         <View style={styles.plateBadge}>
           <ThemedText style={styles.plateText}>{vehicle.licensePlate}</ThemedText>
         </View>
-        <View style={[styles.statusPill, { borderColor: cardStatus.color }]}>
-          <ThemedText style={[styles.statusPillText, { color: cardStatus.color }]}>
-            {vehicle.status ?? '—'}
-          </ThemedText>
+        <View style={styles.vehicleHeaderActions}>
+          <Pressable
+            onPress={onEdit}
+            disabled={isDeleting}
+            style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
+            accessibilityLabel={t('Sửa xe', 'Edit vehicle')}
+          >
+            <Ionicons name="create-outline" size={16} color={DesignColors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={onDelete}
+            disabled={isDeleting}
+            style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
+            accessibilityLabel={t('Xóa xe', 'Delete vehicle')}
+          >
+            {isDeleting ? (
+              <ActivityIndicator color={DesignColors.inkMuted} size="small" />
+            ) : (
+              <Ionicons name="trash-outline" size={16} color={DesignColors.inkMuted} />
+            )}
+          </Pressable>
+          <View style={[styles.statusPill, { borderColor: cardStatus.color }]}>
+            <ThemedText style={[styles.statusPillText, { color: cardStatus.color }]}>
+              {vehicle.status ?? '—'}
+            </ThemedText>
+          </View>
         </View>
       </View>
 
@@ -146,6 +189,14 @@ export default function ProfileScreen() {
   const [editFullName, setEditFullName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [vehicleModalMode, setVehicleModalMode] = useState<'create' | 'edit' | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<UserVehicle | null>(null);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [isLoadingVehicleTypes, setIsLoadingVehicleTypes] = useState(false);
+  const [licensePlate, setLicensePlate] = useState('');
+  const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string | null>(null);
+  const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
+  const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
 
   useProtectedSession();
 
@@ -175,6 +226,128 @@ export default function ProfileScreen() {
   React.useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const loadVehicleTypes = useCallback(async () => {
+    setIsLoadingVehicleTypes(true);
+    try {
+      const types = await getVehicleTypes();
+      setVehicleTypes(types);
+      if (types.length > 0 && !selectedVehicleTypeId) {
+        setSelectedVehicleTypeId(types[0]._id);
+      }
+    } catch (loadError) {
+      showToast(
+        loadError instanceof Error
+          ? loadError.message
+          : t('Không tải được loại xe', 'Could not load vehicle types'),
+        'error',
+      );
+    } finally {
+      setIsLoadingVehicleTypes(false);
+    }
+  }, [selectedVehicleTypeId, showToast, t]);
+
+  React.useEffect(() => {
+    if (vehicleModalMode && vehicleTypes.length === 0) {
+      loadVehicleTypes();
+    }
+  }, [vehicleModalMode, loadVehicleTypes, vehicleTypes.length]);
+
+  function closeVehicleModal() {
+    setVehicleModalMode(null);
+    setEditingVehicle(null);
+    setLicensePlate('');
+  }
+
+  function startRegisteringVehicle() {
+    setEditingVehicle(null);
+    setVehicleModalMode('create');
+    setLicensePlate('');
+    if (vehicleTypes.length > 0) {
+      setSelectedVehicleTypeId(vehicleTypes[0]._id);
+    }
+  }
+
+  function startEditingVehicle(vehicle: UserVehicle) {
+    setEditingVehicle(vehicle);
+    setVehicleModalMode('edit');
+    setLicensePlate(vehicle.licensePlate);
+    setSelectedVehicleTypeId(resolveVehicleTypeId(vehicle.vehicleTypeId));
+    if (vehicleTypes.length === 0) {
+      loadVehicleTypes();
+    }
+  }
+
+  async function handleSubmitVehicle() {
+    if (vehicleModalMode === 'create') {
+      const validationError = validateVehicleRegistration(licensePlate, selectedVehicleTypeId, t);
+      if (validationError) {
+        showToast(validationError, 'error');
+        return;
+      }
+
+      setIsSubmittingVehicle(true);
+      try {
+        await createVehicle({
+          licensePlate,
+          vehicleTypeId: selectedVehicleTypeId!,
+        });
+        const refreshed = await getMyProfile();
+        setProfile(refreshed);
+        closeVehicleModal();
+        showToast(t('Đã đăng ký xe', 'Vehicle registered'), 'success');
+      } catch (submitError) {
+        showToast(
+          submitError instanceof Error
+            ? submitError.message
+            : t('Không thể đăng ký xe', 'Could not register vehicle'),
+          'error',
+        );
+      } finally {
+        setIsSubmittingVehicle(false);
+      }
+      return;
+    }
+
+    if (vehicleModalMode !== 'edit' || !editingVehicle) {
+      return;
+    }
+
+    const currentTypeId = resolveVehicleTypeId(editingVehicle.vehicleTypeId) ?? '';
+    const payload = buildVehicleUpdatePayload(
+      { licensePlate: editingVehicle.licensePlate, vehicleTypeId: currentTypeId },
+      licensePlate,
+      selectedVehicleTypeId ?? currentTypeId,
+    );
+    const validationError = validateVehicleUpdate(
+      payload,
+      licensePlate,
+      selectedVehicleTypeId,
+      t,
+    );
+    if (validationError) {
+      showToast(validationError, 'error');
+      return;
+    }
+
+    setIsSubmittingVehicle(true);
+    try {
+      await updateVehicle(editingVehicle._id, payload);
+      const refreshed = await getMyProfile();
+      setProfile(refreshed);
+      closeVehicleModal();
+      showToast(t('Đã cập nhật xe', 'Vehicle updated'), 'success');
+    } catch (submitError) {
+      showToast(
+        submitError instanceof Error
+          ? submitError.message
+          : t('Không thể cập nhật xe', 'Could not update vehicle'),
+        'error',
+      );
+    } finally {
+      setIsSubmittingVehicle(false);
+    }
+  }
 
   function startEditing() {
     if (!profile) {
@@ -243,6 +416,50 @@ export default function ProfileScreen() {
   const roleName = profile ? extractRoleNameFromProfile(profile) : null;
   const accountStatus = statusTone(profile?.status, DesignColors);
   const vehicles = profile?.vehicles ?? [];
+  const activeVehicles = useMemo(
+    () => vehicles.filter((vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE'),
+    [vehicles],
+  );
+
+  function confirmDeleteVehicle(vehicle: UserVehicle) {
+    Alert.alert(
+      t('Xóa xe', 'Delete vehicle'),
+      t(
+        `Bạn có chắc muốn xóa xe ${vehicle.licensePlate}?.`,
+        `Remove ${vehicle.licensePlate}?.`,
+      ),
+      [
+        { text: t('Hủy', 'Cancel'), style: 'cancel' },
+        {
+          text: t('Xóa', 'Delete'),
+          style: 'destructive',
+          onPress: () => handleDeleteVehicle(vehicle),
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteVehicle(vehicle: UserVehicle) {
+    setDeletingVehicleId(vehicle._id);
+    try {
+      await softDeleteVehicle(vehicle._id);
+      const refreshed = await getMyProfile();
+      setProfile(refreshed);
+      if (editingVehicle?._id === vehicle._id) {
+        closeVehicleModal();
+      }
+      showToast(t('Đã xóa xe', 'Vehicle removed'), 'success');
+    } catch (deleteError) {
+      showToast(
+        deleteError instanceof Error
+          ? deleteError.message
+          : t('Không thể xóa xe', 'Could not delete vehicle'),
+        'error',
+      );
+    } finally {
+      setDeletingVehicleId(null);
+    }
+  }
 
   if (isLoading && !profile) {
     return (
@@ -405,21 +622,33 @@ export default function ProfileScreen() {
             <ThemedText style={styles.sectionTitle}>
               {t('Xe đã đăng ký', 'Registered vehicles')}
             </ThemedText>
-            <ThemedText style={styles.sectionCount}>{vehicles.length}</ThemedText>
+            <View style={styles.sectionHeaderActions}>
+              <ThemedText style={styles.sectionCount}>{activeVehicles.length}</ThemedText>
+              <Pressable
+                onPress={startRegisteringVehicle}
+                style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]}
+                accessibilityLabel={t('Đăng ký xe', 'Register vehicle')}
+              >
+                <Ionicons name="add" size={20} color={DesignColors.primary} />
+              </Pressable>
+            </View>
           </View>
 
-          {vehicles.length === 0 ? (
+          {activeVehicles.length === 0 ? (
             <ThemedText style={styles.emptyText}>
               {t('Chưa có xe nào trong tài khoản.', 'No vehicles on this account yet.')}
             </ThemedText>
           ) : (
-            vehicles.map((vehicle) => (
+            activeVehicles.map((vehicle) => (
               <VehicleCard
                 key={vehicle._id}
                 vehicle={vehicle}
                 t={t}
                 styles={styles}
                 DesignColors={DesignColors}
+                onEdit={() => startEditingVehicle(vehicle)}
+                onDelete={() => confirmDeleteVehicle(vehicle)}
+                isDeleting={deletingVehicleId === vehicle._id}
               />
             ))
           )}
@@ -448,6 +677,106 @@ export default function ProfileScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={vehicleModalMode !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={closeVehicleModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalRoot}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={closeVehicleModal} />
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>
+                {vehicleModalMode === 'edit'
+                  ? t('Cập nhật xe', 'Update vehicle')
+                  : t('Đăng ký xe', 'Register vehicle')}
+              </ThemedText>
+              <Pressable
+                onPress={closeVehicleModal}
+                style={({ pressed }) => [styles.modalClose, pressed && styles.buttonPressed]}
+                accessibilityLabel={t('Đóng', 'Close')}
+              >
+                <Ionicons name="close" size={20} color={DesignColors.inkMuted} />
+              </Pressable>
+            </View>
+
+            <ThemedText style={styles.modalHint}>
+              {t('Biển số đúng dạng 51A-123.45', 'Plate format: 51A-123.45')}
+            </ThemedText>
+
+            <View style={styles.field}>
+              <ThemedText style={styles.fieldLabel}>{t('Biển số', 'License plate')}</ThemedText>
+              <TextInput
+                value={licensePlate}
+                onChangeText={setLicensePlate}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder="51A-123.45"
+                placeholderTextColor={DesignColors.inkSubtle}
+                style={styles.input}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <ThemedText style={styles.fieldLabel}>{t('Loại xe', 'Vehicle type')}</ThemedText>
+              {isLoadingVehicleTypes ? (
+                <ActivityIndicator color={DesignColors.primary} style={styles.typeLoader} />
+              ) : (
+                <View style={styles.typeRow}>
+                  {vehicleTypes.map((type) => {
+                    const active = selectedVehicleTypeId === type._id;
+                    return (
+                      <Pressable
+                        key={type._id}
+                        onPress={() => setSelectedVehicleTypeId(type._id)}
+                        style={({ pressed }) => [
+                          styles.typeChip,
+                          active && styles.typeChipActive,
+                          pressed && styles.buttonPressed,
+                        ]}
+                      >
+                        <ThemedText
+                          style={[styles.typeChipText, active && styles.typeChipTextActive]}
+                        >
+                          {type.type}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.editActions}>
+              <Pressable
+                disabled={isSubmittingVehicle}
+                onPress={closeVehicleModal}
+                style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+              >
+                <ThemedText style={styles.secondaryButtonText}>{t('Hủy', 'Cancel')}</ThemedText>
+              </Pressable>
+              <Pressable
+                disabled={isSubmittingVehicle || isLoadingVehicleTypes}
+                onPress={handleSubmitVehicle}
+                style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+              >
+                {isSubmittingVehicle ? (
+                  <ActivityIndicator color={DesignColors.onPrimary} size="small" />
+                ) : (
+                  <ThemedText style={styles.primaryButtonText}>
+                    {vehicleModalMode === 'edit' ? t('Lưu', 'Save') : t('Đăng ký', 'Register')}
+                  </ThemedText>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ThemedView>
   );
 }
@@ -588,6 +917,87 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       ...Typography.caption,
       color: DesignColors.inkSubtle,
     },
+    sectionHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    modalRoot: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: Spacing.md,
+    },
+    modalBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    },
+    modalCard: {
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      padding: Spacing.lg,
+      gap: Spacing.sm,
+      maxWidth: MaxContentWidth,
+      width: '100%',
+      alignSelf: 'center',
+      zIndex: 1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: Spacing.sm,
+    },
+    modalTitle: {
+      ...Typography.cardTitle,
+      color: DesignColors.ink,
+      flex: 1,
+    },
+    modalClose: {
+      width: 32,
+      height: 32,
+      borderRadius: Radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: DesignColors.surface2,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+    },
+    modalHint: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    typeLoader: {
+      alignSelf: 'flex-start',
+      marginVertical: Spacing.xs,
+    },
+    typeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.xs,
+    },
+    typeChip: {
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 6,
+    },
+    typeChipActive: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface3,
+    },
+    typeChipText: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      textTransform: 'uppercase',
+    },
+    typeChipTextActive: {
+      color: DesignColors.primary,
+      fontWeight: '600',
+    },
     editButton: {
       width: 32,
       height: 32,
@@ -686,6 +1096,21 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       justifyContent: 'space-between',
       gap: Spacing.sm,
       marginBottom: 4,
+    },
+    vehicleHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xs,
+    },
+    vehicleActionButton: {
+      width: 28,
+      height: 28,
+      borderRadius: Radius.sm,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     plateBadge: {
       borderRadius: Radius.sm,

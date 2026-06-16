@@ -370,3 +370,8 @@ export async function logout() {
   }
   memoryPostLoginRoute = CUSTOMER_ROUTES.home;
 }
+
+/** Session-authenticated fetch for role-specific API modules. */
+export function authenticatedFetch(path: string, init: RequestInit = {}) {
+  return authFetch(path, init);
+}
