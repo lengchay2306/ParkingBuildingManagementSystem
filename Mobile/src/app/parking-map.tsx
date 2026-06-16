@@ -583,7 +583,7 @@ function createGroundText(
   const geometry = new TextGeometry(toAsciiLabel(text), {
     font: getDiagramFont(),
     size,
-    height: 0.001,
+    depth: 0.001,
     curveSegments: 3,
     bevelEnabled: false,
   });
