@@ -25,6 +25,7 @@ import {
   type UserProfile,
   type UserVehicle,
 } from '@/lib/auth-api';
+import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
 function formatDate(value: string | undefined) {
   if (!value) {
@@ -49,22 +50,6 @@ function getInitials(fullName: string) {
     return parts[0].slice(0, 2).toUpperCase();
   }
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function resolveRoleLabel(roleName: string | null, t: (vi: string, en: string) => string) {
-  if (roleName === 'CUSTOMER') {
-    return t('Khách hàng', 'Customer');
-  }
-  if (roleName === 'STAFF') {
-    return t('Nhân viên', 'Staff');
-  }
-  if (roleName === 'MANAGER') {
-    return t('Quản lý', 'Manager');
-  }
-  if (roleName === 'ADMIN') {
-    return t('Quản trị', 'Admin');
-  }
-  return roleName ?? '—';
 }
 
 function statusTone(status: string | undefined, DesignColors: DesignColorPalette) {
@@ -186,7 +171,7 @@ export default function ProfileScreen() {
     try {
       await logout();
       showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
-      router.replace('/sign-platform' as never);
+      router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
       showToast(
         logoutError instanceof Error
@@ -308,7 +293,7 @@ export default function ProfileScreen() {
         </View>
 
         <Pressable
-          onPress={() => router.push('/settings' as never)}
+          onPress={() => router.push(CUSTOMER_ROUTES.settings as never)}
           style={({ pressed }) => [styles.settingsButton, pressed && styles.buttonPressed]}
         >
           <Ionicons name="settings-outline" size={18} color={DesignColors.ink} />

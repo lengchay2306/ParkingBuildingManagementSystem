@@ -14,7 +14,7 @@ import * as THREE from 'three';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { Font, FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 
-import helvetikerFont from '../../assets/fonts/helvetiker_regular.typeface.json';
+import helvetikerFont from '../../../assets/fonts/helvetiker_regular.typeface.json';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { DesignColorPalette, DesignColors, Radius, Spacing, Typography } from '@/constants/design';

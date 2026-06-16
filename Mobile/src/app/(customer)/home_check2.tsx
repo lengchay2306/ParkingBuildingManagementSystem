@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AUTH_ROUTES } from '@/roles';
 
 const heroImage =
   'Mobile/src/components/pictures/cars_parking.png';
@@ -33,7 +34,7 @@ export default function HomeScreen() {
               <View style={styles.navGhost} />
               <ThemedText style={styles.navTitle}>Parking Building System</ThemedText>
               <Pressable
-                onPress={() => router.push('/sign-platform' as never)}
+                onPress={() => router.push(AUTH_ROUTES.signIn as never)}
                 style={({ pressed }) => [styles.signInButton, pressed && styles.buttonPressed]}>
                 <ThemedText style={styles.signInButtonText}>Dang nhap</ThemedText>
               </Pressable>
@@ -93,7 +94,7 @@ export default function HomeScreen() {
                 Dat cho truoc chi voi vai thao tac. Dam bao co cho ngay khi ban den.
               </ThemedText>
               <Pressable
-                onPress={() => router.push('/sign-platform' as never)}
+                onPress={() => router.push(AUTH_ROUTES.signIn as never)}
                 style={({ pressed }) => [styles.reserveButton, pressed && styles.buttonPressed]}>
                 <ThemedText style={styles.reserveButtonText}>Dat cho ngay</ThemedText>
               </Pressable>

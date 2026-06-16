@@ -1,5 +1,13 @@
 import { Platform } from 'react-native';
 
+import {
+  CUSTOMER_ROUTES,
+  type PostLoginRoute,
+} from '@/roles';
+
+export type { PostLoginRoute } from '@/roles';
+export { resolvePostLoginRoute } from '@/roles';
+
 type StoredCookie = {
   name?: string;
   value?: string;
@@ -69,9 +77,7 @@ export type UserProfile = {
   updatedAt?: string;
 };
 
-export type PostLoginRoute = '/staff' | '/home_check1';
-
-let memoryPostLoginRoute: PostLoginRoute = '/home_check1';
+let memoryPostLoginRoute: PostLoginRoute = CUSTOMER_ROUTES.home;
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
   const value = raw?.trim();
@@ -321,14 +327,6 @@ export async function resolveRoleAfterLogin(): Promise<string | null> {
   }
 }
 
-/** STAFF → staff screen; CUSTOMER and other roles → home_check1 tab. */
-export function resolvePostLoginRoute(roleName: string | null): PostLoginRoute {
-  if (roleName === 'STAFF') {
-    return '/staff';
-  }
-  return '/home_check1';
-}
-
 /** GET /users/my-profile — requires session cookies from login. */
 export async function getMyProfile(): Promise<UserProfile> {
   const response = await authFetch('/users/my-profile');
@@ -350,5 +348,5 @@ export async function logout() {
   if (CookieManager) {
     await CookieManager.clearAll();
   }
-  memoryPostLoginRoute = '/home_check1';
+  memoryPostLoginRoute = CUSTOMER_ROUTES.home;
 }

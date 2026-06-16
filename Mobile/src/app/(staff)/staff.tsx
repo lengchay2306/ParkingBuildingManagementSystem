@@ -11,6 +11,7 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { logout } from '@/lib/auth-api';
+import { AUTH_ROUTES } from '@/roles';
 
 const recentSessions = [
   ['SES-19204', '51K-298.74', 'B2-047', 'IN-USE', '00:42'],
@@ -41,7 +42,7 @@ export default function StaffScreen() {
     try {
       await logout();
       showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
-      router.replace('/sign-platform' as never);
+      router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
       showToast(
         logoutError instanceof Error

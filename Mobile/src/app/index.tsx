@@ -8,15 +8,20 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import {
   getStoredPostLoginRoute,
   refreshSession,
-  resolvePostLoginRoute,
   resolveRoleAfterLogin,
 } from '@/lib/auth-api';
+import {
+  AUTH_ROUTES,
+  CUSTOMER_ROUTES,
+  type PostLoginRoute,
+  resolvePostLoginRoute,
+} from '@/roles';
 
 export default function IndexRoute() {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'guest'>('loading');
-  const [postLoginRoute, setPostLoginRoute] = useState<'/staff' | '/home_check1'>('/home_check1');
+  const [postLoginRoute, setPostLoginRoute] = useState<PostLoginRoute>(CUSTOMER_ROUTES.home);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,7 +64,7 @@ export default function IndexRoute() {
     );
   }
 
-  return <Redirect href={status === 'authenticated' ? postLoginRoute : '/sign-platform'} />;
+  return <Redirect href={status === 'authenticated' ? postLoginRoute : AUTH_ROUTES.signIn} />;
 }
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({

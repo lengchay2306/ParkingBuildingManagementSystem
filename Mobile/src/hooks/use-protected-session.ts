@@ -3,6 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { refreshSession } from '@/lib/auth-api';
+import { AUTH_ROUTES } from '@/roles';
 
 /**
  * Keeps the session alive on protected screens: refresh when the screen is focused
@@ -14,7 +15,7 @@ export function useProtectedSession() {
   const syncSession = useCallback(async () => {
     const isValid = await refreshSession();
     if (!isValid) {
-      router.replace('/sign-platform' as never);
+      router.replace(AUTH_ROUTES.signIn as never);
     }
   }, [router]);
 

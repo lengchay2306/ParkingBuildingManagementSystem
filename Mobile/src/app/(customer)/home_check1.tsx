@@ -10,6 +10,12 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useThemePreference, type ThemePreference } from '@/hooks/theme-preference';
 import { MaxContentWidth } from '@/constants/theme';
+import {
+  ADMIN_ROUTES,
+  CUSTOMER_ROUTES,
+  MANAGER_ROUTES,
+  STAFF_ROUTES,
+} from '@/roles';
 
 export default function HomeScreen() {
   const DesignColors = useDesignColors();
@@ -226,7 +232,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => {
               setMenuOpen(false);
-              router.push('/parking-map');
+              router.push(CUSTOMER_ROUTES.parkingMap);
             }}
             style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
           >
@@ -236,7 +242,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => {
               setMenuOpen(false);
-              router.push('/flow');
+              router.push(CUSTOMER_ROUTES.flow);
             }}
             style={({ pressed }) => [styles.menuItem, styles.menuItemLast, pressed && styles.menuItemPressed]}
           >
@@ -499,10 +505,10 @@ const getKpis = (DesignColors: DesignColorPalette, t: (vi: string, en: string) =
 ];
 
 const getRoleShortcuts = (t: (vi: string, en: string) => string) => [
-  { label: t('Quản lý', 'Manager'), meta: t('Bảng điều hành cơ sở', 'Facility dashboard'), route: '/manager' },
-  { label: t('Nhân viên', 'Staff'), meta: t('Quầy + tuần tra', 'Booth + patrol'), route: '/staff' },
-  { label: t('Tài xế', 'Driver'), meta: t('Theo dõi phiên gửi', 'Session view'), route: '/driver' },
-  { label: t('Quản trị', 'Admin'), meta: t('Bảng điều khiển', 'Control panel'), route: '/admin' },
+  { label: t('Quản lý', 'Manager'), meta: t('Bảng điều hành cơ sở', 'Facility dashboard'), route: MANAGER_ROUTES.home },
+  { label: t('Nhân viên', 'Staff'), meta: t('Quầy + tuần tra', 'Booth + patrol'), route: STAFF_ROUTES.home },
+  { label: t('Tài xế', 'Driver'), meta: t('Theo dõi phiên gửi', 'Session view'), route: CUSTOMER_ROUTES.driver },
+  { label: t('Quản trị', 'Admin'), meta: t('Bảng điều khiển', 'Control panel'), route: ADMIN_ROUTES.home },
 ];
 
 const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
