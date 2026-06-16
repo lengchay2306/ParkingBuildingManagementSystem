@@ -194,6 +194,7 @@ const emptyVehicles: Vehicle[] = [];
 
 function DriverPage() {
   const queryClient = useQueryClient();
+  const [hasMounted, setHasMounted] = useState(false);
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [licensePlate, setLicensePlate] = useState("");
   const [vehicleTypeId, setVehicleTypeId] = useState("");
@@ -207,22 +208,24 @@ function DriverPage() {
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editProfileError, setEditProfileError] = useState<string | null>(null);
-  const canFetchVehicles = typeof window !== "undefined";
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const profileQuery = useQuery({
     queryKey: myProfileQueryKey,
     queryFn: getMyProfile,
-    enabled: canFetchVehicles,
+    enabled: hasMounted,
   });
   const vehicleTypesQuery = useQuery({
     queryKey: vehicleTypesQueryKey,
     queryFn: getVehicleTypes,
-    enabled: canFetchVehicles,
+    enabled: hasMounted,
   });
   const vehiclesQuery = useQuery({
     queryKey: myVehiclesQueryKey,
     queryFn: getMyVehicles,
-    enabled: canFetchVehicles,
+    enabled: hasMounted,
   });
 
   const createVehicleMutation = useMutation({
