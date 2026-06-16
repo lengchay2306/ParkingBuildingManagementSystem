@@ -28,8 +28,8 @@ class ReservationRepository {
         vehicleId,
         parkingSlotId,
         expectedArrival,
-        reservedAt = Date.now(),
-        expiryAt = new Date(Date.now() + 1000 * 60 * 60 * 24),
+        reservedAt,
+        expiryAt,
         status = "PENDING",
     }) => {
         const newReservation = await Reservation.create({
@@ -41,7 +41,6 @@ class ReservationRepository {
             expiryAt,
             status,
         });
-
         return newReservation.toObject();
     }
 
@@ -67,6 +66,51 @@ class ReservationRepository {
             })
             .sort({ createdAt: -1 })
             .lean();
+    }
+
+    getAllReservations = async ({ filter = {}, page = 1, limit = 10 }) => {
+        const skip = (page - 1) * limit;
+
+        const [reservations, totalCount] = await Promise.all([
+            Reservation.find(filter)
+                .populate('driverId', '-password')
+                .populate({
+                    path: 'vehicleId',
+                    populate: { path: 'vehicleTypeId' },
+                })
+                .populate({
+                    path: 'parkingSlotId',
+                    populate: {
+                        path: 'floorId',
+                        populate: { path: 'vehicleTypeId' },
+                    },
+                })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Reservation.countDocuments(filter),
+        ]);
+
+        return {
+            reservations,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
+    }
+
+    cancelReservation = async ({ reservationId }) => {
+        const cancelledReservation = await Reservation.findByIdAndUpdate(reservationId, { status: "CANCELLED" }, { new: true });
+        return cancelledReservation;
+    }
+
+    deleteReservation = async ({ reservationId }) => {
+        const deletedReservation = await Reservation.findByIdAndDelete(reservationId);
+        return deletedReservation;
     }
 }
 

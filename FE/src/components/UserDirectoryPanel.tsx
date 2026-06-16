@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
@@ -49,6 +49,7 @@ const pageSize = 100;
 
 export function UserDirectoryPanel({ className, compact = false }: UserDirectoryPanelProps) {
   const queryClient = useQueryClient();
+  const [hasMounted, setHasMounted] = useState(false);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -60,7 +61,9 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "LOCKED">("ACTIVE");
   const [editRoleId, setEditRoleId] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
-  const canFetchUsers = typeof window !== "undefined";
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const usersQuery = useQuery({
     queryKey: ["users", { page, search }],
@@ -72,7 +75,7 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
         sortBy: "createdAt",
         sortOrder: "desc",
       }),
-    enabled: canFetchUsers,
+    enabled: hasMounted,
   });
 
   const users = usersQuery.data?.users ?? [];

@@ -78,7 +78,7 @@ export const getVehicleTypes = async () => {
 };
 
 export const getMyVehicles = async () => {
-  const response = await fetch(`${API_BASE}/api/v1/vehicles/my`, {
+  const response = await fetch(`${API_BASE}/api/v1/vehicles/user-vehicles`, {
     method: "GET",
     credentials: "include",
   });
