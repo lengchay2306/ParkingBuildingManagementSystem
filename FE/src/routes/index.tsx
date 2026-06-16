@@ -1,4 +1,4 @@
-﻿import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
+import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
