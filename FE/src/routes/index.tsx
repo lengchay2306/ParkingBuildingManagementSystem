@@ -1,9 +1,16 @@
 import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
+import { getRoleHome, getSessionRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const role = await getSessionRole();
+    if (role) {
+      throw redirect({ to: getRoleHome(role) });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Overview - PARKOS" },

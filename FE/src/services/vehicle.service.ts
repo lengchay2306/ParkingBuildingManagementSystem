@@ -21,6 +21,11 @@ export type CreateVehicleRequest = {
   vehicleTypeId: string;
 };
 
+export type UpdateVehicleRequest = {
+  licensePlate?: string;
+  vehicleTypeId?: string;
+};
+
 type ApiPayload<T> = {
   status?: string;
   message?: string;
@@ -145,6 +150,33 @@ export const createVehicle = async (request: CreateVehicleRequest) => {
   const vehicle = payload.data?.vehicle;
   if (!vehicle) {
     throw new VehicleApiError(response.status, "Vehicle created, but response data is missing.");
+  }
+
+  return vehicle;
+};
+
+export const updateMyVehicle = async (vehicleId: string, request: UpdateVehicleRequest) => {
+  const response = await fetch(`${API_BASE}/api/v1/vehicles/user-vehicles/${encodeURIComponent(vehicleId)}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+  const payload = await parseJson<{ vehicle?: Vehicle }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 400
+        ? "Invalid vehicle data or no fields provided."
+        : vehicleErrorMessage(response.status);
+    throw new VehicleApiError(response.status, payload.message || fallback);
+  }
+
+  const vehicle = payload.data?.vehicle;
+  if (!vehicle) {
+    throw new VehicleApiError(response.status, "Vehicle update response data is missing.");
   }
 
   return vehicle;
