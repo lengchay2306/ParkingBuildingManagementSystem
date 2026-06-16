@@ -97,6 +97,18 @@ class ReservationService {
         const cancelledReservation = await this.#reservationRepository.cancelReservation({ reservationId });
         return cancelledReservation;
     }
+
+    deleteReservation = async ({ reservationId }) => {
+        const existingReservation = await this.#reservationRepository.findReservationById({ reservationId });
+        if (!existingReservation) {
+            throw new NotFoundError("Reservation not found");
+        }
+        if (existingReservation.status !== "PENDING") {
+            throw new BadRequestError("Only PENDING reservations can be deleted");
+        }
+        const deletedReservation = await this.#reservationRepository.deleteReservation({ reservationId });
+        return deletedReservation;
+    }
 }
 
 export default ReservationService;
