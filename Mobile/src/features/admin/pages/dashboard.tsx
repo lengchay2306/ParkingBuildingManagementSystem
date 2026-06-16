@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { logout } from '@/lib/auth-api';
 import { Spacing } from '@/constants/theme';
+import { AUTH_ROUTES } from '@/roles';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function DashboardScreen() {
     try {
       await logout();
       showToast('Logged out successfully', 'success');
-      router.replace('/sign-platform' as never);
+      router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
       showToast(
         logoutError instanceof Error ? logoutError.message : 'Cannot log out',

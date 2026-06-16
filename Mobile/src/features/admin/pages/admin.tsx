@@ -34,7 +34,7 @@ const sensitivity = [
   ['Overstay grace', 15, 'min'],
 ];
 
-const buildings = [
+const buildings: [string, string, boolean][] = [
   ['North Plaza', '574 slots - 4 floors', true],
   ['Riverside Tower', '318 slots - 3 floors', true],
   ['Old Quarter Lot', '92 slots - L1', false],

@@ -42,7 +42,9 @@ export const DesignColorsLight = {
   semanticOverlay: '#000000',
 } as const;
 
-export type DesignColorPalette = typeof DesignColors;
+export type DesignColorPalette = {
+  readonly [K in keyof typeof DesignColors]: string;
+};
 
 export const Radius = {
   xs: 4,

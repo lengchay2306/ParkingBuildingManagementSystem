@@ -1,5 +1,13 @@
 import { Platform } from 'react-native';
 
+import {
+  CUSTOMER_ROUTES,
+  type PostLoginRoute,
+} from '@/roles';
+
+export type { PostLoginRoute } from '@/roles';
+export { resolvePostLoginRoute } from '@/roles';
+
 type StoredCookie = {
   name?: string;
   value?: string;
@@ -30,6 +38,27 @@ type AuthResponse = {
   message?: string;
 };
 
+export type VehicleTypeRef = {
+  _id?: string;
+  type?: string;
+};
+
+export type MonthlyCardRef = {
+  _id?: string;
+  cardCode?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+};
+
+export type UserVehicle = {
+  _id: string;
+  licensePlate: string;
+  vehicleTypeId?: VehicleTypeRef;
+  monthlyCardId?: MonthlyCardRef | null;
+  status?: string;
+};
+
 export type UserProfile = {
   _id: string;
   email: string;
@@ -43,11 +72,12 @@ export type UserProfile = {
     | string;
   roleName?: string;
   status?: string;
+  vehicles?: UserVehicle[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type PostLoginRoute = '/staff' | '/home_check1';
-
-let memoryPostLoginRoute: PostLoginRoute = '/home_check1';
+let memoryPostLoginRoute: PostLoginRoute = CUSTOMER_ROUTES.home;
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
   const value = raw?.trim();
@@ -297,14 +327,6 @@ export async function resolveRoleAfterLogin(): Promise<string | null> {
   }
 }
 
-/** STAFF → staff screen; CUSTOMER and other roles → home_check1 tab. */
-export function resolvePostLoginRoute(roleName: string | null): PostLoginRoute {
-  if (roleName === 'STAFF') {
-    return '/staff';
-  }
-  return '/home_check1';
-}
-
 /** GET /users/my-profile — requires session cookies from login. */
 export async function getMyProfile(): Promise<UserProfile> {
   const response = await authFetch('/users/my-profile');
@@ -312,6 +334,26 @@ export async function getMyProfile(): Promise<UserProfile> {
   const user = payload?.data?.user;
   if (!user) {
     throw new Error(payload?.message ?? 'Profile response is missing user data');
+  }
+  return user;
+}
+
+export type UpdateMyProfilePayload = {
+  fullName?: string;
+  phone?: string;
+};
+
+/** PUT /users/my-profile — at least one of fullName or phone is required. */
+export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfile> {
+  const response = await authFetch('/users/my-profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const result = (await parseApiResponse(response)) as AuthResponse | null;
+  const user = result?.data?.user;
+  if (!user) {
+    throw new Error(result?.message ?? 'Update response is missing user data');
   }
   return user;
 }
@@ -326,5 +368,10 @@ export async function logout() {
   if (CookieManager) {
     await CookieManager.clearAll();
   }
-  memoryPostLoginRoute = '/home_check1';
+  memoryPostLoginRoute = CUSTOMER_ROUTES.home;
+}
+
+/** Session-authenticated fetch for role-specific API modules. */
+export function authenticatedFetch(path: string, init: RequestInit = {}) {
+  return authFetch(path, init);
 }

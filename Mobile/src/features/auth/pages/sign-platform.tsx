@@ -36,7 +36,16 @@ import {
 } from '@/lib/auth-api';
 
 type AuthView = 'login' | 'signup';
-type FocusField = 'loginEmail' | 'loginPassword' | 'signupFullName' | 'signupEmail' | 'signupPassword' | null;
+type FocusField =
+  | 'loginEmail'
+  | 'loginPassword'
+  | 'signupFullName'
+  | 'signupEmail'
+  | 'signupPhone'
+  | 'signupPassword'
+  | null;
+
+const SIGNUP_PHONE_PATTERN = /^[0-9]{10}$/;
 
 type Palette = {
   screenBg: string;
@@ -124,6 +133,7 @@ export default function SignPlatformScreen() {
   const [loginPassword, setLoginPassword] = useState('');
   const [signupFullName, setSignupFullName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -247,14 +257,16 @@ export default function SignPlatformScreen() {
 
   const canSignUpSubmit = useMemo(() => {
     const trimmedName = signupFullName.trim();
+    const trimmedPhone = signupPhone.trim();
     return (
       trimmedName.length >= 2 &&
       trimmedName.length <= 30 &&
       signupEmail.trim().length > 0 &&
-      signupPassword.length > 0 &&
+      SIGNUP_PHONE_PATTERN.test(trimmedPhone) &&
+      signupPassword.length >= 8 &&
       !isSigningUp
     );
-  }, [signupFullName, signupEmail, signupPassword, isSigningUp]);
+  }, [signupFullName, signupEmail, signupPhone, signupPassword, isSigningUp]);
 
   const mascot = useSignMascotInteraction({
     t,
@@ -263,6 +275,7 @@ export default function SignPlatformScreen() {
     loginEmail,
     loginPassword,
     signupEmail,
+    signupPhone,
     signupPassword,
     signupFullName,
     isSigningIn,
@@ -274,7 +287,8 @@ export default function SignPlatformScreen() {
     if (
       focusedField === 'loginEmail' ||
       focusedField === 'signupEmail' ||
-      focusedField === 'signupFullName'
+      focusedField === 'signupFullName' ||
+      focusedField === 'signupPhone'
     ) {
       return 'watching';
     }
@@ -311,13 +325,14 @@ export default function SignPlatformScreen() {
         fullName: signupFullName.trim(),
         email: signupEmail.trim(),
         password: signupPassword,
-        phone: '',
+        phone: signupPhone.trim(),
       });
       showToast(t('Đăng ký thành công. Vui lòng đăng nhập.', 'Registration successful. Please sign in.'), 'success');
       setLoginEmail(signupEmail.trim());
       setLoginPassword('');
       setSignupFullName('');
       setSignupEmail('');
+      setSignupPhone('');
       setSignupPassword('');
       animateToLogin();
     } catch (error) {
@@ -495,6 +510,25 @@ export default function SignPlatformScreen() {
                             autoCapitalize="none"
                             autoCorrect={false}
                             keyboardType="email-address"
+                            placeholder=""
+                            style={[styles.input, { color: palette.text }]}
+                          />
+                        </FieldRow>
+                        <FieldRow
+                          icon="call-outline"
+                          label={t('SỐ ĐIỆN THOẠI', 'PHONE')}
+                          value={signupPhone}
+                          focused={focusedField === 'signupPhone'}
+                          palette={palette}>
+                          <TextInput
+                            value={signupPhone}
+                            onChangeText={(text) =>
+                              setSignupPhone(text.replace(/\D/g, '').slice(0, 10))
+                            }
+                            onFocus={() => setFocusedField('signupPhone')}
+                            onBlur={() => setFocusedField(null)}
+                            keyboardType="phone-pad"
+                            autoComplete="tel"
                             placeholder=""
                             style={[styles.input, { color: palette.text }]}
                           />
