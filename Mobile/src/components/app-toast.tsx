@@ -16,6 +16,7 @@ type ToastState = {
 
 type ToastContextValue = {
     showToast: (message: string, kind?: ToastKind) => void;
+    setSuppressErrorToasts: (suppress: boolean) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -25,8 +26,20 @@ export function AppToastProvider({ children }: { children: React.ReactNode }) {
     const insets = useSafeAreaInsets();
     const [toast, setToast] = useState<ToastState>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const suppressErrorToastsRef = useRef(0);
+
+    const setSuppressErrorToasts = useCallback((suppress: boolean) => {
+        suppressErrorToastsRef.current += suppress ? 1 : -1;
+        if (suppressErrorToastsRef.current < 0) {
+            suppressErrorToastsRef.current = 0;
+        }
+    }, []);
 
     const showToast = useCallback((message: string, kind: ToastKind = 'success') => {
+        if (kind === 'error' && suppressErrorToastsRef.current > 0) {
+            return;
+        }
+
         if (timerRef.current) {
             clearTimeout(timerRef.current);
         }
@@ -47,7 +60,10 @@ export function AppToastProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    const contextValue = useMemo(() => ({ showToast }), [showToast]);
+    const contextValue = useMemo(
+        () => ({ showToast, setSuppressErrorToasts }),
+        [setSuppressErrorToasts, showToast],
+    );
 
     return (
         <ToastContext.Provider value={contextValue}>
@@ -80,6 +96,17 @@ export function useAppToast() {
     }
 
     return value;
+}
+
+/** Block red error toasts (e.g. sign-in screen uses mascot speech instead). */
+export function useSuppressErrorToasts(enabled = true) {
+    const { setSuppressErrorToasts } = useAppToast();
+
+    useEffect(() => {
+        if (!enabled) return;
+        setSuppressErrorToasts(true);
+        return () => setSuppressErrorToasts(false);
+    }, [enabled, setSuppressErrorToasts]);
 }
 
 const styles = StyleSheet.create({

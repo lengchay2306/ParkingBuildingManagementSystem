@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
-import { StatusLegend } from "@/components/StatusLegend";
-import { SlotAvailabilityFilter } from "@/components/SlotAvailabilityFilter";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
-import { PastelBars, PastelDonut, SparkArea } from "@/components/charts";
 import { requireRole } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+
+type ManagerTab = "overview" | "reservations";
 
 export const Route = createFileRoute("/manager")({
   beforeLoad: async () => {
@@ -28,12 +30,24 @@ export const Route = createFileRoute("/manager")({
   component: ManagerPage,
 });
 
+const sidebarItems: Array<{ id: ManagerTab | null; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: null, label: "Live Floors" },
+  { id: null, label: "Revenue" },
+  { id: "reservations", label: "Reservations" },
+  { id: null, label: "Patrol" },
+  { id: null, label: "AI Routing" },
+  { id: null, label: "Devices" },
+];
+
 function ManagerPage() {
+  const [activeTab, setActiveTab] = useState<ManagerTab>("overview");
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-12">
-        <header className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <header className="mb-8">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Role 01 · Facility Manager
@@ -46,7 +60,6 @@ function ManagerPage() {
               decision the manager has to make.
             </p>
           </div>
-          <StatusLegend />
         </header>
 
         <div className="grid gap-8">
@@ -68,25 +81,33 @@ function ManagerPage() {
                     </div>
                   </div>
                   <nav className="space-y-1">
-                    {[
-                      ["Overview", true],
-                      ["Live Floors", false],
-                      ["Revenue", false],
-                      ["Patrol", false],
-                      ["AI Routing", false],
-                      ["Devices", false],
-                    ].map(([l, a]) => (
-                      <div
-                        key={l as string}
-                        className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-                          a
-                            ? "bg-foreground text-background"
-                            : "text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {l}
-                      </div>
-                    ))}
+                    {sidebarItems.map(({ id, label }) => {
+                      const isActive = id !== null && activeTab === id;
+                      const isClickable = id !== null;
+
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          disabled={!isClickable}
+                          onClick={() => {
+                            if (id) {
+                              setActiveTab(id);
+                            }
+                          }}
+                          className={cn(
+                            "w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors",
+                            isActive
+                              ? "bg-foreground text-background"
+                              : isClickable
+                                ? "text-muted-foreground hover:bg-muted"
+                                : "cursor-default text-muted-foreground/60",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </nav>
                   <div className="mt-auto rounded-2xl bg-gradient-to-br from-pastel-lavender to-pastel-pink p-4 text-foreground">
                     <div className="font-mono text-[9px] uppercase tracking-widest opacity-70">
@@ -98,142 +119,59 @@ function ManagerPage() {
                 </aside>
 
                 {/* Main */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {/* KPIs */}
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      {
-                        l: "Occupancy",
-                        v: "84%",
-                        d: "+3.2% vs avg",
-                        bg: "bg-pastel-mint",
-                      },
-                      {
-                        l: "Revenue (Today)",
-                        v: "$14,204",
-                        d: "+12% MoM",
-                        bg: "bg-pastel-peach",
-                      },
-                      {
-                        l: "Avg. Stay",
-                        v: "1h 42m",
-                        d: "-6m vs week",
-                        bg: "bg-pastel-sky",
-                      },
-                      {
-                        l: "AI Reroutes",
-                        v: "127",
-                        d: "today",
-                        bg: "bg-pastel-lavender",
-                      },
-                    ].map((k) => (
-                      <div
-                        key={k.l}
-                        className="relative overflow-hidden rounded-2xl border border-border bg-card p-4"
-                      >
-                        <div
-                          className={`absolute -right-6 -top-6 size-20 rounded-full ${k.bg} opacity-80 blur-xl`}
-                        />
-                        <div className="relative">
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {k.l}
-                          </div>
-                          <div className="mt-1 text-2xl font-bold tracking-tight">{k.v}</div>
-                          <div className="mt-1 text-[10px] text-muted-foreground">{k.d}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <SlotAvailabilityFilter />
-
-                  <UserDirectoryPanel className="mt-6" compact />
-
-                  {/* Charts row */}
-                  <div className="mt-6 grid grid-cols-3 gap-3">
-                    <div className="col-span-2 rounded-2xl border border-border bg-gradient-to-br from-pastel-sky/40 to-pastel-lavender/30 p-5">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-bold">Peak Hours</div>
-                          <div className="text-[10px] text-muted-foreground">
-                            Today · entries per hour
-                          </div>
-                        </div>
-                        <span className="rounded-full bg-card px-2 py-0.5 text-[10px] font-bold">
-                          peak 18h
-                        </span>
-                      </div>
-                      <PastelBars />
-                    </div>
-                    <div className="rounded-2xl border border-border bg-card p-5">
-                      <div className="text-sm font-bold">Vehicle Mix</div>
-                      <div className="text-[10px] text-muted-foreground">Last 24h</div>
-                      <div className="mt-3 flex items-center justify-center">
-                        <PastelDonut
-                          segments={[
-                            { value: 58, color: "var(--color-pastel-lavender)", label: "Sedan" },
-                            { value: 22, color: "var(--color-pastel-peach)", label: "SUV" },
-                            { value: 12, color: "var(--color-pastel-mint)", label: "EV" },
-                            { value: 8, color: "var(--color-pastel-pink)", label: "Bike" },
-                          ]}
-                        />
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-1.5">
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+                  {activeTab === "overview" ? (
+                    <div className="overflow-y-auto">
+                      <div className="grid grid-cols-4 gap-3">
                         {[
-                          ["Sedan", "var(--color-pastel-lavender)", "58%"],
-                          ["SUV", "var(--color-pastel-peach)", "22%"],
-                          ["EV", "var(--color-pastel-mint)", "12%"],
-                          ["Bike", "var(--color-pastel-pink)", "8%"],
-                        ].map(([l, c, v]) => (
-                          <div key={l} className="flex items-center gap-1.5 text-[10px]">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ background: c as string }}
+                          {
+                            l: "Occupancy",
+                            v: "84%",
+                            d: "+3.2% vs avg",
+                            bg: "bg-pastel-mint",
+                          },
+                          {
+                            l: "Revenue (Today)",
+                            v: "$14,204",
+                            d: "+12% MoM",
+                            bg: "bg-pastel-peach",
+                          },
+                          {
+                            l: "Avg. Stay",
+                            v: "1h 42m",
+                            d: "-6m vs week",
+                            bg: "bg-pastel-sky",
+                          },
+                          {
+                            l: "AI Reroutes",
+                            v: "127",
+                            d: "today",
+                            bg: "bg-pastel-lavender",
+                          },
+                        ].map((k) => (
+                          <div
+                            key={k.l}
+                            className="relative overflow-hidden rounded-2xl border border-border bg-card p-4"
+                          >
+                            <div
+                              className={`absolute -right-6 -top-6 size-20 rounded-full ${k.bg} opacity-80 blur-xl`}
                             />
-                            <span className="font-semibold">{l}</span>
-                            <span className="ml-auto text-muted-foreground">{v}</span>
+                            <div className="relative">
+                              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                                {k.l}
+                              </div>
+                              <div className="mt-1 text-2xl font-bold tracking-tight">{k.v}</div>
+                              <div className="mt-1 text-[10px] text-muted-foreground">{k.d}</div>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Revenue + AI Insight */}
-                  <div className="mt-6 grid grid-cols-3 gap-3">
-                    <div className="col-span-2 rounded-2xl border border-border bg-card p-5">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <div className="text-sm font-bold">Revenue Trend</div>
-                          <div className="text-[10px] text-muted-foreground">14-day rolling</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">$182,940</div>
-                          <div className="text-[10px] font-bold text-status-empty">↑ 18.2%</div>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <SparkArea />
-                      </div>
+                      <UserDirectoryPanel className="mt-6" compact />
                     </div>
-                    <div className="relative overflow-hidden rounded-2xl bg-foreground p-5 text-background">
-                      <div className="absolute -right-6 -top-6 size-24 rounded-full bg-pastel-pink opacity-30 blur-2xl" />
-                      <div className="font-mono text-[10px] uppercase tracking-widest opacity-60">
-                        AI Insight
-                      </div>
-                      <p className="mt-2 text-sm leading-snug">
-                        Reroute incoming sedans to <span className="font-bold">B3 (Zone C)</span>.
-                        B2 predicted 96% by 17:15.
-                      </p>
-                      <div className="mt-4 flex gap-2">
-                        <button className="rounded-lg bg-background px-3 py-1.5 text-[11px] font-bold text-foreground">
-                          Apply
-                        </button>
-                        <button className="rounded-lg border border-background/30 px-3 py-1.5 text-[11px] font-semibold opacity-70">
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    <ReservationListPanel tableOnly className="min-h-0 flex-1" />
+                  )}
                 </div>
               </div>
               <div className="border-t border-border bg-background/40 p-2 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
