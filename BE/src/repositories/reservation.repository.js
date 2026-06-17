@@ -32,7 +32,7 @@ class ReservationRepository {
         expiryAt,
         status = "PENDING",
     }) => {
-        await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "UNAVAILABLE" });
+        await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "RESERVED" });
 
         try {
             const newReservation = await Reservation.create({

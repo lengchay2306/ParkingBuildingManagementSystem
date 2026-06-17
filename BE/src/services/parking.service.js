@@ -73,7 +73,7 @@ class ParkingService {
         }
 
         if (status) {
-            const validStatuses = ['AVAILABLE', 'UNAVAILABLE', 'CURRENTLY-IN-USED'];
+            const validStatuses = ['AVAILABLE', 'RESERVED', 'UNAVAILABLE', 'CURRENTLY-IN-USED'];
             if (!validStatuses.includes(status.toUpperCase())) {
                 throw new BadRequestError(
                     `Invalid status '${status}'. Must be one of: ${validStatuses.join(', ')}`

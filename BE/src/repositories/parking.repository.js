@@ -62,9 +62,10 @@ class ParkingRepository {
                 const slotFilter = { floorId: floor._id };
                 if (slotStatus) slotFilter.status = slotStatus;
 
-                const [slots, available, unavailable, inUsed] = await Promise.all([
+                const [slots, available, reserved, unavailable, inUsed] = await Promise.all([
                     ParkingSlot.find(slotFilter).lean(),
                     ParkingSlot.countDocuments({ floorId: floor._id, status: 'AVAILABLE' }),
+                    ParkingSlot.countDocuments({ floorId: floor._id, status: 'RESERVED' }),
                     ParkingSlot.countDocuments({ floorId: floor._id, status: 'UNAVAILABLE' }),
                     ParkingSlot.countDocuments({ floorId: floor._id, status: 'CURRENTLY-IN-USED' }),
                 ]);
@@ -75,9 +76,10 @@ class ParkingRepository {
                     vehicleTypeId: undefined,
                     slotStats: {
                         available,
+                        reserved,
                         unavailable,
                         inUsed,
-                        total: available + unavailable + inUsed,
+                        total: available + reserved + unavailable + inUsed,
                     },
                     slots,
                 };
