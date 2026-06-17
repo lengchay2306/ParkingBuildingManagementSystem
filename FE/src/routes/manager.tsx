@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { requireRole } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+
+type ManagerTab = "overview" | "reservations";
 
 export const Route = createFileRoute("/manager")({
   beforeLoad: async () => {
@@ -25,7 +30,19 @@ export const Route = createFileRoute("/manager")({
   component: ManagerPage,
 });
 
+const sidebarItems: Array<{ id: ManagerTab | null; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: null, label: "Live Floors" },
+  { id: null, label: "Revenue" },
+  { id: "reservations", label: "Reservations" },
+  { id: null, label: "Patrol" },
+  { id: null, label: "AI Routing" },
+  { id: null, label: "Devices" },
+];
+
 function ManagerPage() {
+  const [activeTab, setActiveTab] = useState<ManagerTab>("overview");
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -64,25 +81,33 @@ function ManagerPage() {
                     </div>
                   </div>
                   <nav className="space-y-1">
-                    {[
-                      ["Overview", true],
-                      ["Live Floors", false],
-                      ["Revenue", false],
-                      ["Patrol", false],
-                      ["AI Routing", false],
-                      ["Devices", false],
-                    ].map(([l, a]) => (
-                      <div
-                        key={l as string}
-                        className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-                          a
-                            ? "bg-foreground text-background"
-                            : "text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {l}
-                      </div>
-                    ))}
+                    {sidebarItems.map(({ id, label }) => {
+                      const isActive = id !== null && activeTab === id;
+                      const isClickable = id !== null;
+
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          disabled={!isClickable}
+                          onClick={() => {
+                            if (id) {
+                              setActiveTab(id);
+                            }
+                          }}
+                          className={cn(
+                            "w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors",
+                            isActive
+                              ? "bg-foreground text-background"
+                              : isClickable
+                                ? "text-muted-foreground hover:bg-muted"
+                                : "cursor-default text-muted-foreground/60",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </nav>
                   <div className="mt-auto rounded-2xl bg-gradient-to-br from-pastel-lavender to-pastel-pink p-4 text-foreground">
                     <div className="font-mono text-[9px] uppercase tracking-widest opacity-70">
@@ -94,54 +119,59 @@ function ManagerPage() {
                 </aside>
 
                 {/* Main */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {/* KPIs */}
-                  <div className="grid grid-cols-4 gap-3">
-                    {[
-                      {
-                        l: "Occupancy",
-                        v: "84%",
-                        d: "+3.2% vs avg",
-                        bg: "bg-pastel-mint",
-                      },
-                      {
-                        l: "Revenue (Today)",
-                        v: "$14,204",
-                        d: "+12% MoM",
-                        bg: "bg-pastel-peach",
-                      },
-                      {
-                        l: "Avg. Stay",
-                        v: "1h 42m",
-                        d: "-6m vs week",
-                        bg: "bg-pastel-sky",
-                      },
-                      {
-                        l: "AI Reroutes",
-                        v: "127",
-                        d: "today",
-                        bg: "bg-pastel-lavender",
-                      },
-                    ].map((k) => (
-                      <div
-                        key={k.l}
-                        className="relative overflow-hidden rounded-2xl border border-border bg-card p-4"
-                      >
-                        <div
-                          className={`absolute -right-6 -top-6 size-20 rounded-full ${k.bg} opacity-80 blur-xl`}
-                        />
-                        <div className="relative">
-                          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            {k.l}
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+                  {activeTab === "overview" ? (
+                    <div className="overflow-y-auto">
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          {
+                            l: "Occupancy",
+                            v: "84%",
+                            d: "+3.2% vs avg",
+                            bg: "bg-pastel-mint",
+                          },
+                          {
+                            l: "Revenue (Today)",
+                            v: "$14,204",
+                            d: "+12% MoM",
+                            bg: "bg-pastel-peach",
+                          },
+                          {
+                            l: "Avg. Stay",
+                            v: "1h 42m",
+                            d: "-6m vs week",
+                            bg: "bg-pastel-sky",
+                          },
+                          {
+                            l: "AI Reroutes",
+                            v: "127",
+                            d: "today",
+                            bg: "bg-pastel-lavender",
+                          },
+                        ].map((k) => (
+                          <div
+                            key={k.l}
+                            className="relative overflow-hidden rounded-2xl border border-border bg-card p-4"
+                          >
+                            <div
+                              className={`absolute -right-6 -top-6 size-20 rounded-full ${k.bg} opacity-80 blur-xl`}
+                            />
+                            <div className="relative">
+                              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                                {k.l}
+                              </div>
+                              <div className="mt-1 text-2xl font-bold tracking-tight">{k.v}</div>
+                              <div className="mt-1 text-[10px] text-muted-foreground">{k.d}</div>
+                            </div>
                           </div>
-                          <div className="mt-1 text-2xl font-bold tracking-tight">{k.v}</div>
-                          <div className="mt-1 text-[10px] text-muted-foreground">{k.d}</div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
 
-                  <UserDirectoryPanel className="mt-6" compact />
+                      <UserDirectoryPanel className="mt-6" compact />
+                    </div>
+                  ) : (
+                    <ReservationListPanel tableOnly className="min-h-0 flex-1" />
+                  )}
                 </div>
               </div>
               <div className="border-t border-border bg-background/40 p-2 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">

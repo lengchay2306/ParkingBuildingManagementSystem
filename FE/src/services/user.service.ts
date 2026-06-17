@@ -1,3 +1,5 @@
+import type { Vehicle } from "@/services/vehicle.service";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type UserRole = {
@@ -12,6 +14,7 @@ export type UserProfile = {
   phone: string;
   roleId: string | UserRole;
   status: string;
+  vehicles?: Vehicle[];
   createdAt?: string;
   updatedAt?: string;
 };
