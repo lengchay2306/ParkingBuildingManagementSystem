@@ -1,3 +1,7 @@
-import StaffScreen from '@/features/staff/pages/staff';
+import { Redirect } from 'expo-router';
 
-export default StaffScreen;
+import { STAFF_ROUTES } from '@/roles';
+
+export default function StaffLegacyRedirect() {
+  return <Redirect href={STAFF_ROUTES.home} />;
+}
