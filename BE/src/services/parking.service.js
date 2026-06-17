@@ -102,7 +102,9 @@ class ParkingService {
             throw new BadRequestError(`This vehicle doesn't register yet!`)
         }
 
-        const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionOfVehicles({
+        const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
+            //because when input user vehicleId, it will include all old parking sessions
+            //so i call findAllParkingSessionByField function
             vehicleId: usersVehicles._id,
             status: 'ACTIVE',
         })
@@ -165,6 +167,66 @@ class ParkingService {
             }
         };
     }
+
+    getAllParkingSessions = async ({
+        page,
+        limit,
+        status,
+        date
+    }) => {
+        const {
+            parkingSessions,
+            pagination
+        } = await this.#parkingRepository.getAllParkingSessions({
+            page,
+            limit,
+            status,
+            date
+        })
+
+        if (parkingSessions.length === 0) {
+            throw new BadRequestError(`No data! Or cannot get all parking session!`)
+        }
+
+        return {
+            parkingSessions,
+            pagination,
+        };
+    }
+
+    getUserParkingSessions = async ({
+        vehicleId,
+    }) => {
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            vehicleId: vehicleId,
+        })
+
+        if (!existingParkingSession) {
+            throw new BadRequestError(`This parking session does not exist`)
+        }
+
+        return {
+            ...existingParkingSession,
+            checkInUserId: {
+                ...existingParkingSession.checkInUserId,
+                password: undefined,
+            },
+            checkOutUserId: {
+                ...existingParkingSession.checkOutUserId,
+                password: undefined,
+            },
+            checkInStaffId: {
+                ...existingParkingSession.checkInStaffId,
+                password: undefined,
+            },
+            checkOutStaffId: {
+                ...existingParkingSession.checkOutStaffId,
+                password: undefined,
+            },
+        }
+    }
+
+    //-----------------
 
     getParkingSlots = async ({ vehicleType, floorId, status }) => {
         let vehicleTypeId = null;

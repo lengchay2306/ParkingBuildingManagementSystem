@@ -9,6 +9,13 @@ const validateMongoObjectId = (value, helpers) => {
     return value
 }
 
+const queryParkingSessionsSchema = Joi.object({
+    page: Joi.number(),
+    limit: Joi.number(),
+    status: Joi.string().valid("ACTIVE", "COMPLETED"),
+    date: Joi.date(),
+})
+
 const parkingSessionSchema = Joi.object({
     phone: Joi.string()
                 .pattern(/^(03|05|07|08|09)\d{8}$/)
@@ -34,4 +41,5 @@ const checkParkingSessionSchema = Joi.object({
 export {
     parkingSessionSchema,
     checkParkingSessionSchema,
+    queryParkingSessionsSchema,
 }
