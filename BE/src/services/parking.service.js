@@ -14,6 +14,72 @@ class ParkingService {
         this.#vehicleRepository = vehicleRepository;
     }
 
+    checkoutParkingSession = async ({
+        parkingSessionId,
+        userPhone,
+        checkOutStaffId,
+    }) => {
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            _id: parkingSessionId,
+        })
+
+        if (!existingParkingSession || existingParkingSession.status !== "ACTIVE") {
+            throw new BadRequestError(`This parking session is not exist or already checkout!`)
+        }
+
+        const existingUser = await this.#userRepository.findUser({
+            phone: userPhone,
+        })
+
+        if (!existingUser) {
+            throw new BadRequestError(`This user does not register yet!`)
+        }
+
+        const updatedParkingSession = await this.#parkingRepository.updateParkingSession({
+            field: { _id: parkingSessionId },
+            updateData: {
+                checkOutUserId: existingUser._id,
+                checkOutStaffId: checkOutStaffId,
+                checkOutTime: Date.now(),
+                status: 'COMPLETED',
+            }
+        })
+
+        if (!updatedParkingSession) {
+            throw new BadRequestError(`Cannot check out this parking session`)
+        }
+
+        await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSession.parkingSlotId },
+            updateData: {
+                status: 'AVAILABLE'
+            }
+        })
+        return {
+            ...updatedParkingSession,
+            parkingSlotId: {
+                ...updatedParkingSession.parkingSlotId,
+                status: 'AVAILABLE'
+            },
+            checkInUserId: {
+                ...updatedParkingSession.checkInUserId,
+                password: undefined,
+            },
+            checkOutUserId: {
+                ...updatedParkingSession.checkOutUserId,
+                password: undefined,
+            },
+            checkInStaffId: {
+                ...updatedParkingSession.checkInStaffId,
+                password: undefined,
+            },
+            checkOutStaffId: {
+                ...updatedParkingSession.checkOutStaffId,
+                password: undefined,
+            },
+        };
+    }
+
     createNewParkingSession = async ({
         phone,
         licensePlate,
@@ -36,12 +102,31 @@ class ParkingService {
             throw new BadRequestError(`This vehicle doesn't register yet!`)
         }
 
+        const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionOfVehicles({
+            vehicleId: usersVehicles._id,
+            status: 'ACTIVE',
+        })
+
+        if (isAlreadyInParkingSession.length > 0) {
+            throw new BadRequestError(`This vehicle already in parking building!`)
+        }
+
         const existingParkingSlot = await this.#parkingRepository.findParkingSlot({
             _id: parkingSlotId,
         });
 
         if (!existingParkingSlot || existingParkingSlot.status !== 'AVAILABLE') {
             throw new BadRequestError(`This parking slot is not available!`)
+        }
+
+        const vehicleTypeIdFromVehicles = usersVehicles.vehicleTypeId?._id ||
+                                        usersVehicles.vehicleTypeId;
+
+        const vehicleTypeIdFromSlot = existingParkingSlot.floorId?.vehicleTypeId?._id ||
+                                    existingParkingSlot.floorId?.vehicleTypeId
+
+        if (String(vehicleTypeIdFromVehicles) !== String(vehicleTypeIdFromSlot) ) {
+            throw new BadRequestError(`This slot is not fit with this type of vehicle`)
         }
 
         const newParkingSession = await this.#parkingRepository.createNewParkingSession({
@@ -54,11 +139,31 @@ class ParkingService {
             status: "ACTIVE",
         })
 
-        if (newParkingSession) {
+        if (!newParkingSession) {
             throw new BadRequestError(`Cannot create new parking session!`)
         }
 
-        return newParkingSession;
+        await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSlot._id },
+            updateData: {
+                status: 'CURRENTLY-IN-USED',
+            }
+        })
+        return {
+            ...newParkingSession,
+            parkingSlotId: {
+                ...newParkingSession.parkingSlotId,
+                status: 'CURRENTLY-IN-USED'
+            },
+            checkInUserId: {
+                ...newParkingSession.checkInUserId,
+                password: undefined,
+            },
+            checkInStaffId: {
+                ...newParkingSession.checkInStaffId,
+                password: undefined,
+            }
+        };
     }
 
     getParkingSlots = async ({ vehicleType, floorId, status }) => {

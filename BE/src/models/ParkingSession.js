@@ -24,6 +24,7 @@ const parkingSessionSchema = mongoose.Schema({
     checkOutUserId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        default: null,
     },
     checkInStaffId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -33,6 +34,7 @@ const parkingSessionSchema = mongoose.Schema({
     checkOutStaffId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        default: null,
     },
     checkInTime: {
         type: Date,
