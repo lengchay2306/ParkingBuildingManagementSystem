@@ -86,6 +86,86 @@ router.get(
     }
 );
 
+/**
+ * @swagger
+ * /api/v1/parking/parking-sessions:
+ *   get:
+ *     summary: Get parking sessions with pagination
+ *     description: |
+ *       Get parking sessions by optional filters.
+ *       Supports pagination, session status, and date filter.
+ *       Accessible by manager, admin, and staff.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Page number (starts from 1)
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Number of records per page
+ *         example: 10
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ACTIVE, COMPLETED]
+ *         description: Filter parking sessions by status
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter sessions by check-in date
+ *         example: "2026-06-18"
+ *     responses:
+ *       200:
+ *         description: Parking sessions fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 parkingSessions:
+ *                   parkingSessions:
+ *                     - _id: "6670..."
+ *                       vehicleId:
+ *                         _id: "666a..."
+ *                         licensePlate: "29D-888.88"
+ *                       parkingSlotId:
+ *                         _id: "666b..."
+ *                         slotNumber: "A-01"
+ *                         status: "CURRENTLY-IN-USED"
+ *                       sessionType: "DAILY"
+ *                       checkInUserId:
+ *                         _id: "666c..."
+ *                         fullName: "Nguyen Van A"
+ *                         phone: "0931467561"
+ *                       checkInStaffId:
+ *                         _id: "666d..."
+ *                         fullName: "Staff 1"
+ *                       checkInTime: "2026-06-18T08:00:00.000Z"
+ *                       status: "ACTIVE"
+ *                   pagination:
+ *                     currentPage: 1
+ *                     totalPage: 1
+ *                     totalItems: 2
+ *                     itemsPerPage: 10
+ *       400:
+ *         description: Validation failed or no parking session found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (insufficient role)
+ */
 router.get(
     '/parking-sessions',
     authentication,
@@ -98,6 +178,57 @@ router.get(
     }
 )
 
+/**
+ * @swagger
+ * /api/v1/parking/active-user-parking-session/{vehicleId}:
+ *   get:
+ *     summary: Get parking session by vehicle
+ *     description: Get an active parking session of a specific vehicle.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: vehicleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vehicle ObjectId
+ *         example: "666a1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       200:
+ *         description: Parking session fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 parkingSession:
+ *                   _id: "6670..."
+ *                   vehicleId:
+ *                     _id: "666a..."
+ *                     licensePlate: "29D-888.88"
+ *                   parkingSlotId:
+ *                     _id: "666b..."
+ *                     slotNumber: "A-01"
+ *                     status: "CURRENTLY-IN-USED"
+ *                   sessionType: "DAILY"
+ *                   checkInUserId:
+ *                     _id: "666c..."
+ *                     fullName: "Nguyen Van A"
+ *                     phone: "0931467561"
+ *                   checkInStaffId:
+ *                     _id: "666d..."
+ *                     fullName: "Staff 1"
+ *                   checkInTime: "2026-06-18T08:00:00.000Z"
+ *                   status: "ACTIVE"
+ *       400:
+ *         description: Parking session does not exist
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (insufficient role)
+ */
 router.get(
     '/active-user-parking-session/:vehicleId',
     authentication,
