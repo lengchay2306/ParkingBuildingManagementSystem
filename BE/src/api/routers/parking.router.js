@@ -38,7 +38,7 @@ const router = express.Router();
  *         name: status
  *         schema:
  *           type: string
- *           enum: [AVAILABLE, UNAVAILABLE, CURRENTLY-IN-USED]
+ *           enum: [AVAILABLE, RESERVED, UNAVAILABLE, CURRENTLY-IN-USED]
  *         description: Filter slots by status
  *     responses:
  *       200:
@@ -57,9 +57,10 @@ const router = express.Router();
  *                     totalSlot: 50
  *                     slotStats:
  *                       available: 30
+ *                       reserved: 3
  *                       unavailable: 5
  *                       inUsed: 15
- *                       total: 50
+ *                       total: 53
  *                     slots:
  *                       - _id: "665c..."
  *                         slotNumber: "A-01"
