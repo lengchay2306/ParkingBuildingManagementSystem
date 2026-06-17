@@ -94,7 +94,10 @@ class ReservationService {
             throw new BadRequestError("Cannot cancel: reservation is within 15 minutes of expected arrival");
         }
 
-        const cancelledReservation = await this.#reservationRepository.cancelReservation({ reservationId });
+        const cancelledReservation = await this.#reservationRepository.cancelReservation({
+            reservationId,
+            parkingSlotId: existingReservation.parkingSlotId,
+        });
         return cancelledReservation;
     }
 

@@ -32,16 +32,23 @@ class ReservationRepository {
         expiryAt,
         status = "PENDING",
     }) => {
-        const newReservation = await Reservation.create({
-            driverId,
-            vehicleId,
-            parkingSlotId,
-            expectedArrival,
-            reservedAt,
-            expiryAt,
-            status,
-        });
-        return newReservation.toObject();
+        await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "UNAVAILABLE" });
+
+        try {
+            const newReservation = await Reservation.create({
+                driverId,
+                vehicleId,
+                parkingSlotId,
+                expectedArrival,
+                reservedAt,
+                expiryAt,
+                status,
+            });
+            return newReservation.toObject();
+        } catch (error) {
+            await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "AVAILABLE" });
+            throw error;
+        }
     }
 
     findReservationById = async ({ reservationId }) => {
@@ -103,13 +110,21 @@ class ReservationRepository {
         };
     }
 
-    cancelReservation = async ({ reservationId }) => {
-        const cancelledReservation = await Reservation.findByIdAndUpdate(reservationId, { status: "CANCELLED" }, { new: true });
+    cancelReservation = async ({ reservationId, parkingSlotId }) => {
+        const cancelledReservation = await Reservation.findByIdAndUpdate(
+            reservationId,
+            { status: "CANCELLED" },
+            { new: true },
+        );
+        await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "AVAILABLE" });
         return cancelledReservation;
     }
 
     deleteReservation = async ({ reservationId }) => {
         const deletedReservation = await Reservation.findByIdAndDelete(reservationId);
+        if (deletedReservation) {
+            await ParkingSlot.findByIdAndUpdate(deletedReservation.parkingSlotId, { status: "AVAILABLE" });
+        }
         return deletedReservation;
     }
 }
