@@ -103,7 +103,7 @@ class ParkingRepository {
         return existParkingSession;
     }
 
-    findAllParkingSessionOfVehicles = async (filter) => {
+    findAllParkingSessionByField = async (filter) => {
         const existParkingSession = await ParkingSession.find(filter)
                                                         .populate([
                                                             "vehicleId",
@@ -113,10 +113,6 @@ class ParkingRepository {
                                                             "checkInStaffId",
                                                             "checkOutStaffId"
                                                         ]).lean();
-
-        if (!existParkingSession) {
-            return null
-        }
         
         return existParkingSession;
     }
@@ -148,6 +144,70 @@ class ParkingRepository {
         ])
 
         return newParkingSession.toObject()
+    }
+
+    getAllParkingSessions = async ({
+        page,
+        limit,
+        status,
+        date,
+    }) => {
+        const skip = (page - 1) * limit
+
+        const filter = {}
+
+        const targetDate = date ? new Date(date) : new Date()
+        const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+
+        if (status) filter.status = status;
+
+        filter.checkInTime = {
+            $gte: startOfDay,
+            $lte: endOfDay,
+        }
+
+        const [parkingSessions, total] = await Promise.all([
+            ParkingSession.find(filter)
+                            .sort('checkInTime')
+                            .skip(skip)
+                            .limit(limit)
+                            .populate([
+                                "vehicleId",
+                                "parkingSlotId",
+                                "checkInUserId",
+                                "checkOutUserId",
+                                "checkInStaffId",
+                                "checkOutStaffId",
+                            ]).lean(),
+            ParkingSession.countDocuments(filter)
+        ]);
+
+        const sanitizedParkingSessions = parkingSessions.map((session) => ({
+            ...session,
+            checkInUserId: session.checkInUserId
+                            ? { ...session.checkInUserId, password: undefined }
+                            : null,
+            checkOutUserId: session.checkOutUserId
+                            ? { ...session.checkOutUserId, password: undefined }
+                            : null,
+            checkInStaffId: session.checkInStaffId
+                            ? { ...session.checkInStaffId, password: undefined }
+                            : null,
+            checkOutStaffId: session.checkOutStaffId
+                            ? { ...session.checkOutStaffId, password: undefined }
+                            : null,
+        }))
+
+        return {
+            parkingSessions: sanitizedParkingSessions,
+            pagination: {
+                currentPage: page,
+                totalPage: Math.ceil(total / limit),
+                totalItems: total,
+                itemsPerPage: limit,
+            }
+        }
     }
 
     updateParkingSession = async ({

@@ -5,6 +5,7 @@ class ParkingController {
         this.#parkingService = parkingService;
     }
 
+    //PARKING SESSION----
     checkoutParkingSession = async (req, res, next) => {
         try {
             const { parkingSessionId } = req.params
@@ -57,6 +58,54 @@ class ParkingController {
             next(error)
         }
     }
+
+    getAllParkingSessions = async (req, res, next) => {
+        try {
+            const {
+                page,
+                limit,
+                status,
+                date,
+            } = req.query
+
+            const parkingSessions = await this.#parkingService.getAllParkingSessions({
+                page,
+                limit,
+                status,
+                date,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    parkingSessions,
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    getUserParkingSessions = async (req, res, next) => {
+        try {
+            const { vehicleId } = req.params
+
+            const parkingSession = await this.#parkingService.getUserParkingSessions({
+                vehicleId,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    parkingSession,
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    //----------
 
     getParkingSlots = async (req, res, next) => {
         try {

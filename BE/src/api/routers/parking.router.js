@@ -3,6 +3,7 @@ import { authentication, authorizationByRole, validateData } from '../middleware
 import {
     parkingSessionSchema,
     checkParkingSessionSchema,
+    queryParkingSessionsSchema,
 } from '../../validators/parking.validator.js'
 
 const router = express.Router();
@@ -85,6 +86,29 @@ router.get(
     }
 );
 
+router.get(
+    '/parking-sessions',
+    authentication,
+    authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
+    validateData(queryParkingSessionsSchema, "query"),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController')
+
+        await parkingController.getAllParkingSessions(req, res, next)
+    }
+)
+
+router.get(
+    '/active-user-parking-session/:vehicleId',
+    authentication,
+    authorizationByRole(['CUSTOMER', 'MANAGER', 'ADMIN', 'STAFF']),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController')
+
+        await parkingController.getUserParkingSessions(req, res, next)
+    }
+)
+
 /**
  * @swagger
  * /api/v1/parking/create-parking-session:
@@ -145,7 +169,7 @@ router.post(
     "/create-parking-session",
     authentication,
     authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
-    validateData(parkingSessionSchema),
+    validateData(parkingSessionSchema, "query"),
     async (req, res, next) => {
         const parkingController = req.container.resolve('parkingController');
 
