@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Car,
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
@@ -34,6 +35,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { getAllUsers, updateUserById, type UserProfile } from "@/services/user.service";
+import {
+  adminUpdateVehicle,
+  getVehicleTypes,
+  type Vehicle,
+  type VehicleType,
+} from "@/services/vehicle.service";
 
 type UserDirectoryPanelProps = {
   className?: string;
@@ -46,6 +53,7 @@ type RoleOption = {
 };
 
 const pageSize = 100;
+const licensePlatePattern = /^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/;
 
 export function UserDirectoryPanel({ className, compact = false }: UserDirectoryPanelProps) {
   const queryClient = useQueryClient();
@@ -61,6 +69,14 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "LOCKED">("ACTIVE");
   const [editRoleId, setEditRoleId] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
+  const [vehiclesUser, setVehiclesUser] = useState<UserProfile | null>(null);
+  const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [isVehicleEditOpen, setIsVehicleEditOpen] = useState(false);
+  const [editVehiclePlate, setEditVehiclePlate] = useState("");
+  const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
+  const [editVehicleStatus, setEditVehicleStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+  const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   useEffect(() => {
     setHasMounted(true);
   }, []);
@@ -77,6 +93,13 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
       }),
     enabled: hasMounted,
   });
+
+  const vehicleTypesQuery = useQuery({
+    queryKey: ["vehicle-types"],
+    queryFn: getVehicleTypes,
+    enabled: hasMounted && (isVehiclesOpen || isVehicleEditOpen),
+  });
+  const vehicleTypes = vehicleTypesQuery.data ?? [];
 
   const users = usersQuery.data?.users ?? [];
   const pagination = usersQuery.data?.pagination;
@@ -110,6 +133,44 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
     onError: (error) => {
       setEditError(
         error instanceof Error && error.message ? error.message : "Không thể cập nhật người dùng.",
+      );
+    },
+  });
+
+  const updateVehicleMutation = useMutation({
+    mutationFn: ({
+      vehicleId,
+      payload,
+    }: {
+      vehicleId: string;
+      payload: Parameters<typeof adminUpdateVehicle>[1];
+    }) => adminUpdateVehicle(vehicleId, payload),
+    onSuccess: async (updatedVehicle) => {
+      setEditVehicleError(null);
+      setIsVehicleEditOpen(false);
+      setEditingVehicle(null);
+
+      const mergeVehicles = (user: UserProfile | null) => {
+        if (!user) {
+          return user;
+        }
+        const vehicles = (user.vehicles ?? []).map((vehicle) =>
+          vehicle._id === updatedVehicle._id ? updatedVehicle : vehicle,
+        );
+        return { ...user, vehicles };
+      };
+
+      setVehiclesUser((current) => mergeVehicles(current));
+      setSelectedUser((current) => mergeVehicles(current));
+
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Cập nhật xe thành công", {
+        description: `${updatedVehicle.licensePlate} đã được cập nhật.`,
+      });
+    },
+    onError: (error) => {
+      setEditVehicleError(
+        error instanceof Error && error.message ? error.message : "Không thể cập nhật xe.",
       );
     },
   });
@@ -193,6 +254,76 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
     }
 
     updateUserMutation.mutate({ userId: selectedUser._id, payload });
+  };
+
+  const openVehiclesDialog = () => {
+    if (!selectedUser) {
+      return;
+    }
+    setVehiclesUser(selectedUser);
+    setIsVehiclesOpen(true);
+  };
+
+  const handleVehiclesOpenChange = (open: boolean) => {
+    setIsVehiclesOpen(open);
+    if (!open) {
+      setVehiclesUser(null);
+    }
+  };
+
+  const startVehicleEditing = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setEditVehiclePlate(vehicle.licensePlate ?? "");
+    setEditVehicleTypeId(getVehicleTypeId(vehicle) ?? "");
+    setEditVehicleStatus(vehicle.status === "INACTIVE" ? "INACTIVE" : "ACTIVE");
+    setEditVehicleError(null);
+    setIsVehicleEditOpen(true);
+  };
+
+  const handleVehicleEditOpenChange = (open: boolean) => {
+    setIsVehicleEditOpen(open);
+    if (!open) {
+      setEditingVehicle(null);
+      setEditVehicleError(null);
+    }
+  };
+
+  const handleVehicleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingVehicle) {
+      return;
+    }
+
+    setEditVehicleError(null);
+    const normalizedPlate = editVehiclePlate.trim().toUpperCase();
+    if (!licensePlatePattern.test(normalizedPlate)) {
+      setEditVehicleError("Biển số phải đúng định dạng 51A-123.45");
+      return;
+    }
+    if (!editVehicleTypeId) {
+      setEditVehicleError("Chọn loại xe.");
+      return;
+    }
+
+    const payload: Parameters<typeof adminUpdateVehicle>[1] = {};
+    if (normalizedPlate !== editingVehicle.licensePlate) {
+      payload.licensePlate = normalizedPlate;
+    }
+    const currentTypeId = getVehicleTypeId(editingVehicle);
+    if (editVehicleTypeId !== currentTypeId) {
+      payload.vehicleTypeId = editVehicleTypeId;
+    }
+    const currentStatus = editingVehicle.status === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+    if (editVehicleStatus !== currentStatus) {
+      payload.status = editVehicleStatus;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setEditVehicleError("Bạn chưa thay đổi thông tin nào.");
+      return;
+    }
+
+    updateVehicleMutation.mutate({ vehicleId: editingVehicle._id, payload });
   };
 
   const fieldsDisabled = !isEditing;
@@ -304,7 +435,7 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
             <DialogDescription>
               {isEditing
                 ? "Chỉnh sửa thông tin rồi bấm Save để lưu."
-                : "Thông tin chi tiết của người dùng (chỉ xem)."}
+                : "Thông tin chi tiết của người dùng."}
             </DialogDescription>
           </DialogHeader>
 
@@ -453,7 +584,16 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
                   </Button>
                 </div>
               ) : (
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={openVehiclesDialog}
+                    className="h-11 rounded-xl px-4 text-[13px] font-semibold"
+                  >
+                    <Car className="size-4" />
+                    View vehicles
+                  </Button>
                   <Button
                     type="button"
                     onClick={startEditing}
@@ -466,6 +606,154 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
               )}
             </form>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isVehiclesOpen} onOpenChange={handleVehiclesOpenChange}>
+        <DialogContent className="rounded-2xl border-border bg-card sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User vehicles</DialogTitle>
+            <DialogDescription>
+              {vehiclesUser
+                ? `Danh sách xe của ${vehiclesUser.fullName}`
+                : "Danh sách xe đã đăng ký"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-border">
+            {(vehiclesUser?.vehicles ?? []).length > 0 ? (
+              <div className="divide-y divide-border">
+                {(vehiclesUser?.vehicles ?? []).map((vehicle) => (
+                  <div
+                    key={vehicle._id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm font-semibold tracking-wide">
+                        {vehicle.licensePlate}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {getVehicleTypeName(vehicle)} · {vehicle.status ?? "ACTIVE"}
+                      </div>
+                      <div className="mt-1">
+                        <MonthlyCardDetails vehicle={vehicle} />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-9 rounded-xl px-3"
+                      onClick={() => startVehicleEditing(vehicle)}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Người dùng này chưa có xe đăng ký.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isVehicleEditOpen} onOpenChange={handleVehicleEditOpenChange}>
+        <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit vehicle</DialogTitle>
+            <DialogDescription>
+              Cập nhật biển số, loại xe hoặc trạng thái xe.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleVehicleEditSubmit} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="admin-vehicle-plate">Biển số</Label>
+              <Input
+                id="admin-vehicle-plate"
+                value={editVehiclePlate}
+                onChange={(event) => setEditVehiclePlate(event.target.value.toUpperCase())}
+                className="h-11 rounded-xl font-mono tracking-wide"
+                placeholder="51A-123.45"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="admin-vehicle-type">Loại xe</Label>
+              <Select value={editVehicleTypeId} onValueChange={setEditVehicleTypeId}>
+                <SelectTrigger id="admin-vehicle-type" className="h-11 rounded-xl">
+                  <SelectValue placeholder="Chọn loại xe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicleTypes.map((type: VehicleType) => (
+                    <SelectItem key={type._id} value={type._id}>
+                      {type.type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="admin-vehicle-status">Vehicle status</Label>
+              <Select
+                value={editVehicleStatus}
+                onValueChange={(value) => setEditVehicleStatus(value as "ACTIVE" | "INACTIVE")}
+              >
+                <SelectTrigger id="admin-vehicle-status" className="h-11 rounded-xl">
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2 rounded-xl border border-border bg-background/40 p-3">
+              <Label>Monthly card</Label>
+              {editingVehicle ? <MonthlyCardDetails vehicle={editingVehicle} detailed /> : null}
+            </div>
+
+            {editVehicleError ? (
+              <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {editVehicleError}
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleVehicleEditOpenChange(false)}
+                disabled={updateVehicleMutation.isPending}
+                className="h-11 rounded-xl px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateVehicleMutation.isPending}
+                className="h-11 rounded-xl px-4 text-[13px] font-semibold"
+              >
+                {updateVehicleMutation.isPending ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    Save
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </section>
@@ -551,5 +839,86 @@ function formatDate(value?: string) {
     month: "short",
     day: "2-digit",
     year: "numeric",
+  }).format(date);
+}
+
+function getVehicleTypeName(vehicle: Vehicle) {
+  if (typeof vehicle.vehicleTypeId === "object" && vehicle.vehicleTypeId?.type) {
+    return vehicle.vehicleTypeId.type;
+  }
+  return "UNKNOWN";
+}
+
+function getVehicleTypeId(vehicle: Vehicle): string | null {
+  if (typeof vehicle.vehicleTypeId === "object" && vehicle.vehicleTypeId?._id) {
+    return vehicle.vehicleTypeId._id;
+  }
+  if (typeof vehicle.vehicleTypeId === "string") {
+    return vehicle.vehicleTypeId;
+  }
+  return null;
+}
+
+function MonthlyCardDetails({
+  vehicle,
+  detailed = false,
+}: {
+  vehicle: Vehicle;
+  detailed?: boolean;
+}) {
+  if (!vehicle.monthlyCardId) {
+    return (
+      <div className="text-[11px] text-muted-foreground">Không có monthly card</div>
+    );
+  }
+
+  if (typeof vehicle.monthlyCardId === "string") {
+    return (
+      <div className="font-mono text-[11px] text-muted-foreground">
+        cardId: <span className="text-foreground">{vehicle.monthlyCardId}</span>
+      </div>
+    );
+  }
+
+  const { cardCode, status, createdAt, updatedAt } = vehicle.monthlyCardId;
+
+  return (
+    <div className="space-y-0.5 font-mono text-[11px] text-muted-foreground">
+      <div>
+        cardCode: <span className="text-foreground">{cardCode ?? "—"}</span>
+      </div>
+      <div>
+        status: <span className="text-foreground">{status ?? "—"}</span>
+      </div>
+      {detailed ? (
+        <>
+          <div>
+            createdAt:{" "}
+            <span className="text-foreground">{formatDateTime(createdAt)}</span>
+          </div>
+          <div>
+            updatedAt:{" "}
+            <span className="text-foreground">{formatDateTime(updatedAt)}</span>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return "—";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }

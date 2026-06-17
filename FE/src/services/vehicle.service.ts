@@ -5,13 +5,24 @@ export type VehicleType = {
   type: string;
 };
 
+export type MonthlyCard = {
+  _id: string;
+  cardCode?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: "ACTIVE" | "EXPIRED" | string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type Vehicle = {
   _id: string;
   id?: string;
   userId: string;
   licensePlate: string;
   vehicleTypeId: string | VehicleType;
-  monthlyCardId: string | null;
+  monthlyCardId: string | MonthlyCard | null;
+  status?: "ACTIVE" | "INACTIVE" | string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -24,6 +35,13 @@ export type CreateVehicleRequest = {
 export type UpdateVehicleRequest = {
   licensePlate?: string;
   vehicleTypeId?: string;
+};
+
+export type AdminUpdateVehicleRequest = {
+  licensePlate?: string;
+  vehicleTypeId?: string;
+  monthlyCardId?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
 };
 
 type ApiPayload<T> = {
@@ -55,7 +73,7 @@ const vehicleErrorMessage = (status: number) => {
     case 401:
       return "Your session has expired. Please sign in again.";
     case 403:
-      return "Only customer accounts can register vehicles.";
+      return "You do not have permission to perform this vehicle action.";
     case 404:
       return "Vehicle type not found.";
     case 409:
@@ -164,6 +182,40 @@ export const updateMyVehicle = async (vehicleId: string, request: UpdateVehicleR
     credentials: "include",
     body: JSON.stringify(request),
   });
+  const payload = await parseJson<{ vehicle?: Vehicle }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 400
+        ? "Invalid vehicle data or no fields provided."
+        : vehicleErrorMessage(response.status);
+    throw new VehicleApiError(response.status, payload.message || fallback);
+  }
+
+  const vehicle = payload.data?.vehicle;
+  if (!vehicle) {
+    throw new VehicleApiError(response.status, "Vehicle update response data is missing.");
+  }
+
+  return vehicle;
+};
+
+/** ADMIN / MANAGER — update any vehicle by ID. */
+export const adminUpdateVehicle = async (
+  vehicleId: string,
+  request: AdminUpdateVehicleRequest,
+) => {
+  const response = await fetch(
+    `${API_BASE}/api/v1/vehicles/manage/${encodeURIComponent(vehicleId)}`,
+    {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(request),
+    },
+  );
   const payload = await parseJson<{ vehicle?: Vehicle }>(response);
 
   if (!response.ok) {

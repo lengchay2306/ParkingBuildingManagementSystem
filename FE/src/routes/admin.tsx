@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { requireRole } from "@/lib/auth";
@@ -64,6 +65,7 @@ function AdminPage() {
           {/* Users */}
           <section className="lg:col-span-7">
             <UserDirectoryPanel />
+            <ReservationListPanel className="mt-3" />
 
             {/* RBAC matrix */}
             <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">

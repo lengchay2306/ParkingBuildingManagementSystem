@@ -2,9 +2,16 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type ReservationStatus = "PENDING" | "CLAIMED" | "EXPIRED" | "CANCELLED";
 
+export type ReservationDriver = {
+  _id: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+};
+
 export type Reservation = {
   _id: string;
-  driverId: string;
+  driverId: string | ReservationDriver;
   vehicleId:
     | string
     | {
@@ -34,6 +41,19 @@ export type CreateReservationPayload = {
   vehicleId: string;
   parkingSlotId: string;
   expectedArrival: string;
+};
+
+export type ReservationsPagination = {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type GetAllReservationsParams = {
+  page?: number;
+  limit?: number;
+  status?: ReservationStatus;
 };
 
 type ApiEnvelope<T> = {
@@ -99,6 +119,50 @@ export const getMyReservations = async (status?: ReservationStatus) => {
   return payload.data?.reservations ?? [];
 };
 
+/** ADMIN / MANAGER — paginated list of all reservations. */
+export const getAllReservations = async ({
+  page = 1,
+  limit = 10,
+  status,
+}: GetAllReservationsParams = {}) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (status) {
+    params.set("status", status);
+  }
+
+  const response = await fetch(`${API_BASE}/api/v1/reservations?${params.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const payload = await parseJson<{
+    reservations?: Reservation[];
+    pagination?: ReservationsPagination;
+  }>(response);
+
+  if (!response.ok) {
+    throw new ReservationApiError(
+      response.status,
+      payload.message || reservationErrorMessage(response.status),
+    );
+  }
+
+  return {
+    reservations: payload.data?.reservations ?? [],
+    pagination:
+      payload.data?.pagination ??
+      ({
+        page,
+        limit,
+        totalCount: payload.data?.reservations?.length ?? 0,
+        totalPages: 1,
+      } satisfies ReservationsPagination),
+    message: payload.message,
+  };
+};
+
 export const createReservation = async (request: CreateReservationPayload) => {
   const response = await fetch(`${API_BASE}/api/v1/reservations`, {
     method: "POST",
@@ -145,7 +209,8 @@ export const cancelReservation = async (reservationId: string) => {
   return payload.data?.cancelledReservation ?? null;
 };
 
-export const cancelReservationByStaff = async (reservationId: string) => {
+/** ADMIN / MANAGER / STAFF — hard-delete a PENDING reservation. */
+export const deleteReservationByManage = async (reservationId: string) => {
   const response = await fetch(
     `${API_BASE}/api/v1/reservations/manage/${encodeURIComponent(reservationId)}`,
     {
@@ -164,6 +229,9 @@ export const cancelReservationByStaff = async (reservationId: string) => {
 
   return payload.data?.deletedReservation ?? null;
 };
+
+/** @deprecated Use deleteReservationByManage */
+export const cancelReservationByStaff = deleteReservationByManage;
 
 export const getReservationSlotId = (reservation: Reservation) => {
   if (typeof reservation.parkingSlotId === "string") {
