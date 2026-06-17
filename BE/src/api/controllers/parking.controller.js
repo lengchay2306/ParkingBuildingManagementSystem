@@ -5,6 +5,31 @@ class ParkingController {
         this.#parkingService = parkingService;
     }
 
+    checkoutParkingSession = async (req, res, next) => {
+        try {
+            const { parkingSessionId } = req.params
+
+            const { phone } = req.body
+
+            const { userId } = req.user
+
+            const updatedParkingSession = await this.#parkingService.checkoutParkingSession({
+                parkingSessionId: parkingSessionId,
+                userPhone: phone,
+                checkOutStaffId: userId,
+            })
+
+            res.status(201).json({
+                status: 'success',
+                data: {
+                    parkingSession: updatedParkingSession,
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
     createNewParkingSession = async (req, res, next) => {
         try {
             const { 
