@@ -46,6 +46,33 @@ export type ParkingSlotFilters = {
   status?: string;
 };
 
+export type CustomerParkingSession = {
+  _id: string;
+  vehicleId: string | { _id: string; licensePlate?: string };
+  parkingSlotId:
+    | string
+    | {
+        _id: string;
+        slotNumber?: string;
+        floorId?: { floorName?: string };
+      };
+  checkInTime?: string;
+  status: string;
+};
+
+/** GET /parking/active-user-parking-session/:vehicleId — phiên gửi xe đang hoạt động của xe. */
+export async function getActiveUserParkingSession(
+  vehicleId: string,
+): Promise<CustomerParkingSession | null> {
+  try {
+    const response = await authenticatedFetch(`/parking/active-user-parking-session/${vehicleId}`);
+    const payload = await parseParkingResponse<{ parkingSession?: CustomerParkingSession }>(response);
+    return payload.data?.parkingSession ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getParkingSlots(filters: ParkingSlotFilters = {}): Promise<ParkingFloor[]> {
   const params = new URLSearchParams();
   if (filters.vehicleType) {

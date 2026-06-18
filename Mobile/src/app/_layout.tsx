@@ -100,10 +100,7 @@ function RootNavigator() {
               },
               tabBarIcon: ({ color, size, focused }) => {
                 const iconSize = size + 1;
-                if (route.name === '(customer)/home_check1') {
-                  return <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize} color={color} />;
-                }
-                if (route.name === '(customer)/home_check2') {
+                if (route.name === '(customer)/home') {
                   return <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize} color={color} />;
                 }
                 if (route.name === '(customer)/parking-map') {
@@ -197,16 +194,9 @@ function RootNavigator() {
             />
 
             <Tabs.Screen
-              name="(customer)/home_check1"
+              name="(customer)/home"
               options={{
-                title: t('Trang chủ 1', 'Home'),
-                href: isStaff ? null : undefined,
-              }}
-            />
-            <Tabs.Screen
-              name="(customer)/home_check2"
-              options={{
-                title: t('Trang chủ 2', 'Homeless'),
+                title: t('Trang chủ', 'Home'),
                 href: isStaff ? null : undefined,
               }}
             />

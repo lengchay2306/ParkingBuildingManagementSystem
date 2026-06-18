@@ -18,6 +18,7 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useGrayscale } from '@/hooks/use-grayscale';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useThemePreference } from '@/hooks/theme-preference';
+import { resolveThreeColor } from '@/lib/three-color';
 import {
   floorLabel,
   floorTabLabel,
@@ -175,17 +176,30 @@ function createMapMaterial(
   renderLayer: number,
   options?: { transparent?: boolean; opacity?: number },
 ): THREE.MeshBasicMaterial {
-  const transparent = options?.transparent ?? false;
+  const resolved = resolveThreeColor(color);
+  const materialOpacity =
+    options?.opacity !== undefined ? resolved.opacity * options.opacity : resolved.opacity;
+  const transparent = options?.transparent ?? materialOpacity < 1;
   return new THREE.MeshBasicMaterial({
-    color,
+    color: resolved.color,
     toneMapped: false,
     depthTest: true,
     depthWrite: !transparent,
     transparent,
-    opacity: options?.opacity ?? 1,
+    opacity: materialOpacity,
     polygonOffset: renderLayer > 0,
     polygonOffsetFactor: -renderLayer * 2,
     polygonOffsetUnits: -renderLayer * 2,
+  });
+}
+
+function createToneMappedBasicMaterial(color: string): THREE.MeshBasicMaterial {
+  const resolved = resolveThreeColor(color);
+  return new THREE.MeshBasicMaterial({
+    color: resolved.color,
+    toneMapped: false,
+    transparent: resolved.opacity < 1,
+    opacity: resolved.opacity,
   });
 }
 
@@ -624,7 +638,7 @@ function buildRoundedIntersections(
   if (entryIn && entryOut) {
     const median = new THREE.Mesh(
       new THREE.BoxGeometry(0.08, 0.03, crossIn.depth * 0.95),
-      new THREE.MeshBasicMaterial({ color: DesignColors.hairlineStrong, toneMapped: false }),
+      createToneMappedBasicMaterial(DesignColors.hairlineStrong),
     );
     median.position.set(0, 0.03, entryIn.cz);
     group.add(median);
@@ -692,7 +706,7 @@ function buildHelicalInterFloorRamp(
 ) {
   if (anchors.length < 2) return;
   const deckMat = new THREE.MeshBasicMaterial({ color: MapColors.rampMark, toneMapped: false });
-  const railMat = new THREE.MeshBasicMaterial({ color: DesignColors.hairlineStrong, toneMapped: false });
+  const railMat = createToneMappedBasicMaterial(DesignColors.hairlineStrong);
 
   for (let i = 0; i < anchors.length - 1; i += 1) {
     const from = anchors[i];

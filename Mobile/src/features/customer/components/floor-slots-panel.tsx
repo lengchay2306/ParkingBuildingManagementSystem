@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useEffect, useState } from 'react';
-import { Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
+import { View, type TextStyle, type ViewStyle } from 'react-native';
 
+import { ScalePressable } from '@/components/scale-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette } from '@/constants/design';
 import type { ParkingFloor, ParkingSlot } from '@/features/customer/api/parking';
@@ -89,9 +90,10 @@ export function FloorSlotsPanel({
         const expanded = expandedIds.has(floor._id);
         return (
           <View key={floor._id} style={styles.floorBlock}>
-            <Pressable
+            <ScalePressable
               onPress={() => toggleFloor(floor._id)}
-              style={({ pressed }) => [styles.floorHeader, pressed && styles.buttonPressed]}
+              style={styles.floorHeader}
+              scaleTo={0.98}
             >
               <View style={styles.floorHeaderText}>
                 <ThemedText style={styles.floorName}>{floor.floorName}</ThemedText>
@@ -105,7 +107,7 @@ export function FloorSlotsPanel({
                 size={16}
                 color={DesignColors.inkMuted}
               />
-            </Pressable>
+            </ScalePressable>
             {expanded ? (
               <View style={styles.slotGrid}>
                 {floor.slots.map((slot) => {
@@ -119,17 +121,17 @@ export function FloorSlotsPanel({
                         : styles.slotUnavailable;
 
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={slot._id}
-                      disabled={!bookable}
+                      disabled={!bookable && selectable}
                       onPress={() => bookable && onSelectSlot?.(slot._id)}
-                      style={({ pressed }) => [
+                      style={[
                         styles.slotChip,
                         statusStyle,
                         active && styles.slotChipActive,
-                        bookable && pressed && styles.buttonPressed,
                         selectable && !bookable && styles.slotChipDisabled,
                       ]}
+                      scaleTo={bookable || !selectable ? 0.92 : 1}
                     >
                       <ThemedText
                         style={[
@@ -140,7 +142,7 @@ export function FloorSlotsPanel({
                       >
                         {slot.slotNumber}
                       </ThemedText>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </View>

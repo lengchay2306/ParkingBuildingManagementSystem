@@ -4,8 +4,7 @@ export const AUTH_ROUTES = {
 } as const;
 
 export const CUSTOMER_ROUTES = {
-  home: '/home_check1',
-  homeAlt: '/home_check2',
+  home: '/home',
   parkingMap: '/parking-map',
   reservations: '/reservations',
   profile: '/profile',

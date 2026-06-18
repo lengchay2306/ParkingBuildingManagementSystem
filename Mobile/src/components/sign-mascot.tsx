@@ -113,6 +113,7 @@ const RIGHT_WAVE_SWING_X = 16;
 const POSE_TIMING = 360;
 const WAVE_RAISE_TIMING = 420;
 const WAVE_SWAY_TIMING = 300;
+const WAVE_LOWER_TIMING = 380;
 const COVER_TIMING = 780;
 const COVER_EASING = Easing.inOut(Easing.cubic);
 
@@ -233,21 +234,25 @@ function Arm({
     const applyPose = () => {
       const reach = clamp01(readAnimatedScalar(coverReach));
       const peek = clamp01(readAnimatedScalar(peekTilt));
-      let palm: Point;
-      if (reach > 0) {
-        const covered = lerpPoint(restPalm, coverPalm, reach);
-        const peeking = lerpPoint(restPalm, peekPalm, reach);
-        palm = lerpPoint(covered, peeking, peek);
-      } else if (wavePalmCenter && wave && waveRaised) {
+
+      let waveBlended = restPalm;
+      if (wavePalmCenter && wave && waveRaised) {
         const raised = clamp01(readAnimatedScalar(waveRaised));
         const sway = clamp01(readAnimatedScalar(wave));
-        const waving: Point = {
+        const wavePalm: Point = {
           x: wavePalmCenter.x + lerp(-waveSwingX, waveSwingX, sway),
           y: wavePalmCenter.y,
         };
-        palm = lerpPoint(restPalm, waving, raised);
+        waveBlended = lerpPoint(restPalm, wavePalm, raised);
+      }
+
+      let palm: Point;
+      if (reach > 0) {
+        const covered = lerpPoint(waveBlended, coverPalm, reach);
+        const peeking = lerpPoint(waveBlended, peekPalm, reach);
+        palm = lerpPoint(covered, peeking, peek);
       } else {
-        palm = restPalm;
+        palm = waveBlended;
       }
       setGeom(buildArmGeom(shoulder, palm, side, fallback));
     };
@@ -404,9 +409,17 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
   useEffect(() => {
     if (pose !== 'welcome' || eyeCover !== 'open') {
       wave.stopAnimation(() => {
-        wave.setValue(0);
-        waveRaised.setValue(0);
+        wave.setValue(0.5);
       });
+      if (eyeCover !== 'open') {
+        return;
+      }
+      Animated.timing(waveRaised, {
+        toValue: 0,
+        duration: WAVE_LOWER_TIMING,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
       return;
     }
 
@@ -441,8 +454,6 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
     return () => {
       raiseArm.stop();
       waveLoop.stop();
-      wave.setValue(0);
-      waveRaised.setValue(0);
     };
   }, [eyeCover, pose, wave, waveRaised]);
 
