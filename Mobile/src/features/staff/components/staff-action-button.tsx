@@ -48,8 +48,8 @@ export function StaffActionButton({
           { offset: '100%', color: '#F97316' },
         ]
       : [
-          { offset: '0%', color: DesignColors.accentViolet },
-          { offset: '100%', color: DesignColors.accentBlue },
+          { offset: '0%', color: DesignColors.primary },
+          { offset: '100%', color: DesignColors.primaryFocus },
         ];
 
   return (
@@ -116,7 +116,7 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       height: 48,
       borderRadius: Radius.lg,
       overflow: 'hidden',
-      shadowColor: DesignColors.accentViolet,
+      shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 12,

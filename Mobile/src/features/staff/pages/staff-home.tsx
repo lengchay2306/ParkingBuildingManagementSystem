@@ -1,15 +1,17 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { StaffCheckInList } from '@/features/staff/components/staff-check-in-list';
-import { StaffNavCard } from '@/features/staff/components/staff-nav-card';
+import {
+  StaffDarkCard,
+  StaffDonutChart,
+  StaffMetricGrid,
+  StaffScreenHeader,
+} from '@/features/staff/components/premium';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
-import { StaffSlotStats } from '@/features/staff/components/staff-slot-stats';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
-import { createStaffStyles } from '@/features/staff/styles/common';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { getMyProfile, type UserProfile } from '@/lib/auth-api';
@@ -17,9 +19,9 @@ import { STAFF_ROUTES } from '@/roles';
 
 export default function StaffHomeScreen() {
   useStaffRoleGuard();
+  const router = useRouter();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
-  const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
   const { slotStats, recentCheckIns, isLoadingSlots, loadParkingSlots } = useStaffWorkspace();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
 
@@ -30,72 +32,86 @@ export default function StaffHomeScreen() {
     }, [loadParkingSlots]),
   );
 
+  const occupancyPercent = useMemo(() => {
+    if (slotStats.total === 0) {
+      return 0;
+    }
+    return Math.round((slotStats.inUsed / slotStats.total) * 100);
+  }, [slotStats.inUsed, slotStats.total]);
+
+  const metrics = useMemo(
+    () => [
+      {
+        id: 'available',
+        icon: 'checkmark-circle-outline' as const,
+        value: slotStats.available,
+        label: t('Trống', 'Available'),
+        tone: 'success' as const,
+      },
+      {
+        id: 'occupied',
+        icon: 'car-outline' as const,
+        value: slotStats.inUsed,
+        label: t('Đang gửi', 'Occupied'),
+        tone: 'warning' as const,
+      },
+      {
+        id: 'sessions',
+        icon: 'time-outline' as const,
+        value: recentCheckIns.length,
+        label: t('Phiên hôm nay', 'Sessions today'),
+        tone: 'info' as const,
+      },
+      {
+        id: 'total',
+        icon: 'grid-outline' as const,
+        value: slotStats.total,
+        label: t('Tổng ô', 'Total spots'),
+        tone: 'default' as const,
+      },
+    ],
+    [recentCheckIns.length, slotStats, t],
+  );
+
   return (
     <StaffPageShell
-      eyebrow={t('Nhân viên bãi', 'Parking staff')}
-      title={t('Trang chủ tuần tra', 'Patrol home')}
-      subtitle={t(
-        'Tổng quan bãi xe và lối tắt tới các tác vụ hàng ngày.',
-        'Lot overview and shortcuts to daily tasks.',
-      )}>
-      <View style={styles.card}>
-        <ThemedText style={styles.eyebrow}>{t('Ca làm việc', 'Shift')}</ThemedText>
-        <ThemedText style={styles.sessionPlate}>
+      header={
+        <StaffScreenHeader
+          onProfilePress={() => router.push(STAFF_ROUTES.profile)}
+          rightLabel={profile?.fullName?.split(' ')[0]}
+          subtitle={t('Tổng quan bãi xe theo thời gian thực', 'Real-time lot overview')}
+          title={t('Dashboard', 'Dashboard')}
+        />
+      }>
+      <StaffDarkCard accentBorder="primary">
+        {isLoadingSlots ? (
+          <ActivityIndicator color={DesignColors.primary} />
+        ) : (
+          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+            <StaffDonutChart
+              label={t('Đang chiếm', 'Occupied')}
+              sublabel={`${slotStats.inUsed}/${slotStats.total} ${t('ô', 'spots')}`}
+              value={occupancyPercent}
+            />
+          </View>
+        )}
+      </StaffDarkCard>
+
+      <StaffDarkCard>
+        <ThemedText style={{ color: DesignColors.inkMuted, fontSize: 12, marginBottom: 4 }}>
+          {t('Tóm tắt nhanh', 'Quick summary')}
+        </ThemedText>
+        <StaffMetricGrid items={metrics} />
+      </StaffDarkCard>
+
+      <StaffDarkCard accentBorder="success">
+        <ThemedText style={{ color: DesignColors.ink, fontWeight: '600', fontSize: 15 }}>
           {profile?.fullName ?? t('Nhân viên', 'Staff')}
         </ThemedText>
-        <ThemedText style={styles.sessionDetail}>
+        <ThemedText style={{ color: DesignColors.inkMuted, fontSize: 13 }}>
           {profile?.phone ?? profile?.email ?? '—'}
         </ThemedText>
-      </View>
-
-      <View style={styles.card}>
-        <ThemedText style={styles.eyebrow}>{t('Trạng thái bãi', 'Lot status')}</ThemedText>
-        {isLoadingSlots ? (
-          <ActivityIndicator color={DesignColors.accentViolet} />
-        ) : (
-          <StaffSlotStats
-            available={slotStats.available}
-            inUsed={slotStats.inUsed}
-            total={slotStats.total}
-            labels={{
-              available: t('Trống', 'Available'),
-              inUsed: t('Đang gửi', 'In use'),
-              total: t('Tổng', 'Total'),
-            }}
-          />
-        )}
-      </View>
-
-      <View style={styles.card}>
-        <ThemedText style={styles.eyebrow}>{t('Lối tắt', 'Shortcuts')}</ThemedText>
-        <StaffNavCard
-          href={STAFF_ROUTES.checkIn}
-          meta={t('Tra cứu xe + check-in', 'Lookup + check in')}
-          title={t('Check-in', 'Check in')}
-        />
-        <StaffNavCard
-          href={STAFF_ROUTES.slots}
-          meta={t('Xem từng tầng và ô', 'View floors and slots')}
-          title={t('Bãi xe', 'Parking lot')}
-        />
-        <StaffNavCard
-          href={STAFF_ROUTES.operations}
-          meta={t('Ra cổng, đặt chỗ, ngoại lệ', 'Exit, reservations, exceptions')}
-          title={t('Tác vụ', 'Operations')}
-        />
-      </View>
-
-      <View style={styles.card}>
-        <ThemedText style={styles.eyebrow}>{t('Check-in gần đây', 'Recent check-ins')}</ThemedText>
-        <StaffCheckInList
-          emptyMessage={t(
-            'Chưa có check-in trong phiên này.',
-            'No check-ins in this session yet.',
-          )}
-          items={recentCheckIns}
-          styles={styles}
-        />
-      </View>
+      </StaffDarkCard>
     </StaffPageShell>
   );
 }

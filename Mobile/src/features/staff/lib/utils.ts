@@ -4,9 +4,43 @@ export type StaffCheckInRecord = {
   id: string;
   plate: string;
   slotLabel: string;
+  slotId?: string;
   status: string;
   timeLabel: string;
+  checkInTime?: string;
+  vehicleType?: string;
+  sessionType?: string;
 };
+
+export function formatDurationFrom(iso?: string): string {
+  if (!iso) {
+    return '—';
+  }
+  const start = new Date(iso).getTime();
+  if (Number.isNaN(start)) {
+    return '—';
+  }
+  const minutes = Math.max(0, Math.floor((Date.now() - start) / 60000));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}
+
+export function estimateSessionCost(iso?: string, hourlyRate = 25000): string {
+  if (!iso) {
+    return '—';
+  }
+  const start = new Date(iso).getTime();
+  if (Number.isNaN(start)) {
+    return '—';
+  }
+  const hours = Math.max(1, Math.ceil((Date.now() - start) / 3600000));
+  const total = hours * hourlyRate;
+  return `${total.toLocaleString('vi-VN')}₫`;
+}
 
 export function formatTimeLabel(iso: string): string {
   const date = new Date(iso);

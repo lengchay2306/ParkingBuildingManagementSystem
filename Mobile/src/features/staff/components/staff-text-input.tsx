@@ -53,9 +53,9 @@ function createInputStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       letterSpacing: 0.6,
     },
     inputFocused: {
-      borderColor: DesignColors.accentViolet,
+      borderColor: DesignColors.primary,
       backgroundColor: DesignColors.surface2,
-      shadowColor: DesignColors.accentViolet,
+      shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
       shadowRadius: 8,

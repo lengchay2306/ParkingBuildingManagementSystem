@@ -18,6 +18,8 @@ export const STAFF_ROUTES = {
   checkIn: '/staff-check-in',
   slots: '/staff-slots',
   slotDetail: '/staff-slots/[slotId]',
+  sessions: '/staff-sessions',
+  sessionDetail: '/staff-sessions/[sessionId]',
   operations: '/staff-operations',
   profile: '/staff-profile',
   settings: '/staff-settings',
@@ -27,6 +29,10 @@ export const STAFF_ROUTES = {
 
 export function staffSlotDetailPath(slotId: string) {
   return `/staff-slots/${slotId}` as const;
+}
+
+export function staffSessionDetailPath(sessionId: string) {
+  return `/staff-sessions/${sessionId}` as const;
 }
 
 export const MANAGER_ROUTES = {

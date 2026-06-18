@@ -1,19 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/staff/api';
-import type { StaffStyles } from '@/features/staff/styles/common';
 import { resolveFloorPresentation, sortFloorsLikeParkingMap } from '@/lib/parking-floor-config';
+import { useDesignColors } from '@/hooks/use-design-colors';
 
+const GRID_COLUMNS = 4;
+const CELL_GAP = 6;
+const SECTION_PADDING = 12;
 type StaffCheckInSlotPickerProps = {
   floors: ParkingFloor[];
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
   isLoading: boolean;
-  styles: StaffStyles;
   t: (vi: string, en: string) => string;
-  accentColor: string;
 };
 
 export function StaffCheckInSlotPicker({
@@ -21,10 +29,11 @@ export function StaffCheckInSlotPicker({
   selectedSlotId,
   onSelectSlot,
   isLoading,
-  styles,
   t,
-  accentColor,
 }: StaffCheckInSlotPickerProps) {
+  const DesignColors = useDesignColors();
+  const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+
   const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
 
   const floorsWithAvailability = useMemo(
@@ -59,11 +68,19 @@ export function StaffCheckInSlotPicker({
   );
 
   if (isLoading) {
-    return <ActivityIndicator color={accentColor} />;
+    return (
+      <View style={styles.section}>
+        <ActivityIndicator color={DesignColors.primaryFocus} style={{ marginVertical: 24 }} />
+      </View>
+    );
   }
 
   if (floorsWithAvailability.length === 0) {
-    return <ThemedText style={styles.hint}>{t('Không có ô trống', 'No available slots')}</ThemedText>;
+    return (
+      <View style={styles.section}>
+        <ThemedText style={styles.empty}>{t('Không có ô trống', 'No available spots')}</ThemedText>
+      </View>
+    );
   }
 
   const activePresentation = activeEntry
@@ -71,10 +88,12 @@ export function StaffCheckInSlotPicker({
     : null;
 
   return (
-    <View style={styles.slotPickerPanel}>
+    <View style={styles.section}>
+      <ThemedText style={styles.sectionTitle}>{t('Chọn ô gửi', 'Select spot')}</ThemedText>
+
       <ScrollView
         horizontal
-        contentContainerStyle={styles.floorTabs}
+        contentContainerStyle={styles.pillRow}
         showsHorizontalScrollIndicator={false}>
         {floorsWithAvailability.map(({ floor, availableSlots }) => {
           const active = floor._id === activeFloorId;
@@ -84,15 +103,12 @@ export function StaffCheckInSlotPicker({
               key={floor._id}
               onPress={() => setActiveFloorId(floor._id)}
               style={({ pressed }) => [
-                styles.floorTab,
-                active && styles.floorTabActive,
-                pressed && styles.floorTabPressed,
+                styles.pill,
+                active && styles.pillActive,
+                pressed && styles.pillPressed,
               ]}>
-              <ThemedText style={active ? styles.floorTabTextActive : styles.floorTabText}>
-                {tabLabel}
-              </ThemedText>
-              <ThemedText style={active ? styles.floorTabBadgeActive : styles.floorTabBadge}>
-                {availableSlots.length}
+              <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
+                {tabLabel} ({availableSlots.length})
               </ThemedText>
             </Pressable>
           );
@@ -101,31 +117,33 @@ export function StaffCheckInSlotPicker({
 
       {activeEntry && activePresentation ? (
         <>
-          <View style={styles.slotPickerMeta}>
-            <ThemedText style={styles.slotPickerMetaText}>
-              {activePresentation.available} {t('ô trống', 'free slots')}
+          <View style={styles.metaRow}>
+            <ThemedText style={styles.metaHighlight}>
+              {activeEntry.availableSlots.length} {t('ô trống', 'available spots')}
             </ThemedText>
-            <ThemedText style={styles.slotPickerMetaMuted}>
-              {t('Chạm để chọn', 'Tap to select')}
-            </ThemedText>
+            <ThemedText style={styles.metaMuted}> · {t('Chạm để chọn', 'Tap to select')}</ThemedText>
           </View>
-          <View style={styles.compactSlotGrid}>
+
+          <View style={styles.grid}>
             {activeEntry.availableSlots.map((slot) => {
               const selected = selectedSlotId === slot._id;
               return (
-                <Pressable
-                  key={slot._id}
-                  onPress={() => onSelectSlot(slot._id)}
-                  style={({ pressed }) => [
-                    styles.compactSlotCell,
-                    selected && styles.compactSlotCellSelected,
-                    pressed && styles.compactSlotCellPressed,
-                  ]}>
-                  <ThemedText
-                    style={[styles.compactSlotCellText, selected && styles.compactSlotCellTextSelected]}>
-                    {slot.slotNumber}
-                  </ThemedText>
-                </Pressable>
+                <View key={slot._id} style={styles.cellWrap}>
+                  <Pressable
+                    onPress={() => onSelectSlot(slot._id)}
+                    style={({ pressed }) => [
+                      styles.cell,
+                      selected && styles.cellSelected,
+                      pressed && styles.cellPressed,
+                    ]}>
+                    <ThemedText
+                      numberOfLines={1}
+                      style={[styles.cellText, selected && styles.cellTextSelected]}>
+                      {slot.slotNumber}
+                    </ThemedText>
+                    {!selected ? <View style={styles.availableDot} /> : null}
+                  </Pressable>
+                </View>
               );
             })}
           </View>
@@ -133,4 +151,134 @@ export function StaffCheckInSlotPicker({
       ) : null}
     </View>
   );
+}
+
+function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+  return StyleSheet.create({
+    section: {
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.xl,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      padding: SECTION_PADDING,
+      gap: Spacing.sm,
+    },
+    sectionTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+      fontWeight: '700',
+      fontSize: 15,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingVertical: 2,
+    },
+    pill: {
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface3,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    pillActive: {
+      borderColor: DesignColors.primaryFocus,
+      backgroundColor: `${DesignColors.primaryFocus}22`,
+      shadowColor: DesignColors.primaryFocus,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.45,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    pillPressed: {
+      opacity: 0.9,
+    },
+    pillText: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontWeight: '600',
+      fontSize: 12,
+    },
+    pillTextActive: {
+      color: DesignColors.primaryFocus,
+      fontWeight: '700',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+    },
+    metaHighlight: {
+      ...Typography.caption,
+      color: DesignColors.neonSuccess,
+      fontWeight: '600',
+      fontSize: 12,
+    },
+    metaMuted: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 12,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -CELL_GAP / 2,
+    },
+    cellWrap: {
+      width: `${100 / GRID_COLUMNS}%`,
+      paddingHorizontal: CELL_GAP / 2,
+      paddingBottom: CELL_GAP,
+    },
+    cell: {
+      aspectRatio: 1.15,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      paddingHorizontal: 2,
+    },
+    cellSelected: {
+      backgroundColor: DesignColors.primaryFocus,
+      borderColor: DesignColors.primaryFocus,
+      shadowColor: DesignColors.primaryFocus,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    cellPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
+    },
+    cellText: {
+      ...Typography.caption,
+      color: DesignColors.neonSuccess,
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 0.1,
+      textAlign: 'center',
+    },
+    cellTextSelected: {
+      color: DesignColors.onPrimary,
+    },
+    availableDot: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: DesignColors.neonSuccess,
+    },
+    empty: {
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
+      textAlign: 'center',
+      paddingVertical: Spacing.lg,
+    },
+  });
 }
