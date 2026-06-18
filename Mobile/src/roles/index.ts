@@ -7,6 +7,7 @@ export {
   ROLE_ROUTES,
   STAFF_ROUTES,
   staffSlotDetailPath,
+  staffSessionDetailPath,
   type PostLoginRoute,
 } from '@/roles/routes';
 export { resolvePostLoginRoute, resolveRoleLabel, roleHomeRoute } from '@/roles/navigation';

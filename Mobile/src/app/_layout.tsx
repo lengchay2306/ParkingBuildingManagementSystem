@@ -72,6 +72,9 @@ function RootNavigator() {
     shadowOpacity: 0,
   };
 
+  const staffTabBarActiveTintColor = DesignColors.primary;
+  const staffTabBarInactiveTintColor = DesignColors.inkSubtle;
+
   return (
     <ThemeProvider value={resolvedScheme === 'dark' ? darkTheme : lightTheme}>
       <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: DesignColors.canvas }}>
@@ -85,8 +88,8 @@ function RootNavigator() {
           <Tabs
             screenOptions={({ route }) => ({
               headerShown: false,
-              tabBarActiveTintColor: DesignColors.ink,
-              tabBarInactiveTintColor: DesignColors.inkSubtle,
+              tabBarActiveTintColor: isStaff ? staffTabBarActiveTintColor : DesignColors.ink,
+              tabBarInactiveTintColor: isStaff ? staffTabBarInactiveTintColor : DesignColors.inkSubtle,
               tabBarShowLabel: true,
               tabBarStyle,
               tabBarLabelStyle: {
@@ -124,19 +127,8 @@ function RootNavigator() {
                     <StaffTabIcon
                       color={color}
                       focused={focused}
-                      name="home"
-                      outlineName="home-outline"
-                      size={size}
-                    />
-                  );
-                }
-                if (route.name === '(staff)/staff-check-in') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="log-in"
-                      outlineName="log-in-outline"
+                      name="speedometer"
+                      outlineName="speedometer-outline"
                       size={size}
                     />
                   );
@@ -152,13 +144,24 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-operations') {
+                if (route.name === '(staff)/staff-check-in') {
                   return (
                     <StaffTabIcon
                       color={color}
                       focused={focused}
-                      name="construct"
-                      outlineName="construct-outline"
+                      name="scan"
+                      outlineName="scan-outline"
+                      size={size}
+                    />
+                  );
+                }
+                if (route.name === '(staff)/staff-sessions') {
+                  return (
+                    <StaffTabIcon
+                      color={color}
+                      focused={focused}
+                      name="list"
+                      outlineName="list-outline"
                       size={size}
                     />
                   );
@@ -236,38 +239,33 @@ function RootNavigator() {
             <Tabs.Screen
               name="(staff)/staff-home"
               options={{
-                title: t('Trang chủ', 'Home'),
-                href: isStaff ? undefined : null,
-              }}
-            />
-            <Tabs.Screen
-              name="(staff)/staff-check-in"
-              options={{
-                title: t('Check-in', 'Check in'),
+                title: t('Dashboard', 'Dashboard'),
                 href: isStaff ? undefined : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-slots"
               options={{
-                title: t('Bãi xe', 'Lot'),
+                title: t('Spots', 'Spots'),
                 href: isStaff ? undefined : null,
               }}
             />
             <Tabs.Screen
-              name="(staff)/staff-operations"
+              name="(staff)/staff-check-in"
               options={{
-                title: t('Tác vụ', 'Ops'),
+                title: t('Check-in', 'Check-in'),
                 href: isStaff ? undefined : null,
               }}
             />
             <Tabs.Screen
-              name="(staff)/staff-profile"
+              name="(staff)/staff-sessions"
               options={{
-                title: t('Hồ sơ', 'Profile'),
+                title: t('Sessions', 'Sessions'),
                 href: isStaff ? undefined : null,
               }}
             />
+            <Tabs.Screen name="(staff)/staff-operations" options={{ href: null }} />
+            <Tabs.Screen name="(staff)/staff-profile" options={{ href: null }} />
             <Tabs.Screen name="(staff)/staff-settings" options={{ href: null }} />
             <Tabs.Screen name="(staff)/staff" options={{ href: null }} />
           </Tabs>
