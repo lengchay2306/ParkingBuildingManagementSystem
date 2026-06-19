@@ -123,10 +123,10 @@ export const updateMyProfile = async (payload: UpdateMyProfileRequest) => {
 };
 
 export type UpdateUserByIdRequest = {
+  email?: string;
   fullName?: string;
   phone?: string;
   status?: "ACTIVE" | "LOCKED";
-  roleId?: string;
 };
 
 export const updateUserById = async (userId: string, payload: UpdateUserByIdRequest) => {

@@ -14,6 +14,9 @@ export const ROLE_TO_ROUTE = {
 } as const;
 
 export type RoleName = keyof typeof ROLE_TO_ROUTE;
+type GetSessionRoleOptions = {
+  forceRefresh?: boolean;
+};
 
 type AuthPayload = {
   status?: string;
@@ -146,15 +149,22 @@ export const refreshSession = async (): Promise<RoleName | null> => {
   return role;
 };
 
-export const getSessionRole = async (): Promise<RoleName | null> => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
+export const getSessionRole = async (
+  options: GetSessionRoleOptions = {},
+): Promise<RoleName | null> => {
   const roleFromToken = normalizeRole(await getRoleNameFromAccessCookie());
   if (roleFromToken) {
     setStoredRole(roleFromToken);
     return roleFromToken;
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const shouldRefresh = options.forceRefresh || !!getStoredRole();
+  if (!shouldRefresh) {
+    return null;
   }
 
   try {
@@ -191,7 +201,7 @@ export const requireRole = async (required: RoleName) => {
   if (typeof window === "undefined") {
     return required;
   }
-  const role = await getSessionRole();
+  const role = await getSessionRole({ forceRefresh: true });
   if (!role) {
     throw redirect({ to: "/login" });
   }

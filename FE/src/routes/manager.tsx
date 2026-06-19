@@ -4,7 +4,6 @@ import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { requireRole } from "@/lib/auth";
-import { cn } from "@/lib/utils";
 
 type ManagerTab = "overview" | "reservations";
 
@@ -30,16 +29,6 @@ export const Route = createFileRoute("/manager")({
   component: ManagerPage,
 });
 
-const sidebarItems: Array<{ id: ManagerTab | null; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: null, label: "Live Floors" },
-  { id: null, label: "Revenue" },
-  { id: "reservations", label: "Reservations" },
-  { id: null, label: "Patrol" },
-  { id: null, label: "AI Routing" },
-  { id: null, label: "Devices" },
-];
-
 function ManagerPage() {
   const [activeTab, setActiveTab] = useState<ManagerTab>("overview");
 
@@ -47,79 +36,37 @@ function ManagerPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6 py-12">
-        <header className="mb-8">
-          <div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              Role 01 · Facility Manager
-            </span>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
-              Web Command Center <span className="text-muted-foreground">vs.</span> Pocket Alerts
-            </h1>
-            <p className="mt-2 max-w-2xl text-muted-foreground">
-              The web view goes wide and dense. The mobile view distills everything into the next
-              decision the manager has to make.
-            </p>
-          </div>
-        </header>
-
         <div className="grid gap-8">
           {/* WEB DASHBOARD */}
           <section>
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-              <div className="flex h-[820px]">
-                {/* Sidebar */}
-                <aside className="hidden w-56 flex-col gap-6 border-r border-border bg-background/50 p-5 md:flex">
-                  <div className="flex items-center gap-2">
-                    <div className="grid size-8 place-items-center rounded-xl bg-foreground text-background font-black">
-                      P
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">PARKOS</div>
-                      <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                        North Plaza
-                      </div>
-                    </div>
+              <div className="h-[820px]">
+                <div className="flex min-h-0 h-full flex-1 flex-col overflow-hidden p-6">
+                  <div className="mb-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("overview")}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                        activeTab === "overview"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Overview
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("reservations")}
+                      className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                        activeTab === "reservations"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Reservations
+                    </button>
                   </div>
-                  <nav className="space-y-1">
-                    {sidebarItems.map(({ id, label }) => {
-                      const isActive = id !== null && activeTab === id;
-                      const isClickable = id !== null;
 
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          disabled={!isClickable}
-                          onClick={() => {
-                            if (id) {
-                              setActiveTab(id);
-                            }
-                          }}
-                          className={cn(
-                            "w-full rounded-lg px-3 py-2 text-left text-xs font-semibold transition-colors",
-                            isActive
-                              ? "bg-foreground text-background"
-                              : isClickable
-                                ? "text-muted-foreground hover:bg-muted"
-                                : "cursor-default text-muted-foreground/60",
-                          )}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
-                  </nav>
-                  <div className="mt-auto rounded-2xl bg-gradient-to-br from-pastel-lavender to-pastel-pink p-4 text-foreground">
-                    <div className="font-mono text-[9px] uppercase tracking-widest opacity-70">
-                      Shift
-                    </div>
-                    <div className="mt-1 text-sm font-bold">M. Chen</div>
-                    <div className="text-[10px] opacity-70">14:00 → 22:00 · L1-L4</div>
-                  </div>
-                </aside>
-
-                {/* Main */}
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
                   {activeTab === "overview" ? (
                     <div className="overflow-y-auto">
                       <div className="grid grid-cols-4 gap-3">
