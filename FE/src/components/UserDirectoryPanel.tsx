@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Car,
@@ -47,11 +47,6 @@ type UserDirectoryPanelProps = {
   compact?: boolean;
 };
 
-type RoleOption = {
-  _id: string;
-  roleName: string;
-};
-
 const pageSize = 100;
 const licensePlatePattern = /^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/;
 
@@ -64,10 +59,10 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState("");
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "LOCKED">("ACTIVE");
-  const [editRoleId, setEditRoleId] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [vehiclesUser, setVehiclesUser] = useState<UserProfile | null>(null);
   const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
@@ -107,16 +102,6 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const totalPages = Math.max(pagination?.totalPages ?? 1, 1);
   const canGoBack = page > 1;
   const canGoNext = page < totalPages;
-
-  const roleOptions = useMemo<RoleOption[]>(() => {
-    const map = new Map<string, string>();
-    for (const user of users) {
-      if (typeof user.roleId === "object" && user.roleId?._id) {
-        map.set(user.roleId._id, user.roleId.roleName);
-      }
-    }
-    return Array.from(map, ([_id, roleName]) => ({ _id, roleName }));
-  }, [users]);
 
   const updateUserMutation = useMutation({
     mutationFn: ({ userId, payload }: { userId: string; payload: Parameters<typeof updateUserById>[1] }) =>
@@ -201,10 +186,10 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
       return;
     }
     setEditError(null);
+    setEditEmail(selectedUser.email ?? "");
     setEditFullName(selectedUser.fullName ?? "");
     setEditPhone(selectedUser.phone ?? "");
     setEditStatus(selectedUser.status === "LOCKED" ? "LOCKED" : "ACTIVE");
-    setEditRoleId(getUserRoleId(selectedUser) ?? "");
     setIsEditing(true);
   };
 
@@ -220,9 +205,14 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
     }
     setEditError(null);
 
+    const email = editEmail.trim().toLowerCase();
     const fullName = editFullName.trim();
     const phone = editPhone.trim();
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEditError("Email không hợp lệ.");
+      return;
+    }
     if (fullName.length < 2 || fullName.length > 30) {
       setEditError("Họ tên phải từ 2 đến 30 kí tự.");
       return;
@@ -232,8 +222,10 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
       return;
     }
 
-    const payload: { fullName?: string; phone?: string; status?: "ACTIVE" | "LOCKED"; roleId?: string } =
-      {};
+    const payload: { email?: string; fullName?: string; phone?: string; status?: "ACTIVE" | "LOCKED" } = {};
+    if (email !== selectedUser.email) {
+      payload.email = email;
+    }
     if (fullName !== selectedUser.fullName) {
       payload.fullName = fullName;
     }
@@ -242,10 +234,6 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
     }
     if (editStatus !== selectedUser.status) {
       payload.status = editStatus;
-    }
-    const currentRoleId = getUserRoleId(selectedUser);
-    if (editRoleId && editRoleId !== currentRoleId) {
-      payload.roleId = editRoleId;
     }
 
     if (Object.keys(payload).length === 0) {
@@ -460,9 +448,12 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
                     <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="user-email"
-                      value={selectedUser.email}
+                      value={isEditing ? editEmail : selectedUser.email}
+                      onChange={(event) => setEditEmail(event.target.value)}
+                      type="email"
                       className="h-11 rounded-xl pl-9"
-                      disabled
+                      disabled={fieldsDisabled}
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -485,32 +476,7 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
                 </div>
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="user-role">Role</Label>
-                  {isEditing ? (
-                    <Select value={editRoleId} onValueChange={setEditRoleId}>
-                      <SelectTrigger id="user-role" className="h-11 rounded-xl">
-                        <SelectValue placeholder="Chọn role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roleOptions.map((role) => (
-                          <SelectItem key={role._id} value={role._id}>
-                            {role.roleName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id="user-role"
-                      value={getUserRoleName(selectedUser)}
-                      className="h-11 rounded-xl"
-                      disabled
-                    />
-                  )}
-                </div>
-
+              <div className="grid gap-2">
                 <div className="grid gap-2">
                   <Label htmlFor="user-status">Status</Label>
                   {isEditing ? (
@@ -803,16 +769,6 @@ function getUserRoleName(user: UserProfile) {
     return user.roleId.roleName;
   }
   return "UNKNOWN";
-}
-
-function getUserRoleId(user: UserProfile): string | null {
-  if (typeof user.roleId === "object" && user.roleId?._id) {
-    return user.roleId._id;
-  }
-  if (typeof user.roleId === "string") {
-    return user.roleId;
-  }
-  return null;
 }
 
 function getInitials(name: string) {
