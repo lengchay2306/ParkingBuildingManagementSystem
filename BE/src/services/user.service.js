@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from "../error/error.js";
+import { ConflictError, NotFoundError } from "../error/error.js";
 import Role from "../models/Role.js";
 
 class UserService {
@@ -6,6 +6,28 @@ class UserService {
 
     constructor({ userRepository }) {
         this.#userRepository = userRepository;
+    }
+
+    #assertUniqueEmailAndPhone = async ({ userId, updateData }) => {
+        if (updateData.email !== undefined) {
+            const normalizedEmail = updateData.email.trim().toLowerCase();
+            const existingByEmail = await this.#userRepository.findUserByEmail({
+                email: normalizedEmail,
+            });
+            if (existingByEmail && existingByEmail._id.toString() !== userId.toString()) {
+                throw new ConflictError("Email already in use");
+            }
+            updateData.email = normalizedEmail;
+        }
+
+        if (updateData.phone !== undefined) {
+            const existingByPhone = await this.#userRepository.findUser({
+                phone: updateData.phone,
+            });
+            if (existingByPhone && existingByPhone._id.toString() !== userId.toString()) {
+                throw new ConflictError("Phone number already in use");
+            }
+        }
     }
 
     getAllUser = async ({
@@ -38,6 +60,8 @@ class UserService {
     }
 
     updateMyProfile = async ({ userId, updateData}) => {
+        await this.#assertUniqueEmailAndPhone({ userId, updateData });
+
         const updatedUser = await this.#userRepository.updateMyProfile({ userId, updateData });
         if (!updatedUser) {
             throw new NotFoundError("User not found");
@@ -57,6 +81,8 @@ class UserService {
                 throw new NotFoundError("Role not found");
             }
         }
+
+        await this.#assertUniqueEmailAndPhone({ userId, updateData });
 
         const updatedUser = await this.#userRepository.updateUserById({ userId, updateData });
         return updatedUser;

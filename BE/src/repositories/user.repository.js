@@ -1,5 +1,6 @@
 import User from "../models/User.js"
 import Vehicle from "../models/Vehicle.js"
+import { mapMongooseError } from "../utils/mongooseError.js"
 
 class UserRepository {
     findUserByEmail = async ({ email }) => {
@@ -133,26 +134,31 @@ class UserRepository {
         };
     }
 
-    updateMyProfile = async ({ userId, updateData }) => {
-        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
-                                        .populate('roleId')
-                                        .select('-password')
-                                        .lean();
-        if (!updatedUser) {
-            return null;
+    #updateUserRecord = async ({ userId, updateData }) => {
+        try {
+            const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+                new: true,
+                runValidators: true,
+            })
+                .populate('roleId')
+                .select('-password')
+                .lean();
+
+            if (!updatedUser) {
+                return null;
+            }
+            return updatedUser;
+        } catch (error) {
+            throw mapMongooseError(error);
         }
-        return updatedUser;
+    }
+
+    updateMyProfile = async ({ userId, updateData }) => {
+        return this.#updateUserRecord({ userId, updateData });
     }
 
     updateUserById = async ({ userId, updateData }) => {
-        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
-                                        .populate('roleId')
-                                        .select('-password')
-                                        .lean();
-        if (!updatedUser) {
-            return null;
-        }
-        return updatedUser;
+        return this.#updateUserRecord({ userId, updateData });
     };
 }
 
