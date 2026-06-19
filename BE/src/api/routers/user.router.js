@@ -213,6 +213,8 @@ router.get(
  *               message: "Profile updated successfully"
  *       400:
  *         description: Validation error - invalid data or no fields provided
+ *       409:
+ *         description: Phone number already in use
  *       401:
  *         description: Unauthorized
  *       404:
@@ -236,7 +238,7 @@ router.put(
  *     description: |
  *       Update any user's information by their ID.
  *       Only accessible by ADMIN and MANAGER.
- *       Can update: fullName, phone, status, roleId.
+ *       Can update: email, fullName, phone, status, roleId.
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
@@ -255,6 +257,10 @@ router.put(
  *           schema:
  *             type: object
  *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "newemail@example.com"
  *               fullName:
  *                 type: string
  *                 minLength: 2
@@ -294,6 +300,8 @@ router.put(
  *               message: "User updated successfully"
  *       400:
  *         description: Validation error or no fields provided
+ *       409:
+ *         description: Email or phone already in use
  *       401:
  *         description: Unauthorized
  *       403:

@@ -10,6 +10,7 @@ const updateMyProfileSchema = Joi.object({
 })
 
 const updateUserByIdSchema = Joi.object({
+    email: Joi.string().email().optional(),
     fullName: Joi.string().min(2).max(30).optional(),
     phone: Joi.string().pattern(/^[0-9]{10}$/).optional().messages({
         'string.pattern.base': 'Phone number must be exactly 10 digits',

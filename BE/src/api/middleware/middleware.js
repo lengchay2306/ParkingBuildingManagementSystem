@@ -4,6 +4,7 @@ import {
     BadRequestError, 
     ForbiddenError 
 } from "../../error/error.js";
+import { mapMongooseError } from "../../utils/mongooseError.js";
 
 export const authentication = async (req, res, next) => {
     let accessToken = req.cookies.accessToken;
@@ -64,8 +65,9 @@ export const getUserDeviceName = (req, res, next) => {
 }
 
 export const handleError = (err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    const message = err.message || "server error";
+    const mappedError = mapMongooseError(err);
+    const statusCode = mappedError.statusCode || 500;
+    const message = mappedError.message || "server error";
     const status = statusCode !== 500 ? 'error' : 'fail';
 
     res.status(statusCode).json({
