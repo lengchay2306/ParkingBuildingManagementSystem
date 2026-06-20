@@ -1,35 +1,65 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import { useAppToast } from '@/components/app-toast';
 import { StaffCheckInConfirmBar } from '@/features/staff/components/staff-check-in-confirm-bar';
-import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
-import { StaffCheckInVehicleSection } from '@/features/staff/components/staff-check-in-vehicle-section';
+import { StaffCheckInConfirmStep } from '@/features/staff/components/staff-check-in-confirm-step';
+import { StaffCheckInPlateStep } from '@/features/staff/components/staff-check-in-plate-step';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
-import { StaffScreenHeader } from '@/features/staff/components/premium';
 import {
   createParkingSession,
+  getActiveUserParkingSession,
   getVehicleByLicensePlate,
+  resolveVehicleOwnerPhone,
+  resolveVehicleOwnerProfile,
   resolveVehicleTypeLabel,
+  type ParkingSession,
+  type StaffActiveParkingSession,
   type StaffVehicle,
+  type VehicleOwnerProfile,
 } from '@/features/staff/api';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
 import { formatTimeLabel, resolveSlotLabel } from '@/features/staff/lib/utils';
+import {
+  staffPhoneErrorMessage,
+  validateStaffPhoneInput,
+} from '@/features/staff/lib/session-validation';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { STAFF_ROUTES, staffSessionDetailPath } from '@/roles';
+
+type CheckInStep = 'plate' | 'confirm';
 
 export default function StaffCheckInScreen() {
   useStaffRoleGuard();
+  const router = useRouter();
   const { showToast } = useAppToast();
   const { t } = useLanguagePreference();
-  const { floors, isLoadingSlots, loadParkingSlots, recordCheckIn } = useStaffWorkspace();
+  const { floors, isLoadingSlots, loadParkingSlots, loadParkingSessions, loadActiveSlotSessions, recordCheckIn } =
+    useStaffWorkspace();
 
+  const [step, setStep] = useState<CheckInStep>('plate');
   const [plateQuery, setPlateQuery] = useState('');
   const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
   const [foundVehicle, setFoundVehicle] = useState<StaffVehicle | null>(null);
+  const [activeSession, setActiveSession] = useState<StaffActiveParkingSession | null>(null);
   const [checkInPhone, setCheckInPhone] = useState('');
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  const activeSessionSlotLabel = useMemo(() => {
+    if (!activeSession) {
+      return null;
+    }
+    return resolveSlotLabel(activeSession.parkingSlotId as ParkingSession['parkingSlotId'], floors);
+  }, [activeSession, floors]);
+
+  const ownerProfile = useMemo<VehicleOwnerProfile | null>(() => {
+    if (!foundVehicle) {
+      return null;
+    }
+    return resolveVehicleOwnerProfile(foundVehicle, activeSession);
+  }, [activeSession, foundVehicle]);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,7 +67,19 @@ export default function StaffCheckInScreen() {
     }, [loadParkingSlots]),
   );
 
-  const handleSearchVehicle = useCallback(
+  const resetConfirmState = useCallback(() => {
+    setFoundVehicle(null);
+    setActiveSession(null);
+    setCheckInPhone('');
+    setSelectedSlotId(null);
+  }, []);
+
+  const handleBackToPlate = useCallback(() => {
+    setStep('plate');
+    resetConfirmState();
+  }, [resetConfirmState]);
+
+  const resolveVehicle = useCallback(
     async (plateOverride?: string) => {
       const plate = (plateOverride ?? plateQuery).trim();
       if (!plate) {
@@ -48,11 +90,33 @@ export default function StaffCheckInScreen() {
       setIsSearchingVehicle(true);
       try {
         const vehicle = await getVehicleByLicensePlate(plate);
+        const existingSession = await getActiveUserParkingSession(vehicle._id);
+
         setFoundVehicle(vehicle);
         setPlateQuery(vehicle.licensePlate);
+        setActiveSession(existingSession);
+        setCheckInPhone(resolveVehicleOwnerPhone(vehicle, existingSession));
+        setSelectedSlotId(null);
+        setStep('confirm');
+
+        if (existingSession) {
+          const slotLabel = resolveSlotLabel(
+            existingSession.parkingSlotId as ParkingSession['parkingSlotId'],
+            floors,
+          );
+          showToast(
+            t(
+              `Xe đang gửi tại ${slotLabel}. Vui lòng checkout trước.`,
+              `Vehicle is parked at ${slotLabel}. Checkout first.`,
+            ),
+            'error',
+          );
+          return;
+        }
+
         showToast(t('Đã tìm thấy xe', 'Vehicle found'), 'success');
       } catch (error) {
-        setFoundVehicle(null);
+        resetConfirmState();
         showToast(
           error instanceof Error ? error.message : t('Không tìm thấy xe', 'Vehicle not found'),
           'error',
@@ -61,40 +125,46 @@ export default function StaffCheckInScreen() {
         setIsSearchingVehicle(false);
       }
     },
-    [plateQuery, showToast, t],
+    [floors, plateQuery, resetConfirmState, showToast, t],
   );
 
   const handlePlateScanned = useCallback(
     (plate: string) => {
-      setFoundVehicle(null);
+      setPlateQuery(plate);
       showToast(t('Đã quét biển số', 'Plate scanned'), 'success');
-      void handleSearchVehicle(plate);
+      void resolveVehicle(plate);
     },
-    [handleSearchVehicle, showToast, t],
+    [resolveVehicle, showToast, t],
   );
 
-  const handlePlateChange = useCallback(
-    (text: string) => {
-      setPlateQuery(text);
-      if (foundVehicle && text !== foundVehicle.licensePlate) {
-        setFoundVehicle(null);
-      }
-    },
-    [foundVehicle],
-  );
+  const handleViewActiveSession = useCallback(() => {
+    if (!activeSession?._id) {
+      router.push(STAFF_ROUTES.sessions as never);
+      return;
+    }
+    router.push(staffSessionDetailPath(activeSession._id) as never);
+  }, [activeSession?._id, router]);
 
   async function handleCheckIn() {
-    const phone = checkInPhone.trim();
-    const plate = (foundVehicle?.licensePlate ?? plateQuery).trim();
+    if (activeSession) {
+      showToast(
+        t('Xe đang có phiên ACTIVE. Hãy checkout trước.', 'Vehicle has an active session. Checkout first.'),
+        'error',
+      );
+      return;
+    }
 
-    if (!phone) {
-      showToast(t('Nhập số điện thoại khách', 'Enter customer phone number'), 'error');
+    const phoneResult = validateStaffPhoneInput(checkInPhone, t);
+    if (!phoneResult.ok) {
+      showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), 'error');
       return;
     }
-    if (!plate) {
-      showToast(t('Nhập hoặc tra cứu biển số', 'Enter or look up a license plate'), 'error');
+
+    if (!foundVehicle) {
+      showToast(t('Không tìm thấy thông tin xe', 'Vehicle details are missing'), 'error');
       return;
     }
+
     if (!selectedSlotId) {
       showToast(t('Chọn ô trống', 'Select an available spot'), 'error');
       return;
@@ -102,28 +172,41 @@ export default function StaffCheckInScreen() {
 
     setIsCheckingIn(true);
     try {
+      const existingSession = await getActiveUserParkingSession(foundVehicle._id);
+      if (existingSession) {
+        setActiveSession(existingSession);
+        showToast(
+          t('Xe vừa được check-in. Không thể tạo phiên mới.', 'Vehicle was just checked in. Cannot create a new session.'),
+          'error',
+        );
+        return;
+      }
+
       const session = await createParkingSession({
-        phone,
-        licensePlate: plate,
+        phone: phoneResult.phone,
+        licensePlate: foundVehicle.licensePlate,
         parkingSlotId: selectedSlotId,
       });
       const refreshedFloors = await loadParkingSlots();
       const slotLabel = resolveSlotLabel(session.parkingSlotId, refreshedFloors ?? floors);
       recordCheckIn({
         id: session._id,
-        plate,
+        plate: foundVehicle.licensePlate,
         slotLabel,
         slotId: selectedSlotId,
         status: session.status,
         timeLabel: formatTimeLabel(session.checkInTime),
         checkInTime: session.checkInTime,
-        vehicleType: foundVehicle ? resolveVehicleTypeLabel(foundVehicle.vehicleTypeId) : undefined,
+        vehicleType: resolveVehicleTypeLabel(foundVehicle.vehicleTypeId),
         sessionType: session.sessionType,
+        customerPhone: phoneResult.phone,
       });
-      setSelectedSlotId(null);
-      setCheckInPhone('');
+      void loadParkingSessions({}, refreshedFloors ?? floors).catch(() => undefined);
+      void loadActiveSlotSessions(refreshedFloors ?? floors).catch(() => undefined);
+
+      setStep('plate');
       setPlateQuery('');
-      setFoundVehicle(null);
+      resetConfirmState();
       showToast(t('Check-in thành công', 'Check-in successful'), 'success');
     } catch (error) {
       showToast(
@@ -135,47 +218,46 @@ export default function StaffCheckInScreen() {
     }
   }
 
-  const canSubmit =
-    checkInPhone.trim().length > 0 &&
-    (foundVehicle?.licensePlate ?? plateQuery).trim().length > 0 &&
-    !!selectedSlotId;
+  const canSubmit = !activeSession && checkInPhone.trim().length > 0 && !!selectedSlotId;
 
   return (
     <StaffPageShell
       footer={
-        <StaffCheckInConfirmBar
-          disabled={!canSubmit}
-          label={t('Xác nhận vào bãi', 'Confirm Entry')}
-          loading={isCheckingIn}
-          onPress={handleCheckIn}
-        />
-      }
-      header={
-        <StaffScreenHeader
-          subtitle={t('Nhập thông tin, chọn tầng và ô gửi', 'Enter details, pick floor and spot')}
-          title={t('Check-in', 'Check-in')}
-        />
+        step === 'confirm' && !activeSession ? (
+          <StaffCheckInConfirmBar
+            disabled={!canSubmit}
+            label={t('Xác nhận vào bãi', 'Confirm Entry')}
+            loading={isCheckingIn}
+            onPress={handleCheckIn}
+          />
+        ) : undefined
       }>
-      <StaffCheckInVehicleSection
-        foundVehicle={foundVehicle}
-        isDisabled={isCheckingIn}
-        isSearching={isSearchingVehicle}
-        onPhoneChange={setCheckInPhone}
-        onPlateChange={handlePlateChange}
-        onPlateScanned={handlePlateScanned}
-        onSearch={() => void handleSearchVehicle()}
-        phone={checkInPhone}
-        plateQuery={plateQuery}
-        t={t}
-      />
-
-      <StaffCheckInSlotPicker
-        floors={floors}
-        isLoading={isLoadingSlots}
-        onSelectSlot={setSelectedSlotId}
-        selectedSlotId={selectedSlotId}
-        t={t}
-      />
+      {step === 'plate' ? (
+        <StaffCheckInPlateStep
+          isSearching={isSearchingVehicle}
+          onPlateChange={setPlateQuery}
+          onPlateScanned={handlePlateScanned}
+          onSearch={() => void resolveVehicle()}
+          plateQuery={plateQuery}
+          t={t}
+        />
+      ) : foundVehicle ? (
+        <StaffCheckInConfirmStep
+          activeSessionSlotLabel={activeSessionSlotLabel}
+          floors={floors}
+          isDisabled={isCheckingIn}
+          isLoadingSlots={isLoadingSlots}
+          onBack={handleBackToPlate}
+          onPhoneChange={setCheckInPhone}
+          onSelectSlot={setSelectedSlotId}
+          onViewActiveSession={activeSession ? handleViewActiveSession : undefined}
+          ownerProfile={ownerProfile}
+          phone={checkInPhone}
+          selectedSlotId={selectedSlotId}
+          t={t}
+          vehicle={foundVehicle}
+        />
+      ) : null}
     </StaffPageShell>
   );
 }

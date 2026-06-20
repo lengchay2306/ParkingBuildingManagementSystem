@@ -26,6 +26,9 @@ function resolveStatusStyle(
   if (status === 'UNAVAILABLE') {
     return variant === 'header' ? styles.slotHeroHeaderUnavailable : styles.slotStatusUnavailable;
   }
+  if (status === 'RESERVED') {
+    return variant === 'header' ? styles.slotHeroHeaderInUse : styles.slotStatusInUse;
+  }
   return variant === 'header' ? styles.slotHeroHeaderAvailable : styles.slotStatusAvailable;
 }
 
@@ -38,6 +41,9 @@ function resolveStatusTextStyle(
   }
   if (status === 'UNAVAILABLE') {
     return styles.slotHeroStatusUnavailable;
+  }
+  if (status === 'RESERVED') {
+    return styles.slotHeroStatusInUse;
   }
   return styles.slotHeroStatusAvailable;
 }

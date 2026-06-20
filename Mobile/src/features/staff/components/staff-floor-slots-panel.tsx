@@ -151,6 +151,11 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
               styles={styles}
             />
             <LegendItem
+              color={DesignColors.accentAmber}
+              label={t('Đã đặt', 'Reserved')}
+              styles={styles}
+            />
+            <LegendItem
               color={DesignColors.inkSubtle}
               label={t('Không dùng', 'Unavailable')}
               styles={styles}

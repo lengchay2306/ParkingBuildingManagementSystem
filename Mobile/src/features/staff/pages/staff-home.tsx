@@ -22,14 +22,14 @@ export default function StaffHomeScreen() {
   const router = useRouter();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
-  const { slotStats, recentCheckIns, isLoadingSlots, loadParkingSlots } = useStaffWorkspace();
+  const { slotStats, todaySessionCount, isLoadingSlots, refreshWorkspace } = useStaffWorkspace();
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      void loadParkingSlots();
+      void refreshWorkspace().catch(() => undefined);
       void getMyProfile().then(setProfile).catch(() => setProfile(null));
-    }, [loadParkingSlots]),
+    }, [refreshWorkspace]),
   );
 
   const occupancyPercent = useMemo(() => {
@@ -58,7 +58,7 @@ export default function StaffHomeScreen() {
       {
         id: 'sessions',
         icon: 'time-outline' as const,
-        value: recentCheckIns.length,
+        value: todaySessionCount,
         label: t('Phiên hôm nay', 'Sessions today'),
         tone: 'info' as const,
       },
@@ -70,7 +70,7 @@ export default function StaffHomeScreen() {
         tone: 'default' as const,
       },
     ],
-    [recentCheckIns.length, slotStats, t],
+    [slotStats, t, todaySessionCount],
   );
 
   return (
@@ -84,7 +84,7 @@ export default function StaffHomeScreen() {
         />
       }>
       <StaffDarkCard accentBorder="primary">
-        {isLoadingSlots ? (
+        {isLoadingSlots && slotStats.total === 0 ? (
           <ActivityIndicator color={DesignColors.primary} />
         ) : (
           <View style={{ alignItems: 'center', paddingVertical: 8 }}>
