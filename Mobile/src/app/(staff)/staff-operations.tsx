@@ -1,5 +1,3 @@
-import { Redirect, type Href } from 'expo-router';
+import StaffOperationsScreen from '@/features/staff/pages/staff-operations';
 
-export default function StaffOperationsRedirect() {
-  return <Redirect href={'/staff-sessions' as Href} />;
-}
+export default StaffOperationsScreen;

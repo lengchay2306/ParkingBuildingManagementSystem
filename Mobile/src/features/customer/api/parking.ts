@@ -1,6 +1,10 @@
 import { authenticatedFetch } from '@/lib/auth-api';
 
-export type ParkingSlotStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'CURRENTLY-IN-USED';
+export type ParkingSlotApiStatus = 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE' | 'CURRENTLY-IN-USED';
+
+export type ParkingSlotStatus = ParkingSlotApiStatus | string;
+
+export type ParkingVehicleType = 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP';
 
 export type ParkingSlot = {
   _id: string;
@@ -19,6 +23,7 @@ export type ParkingFloor = {
   };
   slotStats?: {
     available: number;
+    reserved?: number;
     unavailable: number;
     inUsed: number;
     total: number;
@@ -41,9 +46,9 @@ async function parseParkingResponse<T>(response: Response): Promise<ApiEnvelope<
 }
 
 export type ParkingSlotFilters = {
-  vehicleType?: string;
+  vehicleType?: ParkingVehicleType;
   floorId?: string;
-  status?: string;
+  status?: ParkingSlotApiStatus;
 };
 
 export type CustomerParkingSession = {
@@ -56,6 +61,7 @@ export type CustomerParkingSession = {
         slotNumber?: string;
         floorId?: { floorName?: string };
       };
+  checkInUserId?: string | { _id?: string; fullName?: string; phone?: string };
   checkInTime?: string;
   status: string;
 };

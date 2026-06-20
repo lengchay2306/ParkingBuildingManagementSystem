@@ -9,28 +9,55 @@ import {
   StaffSessionRow,
   type StaffFilterOption,
 } from '@/features/staff/components/premium';
+import { StaffActionButton } from '@/features/staff/components/staff-action-button';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
+import { createStaffStyles } from '@/features/staff/styles/common';
 import type { StaffCheckInRecord } from '@/features/staff/lib/utils';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
-import { staffSessionDetailPath } from '@/roles';
+import { STAFF_ROUTES, staffSessionDetailPath } from '@/roles';
 
 type SessionFilter = 'ALL' | 'ACTIVE' | 'COMPLETED';
+
+function resolveStatusQuery(filter: SessionFilter): 'ACTIVE' | 'COMPLETED' | undefined {
+  if (filter === 'ACTIVE') {
+    return 'ACTIVE';
+  }
+  if (filter === 'COMPLETED') {
+    return 'COMPLETED';
+  }
+  return undefined;
+}
 
 export default function StaffSessionsScreen() {
   useStaffRoleGuard();
   const router = useRouter();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
-  const { recentCheckIns, isLoadingSlots, loadParkingSlots } = useStaffWorkspace();
+  const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
+  const {
+    parkingSessions,
+    isLoadingSessions,
+    sessionsError,
+    loadParkingSessions,
+    refreshWorkspace,
+  } = useStaffWorkspace();
   const [filter, setFilter] = useState<SessionFilter>('ALL');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const reloadSessions = useCallback(
+    async (nextFilter: SessionFilter = filter) => {
+      await loadParkingSessions({ status: resolveStatusQuery(nextFilter) });
+    },
+    [filter, loadParkingSessions],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      void loadParkingSlots();
-    }, [loadParkingSlots]),
+      void reloadSessions(filter);
+    }, [filter, reloadSessions]),
   );
 
   const filterOptions = useMemo<StaffFilterOption<SessionFilter>[]>(
@@ -42,17 +69,22 @@ export default function StaffSessionsScreen() {
     [t],
   );
 
-  const filteredSessions = useMemo(() => {
-    return recentCheckIns.filter((session) => {
-      if (filter === 'ALL') {
-        return true;
-      }
-      if (filter === 'ACTIVE') {
-        return session.status.toUpperCase() === 'ACTIVE';
-      }
-      return session.status.toUpperCase() !== 'ACTIVE';
-    });
-  }, [filter, recentCheckIns]);
+  const handleFilterChange = useCallback(
+    (next: SessionFilter) => {
+      setFilter(next);
+      void loadParkingSessions({ status: resolveStatusQuery(next) });
+    },
+    [loadParkingSessions],
+  );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshWorkspace({ status: resolveStatusQuery(filter) });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [filter, refreshWorkspace]);
 
   const openSession = useCallback(
     (session: StaffCheckInRecord) => {
@@ -65,21 +97,41 @@ export default function StaffSessionsScreen() {
     <StaffPageShell
       header={
         <StaffScreenHeader
-          subtitle={t('Phiên gửi xe đang hoạt động và gần đây', 'Active and recent parking sessions')}
+          subtitle={t('Phiên gửi xe hôm nay từ hệ thống', "Today's sessions from the system")}
           title={t('Sessions', 'Sessions')}
         />
-      }>
-      <StaffFilterPills onChange={setFilter} options={filterOptions} value={filter} />
+      }
+      onRefresh={() => void handleRefresh()}
+      refreshing={isRefreshing}>
+      <StaffActionButton
+        compact
+        label={t('Ra cổng & ngoại lệ', 'Exit & exceptions')}
+        onPress={() => router.push(STAFF_ROUTES.operations as never)}
+        style={styles.fullWidthButton}
+        variant="secondary"
+      />
 
-      {isLoadingSlots ? (
+      <StaffFilterPills onChange={handleFilterChange} options={filterOptions} value={filter} />
+
+      {isLoadingSessions && parkingSessions.length === 0 ? (
         <ActivityIndicator color={DesignColors.primary} style={{ marginTop: 24 }} />
-      ) : filteredSessions.length === 0 ? (
+      ) : sessionsError && parkingSessions.length === 0 ? (
+        <View style={styles.card}>
+          <ThemedText style={styles.hint}>{sessionsError}</ThemedText>
+          <StaffActionButton
+            label={t('Thử lại', 'Retry')}
+            onPress={() => void reloadSessions(filter)}
+            style={styles.fullWidthButton}
+            variant="secondary"
+          />
+        </View>
+      ) : parkingSessions.length === 0 ? (
         <ThemedText style={{ color: DesignColors.inkMuted, textAlign: 'center', marginTop: 24 }}>
-          {t('Chưa có phiên nào. Check-in xe để bắt đầu.', 'No sessions yet. Check in a vehicle to start.')}
+          {t('Chưa có phiên nào hôm nay.', 'No sessions for today yet.')}
         </ThemedText>
       ) : (
         <View style={{ gap: 10 }}>
-          {filteredSessions.map((session) => (
+          {parkingSessions.map((session) => (
             <StaffSessionRow
               key={session.id}
               onPress={() => openSession(session)}

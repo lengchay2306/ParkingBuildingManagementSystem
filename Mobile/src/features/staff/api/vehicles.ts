@@ -56,3 +56,58 @@ export function resolveVehicleTypeLabel(
   }
   return vehicleTypeId.type ?? '—';
 }
+
+type PopulatedOwner = {
+  _id?: string;
+  fullName?: string;
+  phone?: string;
+};
+
+export type VehicleOwnerProfile = {
+  fullName?: string;
+  phone?: string;
+};
+
+/**
+ * Owner info from staff APIs:
+ * - GET /vehicles/:plate → userId { fullName, phone } when populated by BE
+ * - GET /parking/active-user-parking-session/:vehicleId → checkInUserId { fullName, phone }
+ */
+export function resolveVehicleOwnerProfile(
+  vehicle: StaffVehicle,
+  activeSession?: { checkInUserId?: string | PopulatedOwner } | null,
+): VehicleOwnerProfile | null {
+  const sessionUser = activeSession?.checkInUserId;
+  if (sessionUser && typeof sessionUser === 'object') {
+    const fullName = sessionUser.fullName?.trim();
+    const phone = sessionUser.phone?.trim();
+    if (fullName || phone) {
+      return {
+        fullName: fullName || undefined,
+        phone: phone || undefined,
+      };
+    }
+  }
+
+  const owner = vehicle.userId;
+  if (owner && typeof owner === 'object') {
+    const fullName = owner.fullName?.trim();
+    const phone = owner.phone?.trim();
+    if (fullName || phone) {
+      return {
+        fullName: fullName || undefined,
+        phone: phone || undefined,
+      };
+    }
+  }
+
+  return null;
+}
+
+/** Owner phone when the active-session API returns checkInUserId.phone. */
+export function resolveVehicleOwnerPhone(
+  vehicle: StaffVehicle,
+  activeSession?: { checkInUserId?: string | PopulatedOwner } | null,
+): string {
+  return resolveVehicleOwnerProfile(vehicle, activeSession)?.phone ?? '';
+}

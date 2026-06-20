@@ -1,5 +1,12 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -15,6 +22,8 @@ type StaffPageShellProps = {
   children: React.ReactNode;
   footer?: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 export function StaffPageShell({
@@ -25,6 +34,8 @@ export function StaffPageShell({
   children,
   footer,
   contentStyle,
+  refreshing,
+  onRefresh,
 }: StaffPageShellProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
@@ -33,6 +44,11 @@ export function StaffPageShell({
     <ThemedView style={styles.container}>
       <ScrollView
         contentContainerStyle={[shellStyles.content, footer ? shellStyles.contentWithFooter : null, contentStyle]}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={DesignColors.primary} />
+          ) : undefined
+        }
         showsVerticalScrollIndicator={false}>
         {header ??
           (title ? (

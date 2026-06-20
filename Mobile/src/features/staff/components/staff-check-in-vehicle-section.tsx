@@ -13,10 +13,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import {
   CHECKIN_CAMERA_BORDER_RADIUS,
+  CHECKIN_CONFLICT_BANNER_EXTRA_HEIGHT,
   CHECKIN_VEHICLE_BODY_HEIGHT,
 } from '@/features/staff/components/staff-check-in-layout';
 import { StaffInlinePlateScanner } from '@/features/staff/components/staff-inline-plate-scanner';
-import type { StaffVehicle } from '@/features/staff/api';
+import type { StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
 import { resolveVehicleTypeLabel } from '@/features/staff/api';
 import { useDesignColors } from '@/hooks/use-design-colors';
 
@@ -27,6 +28,9 @@ type StaffCheckInVehicleSectionProps = {
   plateQuery: string;
   phone: string;
   foundVehicle: StaffVehicle | null;
+  ownerProfile?: VehicleOwnerProfile | null;
+  activeSessionSlotLabel?: string | null;
+  onViewActiveSession?: () => void;
   isSearching: boolean;
   isDisabled?: boolean;
   onPlateChange: (value: string) => void;
@@ -40,6 +44,9 @@ export function StaffCheckInVehicleSection({
   plateQuery,
   phone,
   foundVehicle,
+  ownerProfile,
+  activeSessionSlotLabel,
+  onViewActiveSession,
   isSearching,
   isDisabled,
   onPlateChange,
@@ -92,7 +99,12 @@ export function StaffCheckInVehicleSection({
         </ThemedText>
       </View>
 
-      <View style={styles.bodySlot}>
+      <View
+        style={[
+          styles.bodySlot,
+          isScanning && styles.bodySlotScanning,
+          activeSessionSlotLabel ? styles.bodySlotWithConflict : null,
+        ]}>
         {isScanning ? (
           <View style={styles.cameraViewportShell}>
             <StaffInlinePlateScanner
@@ -143,8 +155,34 @@ export function StaffCheckInVehicleSection({
               </View>
             </View>
 
-            <View style={styles.vehicleBannerSlot}>
-              {foundVehicle ? (
+            <View
+              style={[
+                styles.vehicleBannerSlot,
+                !activeSessionSlotLabel && !foundVehicle ? styles.vehicleBannerSlotCollapsed : null,
+              ]}>
+              {activeSessionSlotLabel ? (
+                <View style={styles.conflictBanner}>
+                  <Ionicons color={DesignColors.accentAmber} name="warning-outline" size={18} />
+                  <View style={styles.vehicleText}>
+                    <ThemedText style={styles.conflictTitle}>
+                      {t('Xe đang gửi trong bãi', 'Vehicle is already parked')}
+                    </ThemedText>
+                    <ThemedText style={styles.conflictMeta}>{activeSessionSlotLabel}</ThemedText>
+                    {ownerProfile?.fullName || ownerProfile?.phone ? (
+                      <ThemedText style={styles.conflictOwner}>
+                        {[ownerProfile.fullName, ownerProfile.phone].filter(Boolean).join(' · ')}
+                      </ThemedText>
+                    ) : null}
+                    {onViewActiveSession ? (
+                      <Pressable onPress={onViewActiveSession} style={styles.conflictLink}>
+                        <ThemedText style={styles.conflictLinkText}>
+                          {t('Xem phiên → Checkout', 'View session → Checkout')}
+                        </ThemedText>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              ) : foundVehicle ? (
                 <View style={styles.vehicleBanner}>
                   <View style={styles.vehicleDot} />
                   <View style={styles.vehicleText}>
@@ -155,6 +193,15 @@ export function StaffCheckInVehicleSection({
                         ? t(' · Thẻ tháng', ' · Monthly')
                         : t(' · Vé ngày', ' · Daily')}
                     </ThemedText>
+                    {ownerProfile?.fullName || ownerProfile?.phone ? (
+                      <ThemedText style={styles.ownerMeta}>
+                        {[ownerProfile.fullName, ownerProfile.phone].filter(Boolean).join(' · ')}
+                      </ThemedText>
+                    ) : (
+                      <ThemedText style={styles.ownerHint}>
+                        {t('Nhập SĐT khách để check-in', 'Enter customer phone to check in')}
+                      </ThemedText>
+                    )}
                   </View>
                 </View>
               ) : null}
@@ -189,7 +236,6 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.lg,
       paddingBottom: Spacing.lg,
-      overflow: 'hidden',
     },
     titleRow: {
       height: 20,
@@ -207,9 +253,15 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       opacity: 0,
     },
     bodySlot: {
-      height: CHECKIN_VEHICLE_BODY_HEIGHT,
+      minHeight: CHECKIN_VEHICLE_BODY_HEIGHT,
       width: '100%',
-      position: 'relative',
+    },
+    bodySlotScanning: {
+      height: CHECKIN_VEHICLE_BODY_HEIGHT,
+      overflow: 'hidden',
+    },
+    bodySlotWithConflict: {
+      minHeight: CHECKIN_VEHICLE_BODY_HEIGHT + CHECKIN_CONFLICT_BANNER_EXTRA_HEIGHT,
     },
     cameraViewportShell: {
       flex: 1,
@@ -306,12 +358,17 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       transform: [{ scale: 0.97 }],
     },
     vehicleBannerSlot: {
-      height: VEHICLE_BANNER_SLOT,
+      minHeight: VEHICLE_BANNER_SLOT,
       justifyContent: 'center',
+    },
+    vehicleBannerSlotCollapsed: {
+      minHeight: 0,
+      height: 0,
+      overflow: 'hidden',
     },
     vehicleBanner: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: Spacing.sm,
       backgroundColor: `${DesignColors.neonSuccess}12`,
       borderRadius: Radius.lg,
@@ -319,7 +376,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderColor: `${DesignColors.neonSuccess}40`,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
-      height: VEHICLE_BANNER_SLOT,
+      minHeight: VEHICLE_BANNER_SLOT,
     },
     vehicleDot: {
       width: 8,
@@ -344,6 +401,60 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.neonSuccess,
       fontSize: 11,
       lineHeight: 14,
+    },
+    ownerMeta: {
+      ...Typography.caption,
+      color: DesignColors.ink,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+    },
+    ownerHint: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontSize: 11,
+      lineHeight: 14,
+    },
+    conflictBanner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: Spacing.sm,
+      backgroundColor: `${DesignColors.accentAmber}14`,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: `${DesignColors.accentAmber}55`,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      minHeight: VEHICLE_BANNER_SLOT,
+    },
+    conflictTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.accentAmber,
+      fontWeight: '700',
+      fontSize: 13,
+      lineHeight: 17,
+    },
+    conflictMeta: {
+      ...Typography.caption,
+      color: DesignColors.ink,
+      fontSize: 11,
+      lineHeight: 14,
+    },
+    conflictOwner: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
+    },
+    conflictLink: {
+      marginTop: 2,
+    },
+    conflictLinkText: {
+      ...Typography.caption,
+      color: DesignColors.primaryFocus,
+      fontWeight: '600',
+      fontSize: 11,
     },
   });
 }

@@ -8,8 +8,11 @@ export type StaffCheckInRecord = {
   status: string;
   timeLabel: string;
   checkInTime?: string;
+  checkOutTime?: string;
   vehicleType?: string;
   sessionType?: string;
+  customerPhone?: string;
+  customerName?: string;
 };
 
 export function formatDurationFrom(iso?: string): string {
@@ -84,4 +87,62 @@ export function computeSlotStats(floors: ParkingFloor[]) {
     },
     { available: 0, inUsed: 0, unavailable: 0, total: 0 },
   );
+}
+
+export function todayDateParam(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function mapParkingSessionToRecord(
+  session: ParkingSession,
+  floors: ParkingFloor[] = [],
+): StaffCheckInRecord {
+  const plate =
+    typeof session.vehicleId === 'object' && session.vehicleId?.licensePlate
+      ? session.vehicleId.licensePlate
+      : '—';
+
+  const customerPhone =
+    typeof session.checkInUserId === 'object' ? session.checkInUserId?.phone : undefined;
+  const customerName =
+    typeof session.checkInUserId === 'object' ? session.checkInUserId?.fullName : undefined;
+
+  const vehicleType =
+    typeof session.vehicleId === 'object' &&
+    session.vehicleId?.vehicleTypeId &&
+    typeof session.vehicleId.vehicleTypeId === 'object'
+      ? session.vehicleId.vehicleTypeId.type
+      : undefined;
+
+  return {
+    id: session._id,
+    plate,
+    slotLabel: resolveSlotLabel(session.parkingSlotId, floors),
+    slotId:
+      typeof session.parkingSlotId === 'object'
+        ? session.parkingSlotId._id
+        : session.parkingSlotId,
+    status: session.status,
+    timeLabel: formatTimeLabel(session.checkInTime),
+    checkInTime: session.checkInTime,
+    checkOutTime: session.checkOutTime,
+    vehicleType,
+    sessionType: session.sessionType,
+    customerPhone,
+    customerName,
+  };
+}
+
+/** ACTIVE sessions keyed by parking slot id — from GET /parking/parking-sessions. */
+export function indexActiveSessionsBySlotId(
+  sessions: StaffCheckInRecord[],
+): Record<string, StaffCheckInRecord> {
+  const bySlot: Record<string, StaffCheckInRecord> = {};
+  for (const session of sessions) {
+    if (session.status.toUpperCase() !== 'ACTIVE' || !session.slotId) {
+      continue;
+    }
+    bySlot[session.slotId] = session;
+  }
+  return bySlot;
 }

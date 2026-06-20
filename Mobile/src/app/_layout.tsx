@@ -35,7 +35,7 @@ function RootNavigator() {
   const { resolvedScheme } = useThemePreference();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
-  const { role } = useSessionRole();
+  const { role, isLoading: isRoleLoading } = useSessionRole();
   const isStaff = role === 'STAFF';
 
   const lightTheme = {
@@ -197,28 +197,28 @@ function RootNavigator() {
               name="(customer)/home"
               options={{
                 title: t('Trang chủ', 'Home'),
-                href: isStaff ? null : undefined,
+                href: isStaff ? null : '/home',
               }}
             />
             <Tabs.Screen
               name="(customer)/parking-map"
               options={{
                 title: t('Bản đồ', 'Map'),
-                href: isStaff ? null : undefined,
+                href: isStaff ? null : '/parking-map',
               }}
             />
             <Tabs.Screen
               name="(customer)/reservations"
               options={{
                 title: t('Đặt chỗ', 'Reservations'),
-                href: isStaff ? null : undefined,
+                href: isStaff ? null : '/reservations',
               }}
             />
             <Tabs.Screen
               name="(customer)/profile"
               options={{
                 title: t('Hồ sơ', 'Profile'),
-                href: isStaff ? null : undefined,
+                href: isStaff ? null : '/profile',
               }}
             />
             <Tabs.Screen name="(customer)/settings" options={{ href: null }} />
@@ -230,28 +230,28 @@ function RootNavigator() {
               name="(staff)/staff-home"
               options={{
                 title: t('Dashboard', 'Dashboard'),
-                href: isStaff ? undefined : null,
+                href: isStaff || isRoleLoading ? '/staff-home' : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-slots"
               options={{
                 title: t('Spots', 'Spots'),
-                href: isStaff ? undefined : null,
+                href: isStaff || isRoleLoading ? '/staff-slots' : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-check-in"
               options={{
                 title: t('Check-in', 'Check-in'),
-                href: isStaff ? undefined : null,
+                href: isStaff || isRoleLoading ? '/staff-check-in' : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-sessions"
               options={{
                 title: t('Sessions', 'Sessions'),
-                href: isStaff ? undefined : null,
+                href: isStaff || isRoleLoading ? '/staff-sessions' : null,
               }}
             />
             <Tabs.Screen name="(staff)/staff-operations" options={{ href: null }} />
