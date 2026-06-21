@@ -1,5 +1,6 @@
 import Vehicle from "../models/Vehicle.js";
 import VehicleType from "../models/VehicleType.js";
+import User from "../models/User.js";
 
 class VehicleRepository {
     createVehicle = async ({
@@ -36,11 +37,25 @@ class VehicleRepository {
         const vehicleTypes = await VehicleType.find().lean();
         return vehicleTypes;
     }
-    getVehicleByUserId = async ({ userId }) => {
-        const vehicles = await Vehicle.find({ userId })
-            .populate("vehicleTypeId")
-            .lean();
-        return vehicles;
+    getUserWithVehicles = async ({ userId }) => {
+        const user = await User.findById(userId)
+            .select("-password -__v")
+            .populate({
+                path: "vehicles",
+                select: "-userId -__v",
+                populate: [
+                    { path: "vehicleTypeId", select: "_id type" },
+                    { path: "monthlyCardId", select: "_id cardCode startDate endDate status" },
+                ],
+            })
+            .populate("roleId", "roleName")
+            .lean({ virtuals: true });
+
+        if (!user) {
+            return null;
+        }
+
+        return user;
     }
 
     getVehicleById = async ({ vehicleId }) => {

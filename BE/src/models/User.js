@@ -33,6 +33,12 @@ const userSchema = mongoose.Schema({
     }
 }, { timestamps: true });
 
+userSchema.virtual('vehicles', {
+    ref: 'Vehicle',
+    localField: '_id',
+    foreignField: 'userId',
+});
+
 userSchema.set('toJSON', { virtuals: true });
 userSchema.set('toObject', { virtuals: true });
 

@@ -66,13 +66,13 @@ class VehicleController {
     getVehicleByUserId = async (req, res, next) => {
         try {
             const { userId } = req.user;
-            const vehicles = await this.#vehicleService.getVehicleByUserId({
-                userId
+            const user = await this.#vehicleService.getVehicleByUserId({
+                userId,
             });
             return res.status(200).json({
                 status: 'success',
                 data: {
-                    vehicles,
+                    user,
                 },
                 message: 'Vehicles fetched successfully',
             });

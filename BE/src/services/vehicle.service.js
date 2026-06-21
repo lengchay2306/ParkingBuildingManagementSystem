@@ -57,13 +57,13 @@ class VehicleService {
     }
 
     getVehicleByUserId = async ({ userId }) => {
-        const vehicles = await this.#vehicleRepository.getVehicleByUserId({
-            userId
-        })
-        if (!vehicles || vehicles.length === 0) {
-            throw new NotFoundError("No vehicles found for this user");
+        const user = await this.#vehicleRepository.getUserWithVehicles({
+            userId,
+        });
+        if (!user) {
+            throw new NotFoundError("User not found");
         }
-        return vehicles;
+        return user;
     }
 
     updateVehicle = async ({ userId, vehicleId, updateData }) => {
