@@ -40,22 +40,23 @@ class VehicleRepository {
     getUserWithVehicles = async ({ userId }) => {
         const user = await User.findById(userId)
             .select("-password -__v")
-            .populate({
-                path: "vehicles",
-                select: "-userId -__v",
-                populate: [
-                    { path: "vehicleTypeId", select: "_id type" },
-                    { path: "monthlyCardId", select: "_id cardCode startDate endDate status" },
-                ],
-            })
             .populate("roleId", "roleName")
-            .lean({ virtuals: true });
+            .lean();
 
         if (!user) {
             return null;
         }
 
-        return user;
+        const vehicles = await Vehicle.find({ userId })
+            .select("-userId -__v")
+            .populate("vehicleTypeId", "_id type")
+            .populate("monthlyCardId", "_id cardCode startDate endDate status")
+            .lean();
+
+        return {
+            ...user,
+            vehicles,
+        };
     }
 
     getVehicleById = async ({ vehicleId }) => {
