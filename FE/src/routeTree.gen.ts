@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StaffRouteImport } from './routes/staff'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as FlowRouteImport } from './routes/flow'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -30,11 +29,6 @@ const ManagerRoute = ManagerRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FlowRoute = FlowRouteImport.update({
-  id: '/flow',
-  path: '/flow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DriverRoute = DriverRouteImport.update({
@@ -57,7 +51,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
-  '/flow': typeof FlowRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
@@ -66,7 +59,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
-  '/flow': typeof FlowRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
@@ -76,39 +68,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
-  '/flow': typeof FlowRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/admin'
-    | '/driver'
-    | '/flow'
-    | '/login'
-    | '/manager'
-    | '/staff'
+  fullPaths: '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/driver' | '/flow' | '/login' | '/manager' | '/staff'
-  id:
-    | '__root__'
-    | '/'
-    | '/admin'
-    | '/driver'
-    | '/flow'
-    | '/login'
-    | '/manager'
-    | '/staff'
+  to: '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
+  id: '__root__' | '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   DriverRoute: typeof DriverRoute
-  FlowRoute: typeof FlowRoute
   LoginRoute: typeof LoginRoute
   ManagerRoute: typeof ManagerRoute
   StaffRoute: typeof StaffRoute
@@ -135,13 +110,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/flow': {
-      id: '/flow'
-      path: '/flow'
-      fullPath: '/flow'
-      preLoaderRoute: typeof FlowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/driver': {
@@ -172,7 +140,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   DriverRoute: DriverRoute,
-  FlowRoute: FlowRoute,
   LoginRoute: LoginRoute,
   ManagerRoute: ManagerRoute,
   StaffRoute: StaffRoute,
