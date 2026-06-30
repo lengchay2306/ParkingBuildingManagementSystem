@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
+import { DashboardHeader, DashboardMain } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -24,17 +25,15 @@ function AdminPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="mx-auto max-w-7xl space-y-3 px-6 py-12">
-        <header className="mb-5">
-          <h1 className="text-3xl font-semibold tracking-tight">Admin dashboard</h1>
-          <p className="mt-2 text-[15px] text-muted-foreground">
-            Manage registered users and reservations.
-          </p>
-        </header>
+      <DashboardMain className="space-y-6">
+        <DashboardHeader
+          title="Admin dashboard"
+          description="Quản lý người dùng và reservation trong hệ thống bãi xe."
+        />
 
         <UserDirectoryPanel />
         <ReservationListPanel />
-      </main>
+      </DashboardMain>
     </div>
   );
 }

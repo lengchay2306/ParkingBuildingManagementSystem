@@ -164,9 +164,7 @@ export function ReservationListPanel({
   return (
     <section
       className={cn(
-        tableOnly
-          ? "flex h-full min-h-0 flex-col"
-          : "rounded-2xl border border-border bg-card",
+        tableOnly ? "flex h-full min-h-0 flex-col" : "dashboard-section overflow-hidden p-0",
         className,
       )}
     >
@@ -178,12 +176,10 @@ export function ReservationListPanel({
           {filterToolbar}
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-6 py-5">
           <div>
-            <h3 className="text-[15px] font-semibold">Reservation List</h3>
-            <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-              {headerMeta}
-            </p>
+            <h3 className="text-lg font-semibold text-foreground">Reservation List</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{headerMeta}</p>
           </div>
           {filterToolbar}
         </div>
@@ -196,7 +192,7 @@ export function ReservationListPanel({
       >
         <div
           className={cn(
-            "grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground",
+            "grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] gap-4 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
             tableOnly ? "px-1" : "px-6",
           )}
         >
@@ -223,7 +219,7 @@ export function ReservationListPanel({
             reservations.map((reservation) => (
               <article
                 key={reservation._id}
-                className="grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl bg-background/40 px-5 py-4 transition-colors hover:bg-background/60"
+                className="grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4 transition-colors hover:bg-secondary/80"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{getDriverLabel(reservation)}</div>

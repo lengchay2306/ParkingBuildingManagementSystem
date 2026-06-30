@@ -130,7 +130,7 @@ function LoginPage() {
           </section>
 
           <section className="flex items-center lg:col-span-2">
-            <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card/90 shadow-pop backdrop-blur-md">
+            <Card className="mx-auto w-full max-w-lg rounded-3xl border-border/80 bg-card shadow-pop">
               <CardHeader className="space-y-1 pb-4">
                 <CardTitle className="text-2xl tracking-tight">
                   {mode === "login" ? "Account login" : "Đăng kí tài khoản"}
