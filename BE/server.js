@@ -3,6 +3,7 @@ import db from "./src/db/db.js"
 import http from 'http';
 import { initializeSocket } from "./src/socket/socket.js";
 import { setupContainer } from "./container.js";
+import { startReservationExpiryJob } from "./src/jobs/reservationExpiry.job.js";
 import { configDotenv } from "dotenv";
 configDotenv();
 
@@ -21,6 +22,8 @@ import './src/models/Model.js'
 //connect db
 db().then(() => {
     console.log(`Connected to DB successfully!`);
+
+    startReservationExpiryJob();
     
     server.listen(PORT, () => {
         console.log(`Server is running on PORT: ${PORT}`);
