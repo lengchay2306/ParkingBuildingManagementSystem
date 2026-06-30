@@ -19,7 +19,10 @@ class ReservationRepository {
     findActiveReservationBySlot = async ({ parkingSlotId }) => {
         return Reservation.findOne({
             parkingSlotId,
-            status: { $in: ['PENDING', 'CLAIMED'] },
+            $or: [
+                { status: 'CLAIMED' },
+                { status: 'PENDING', expiryAt: { $gt: new Date() } },
+            ],
         }).lean();
     }
 
@@ -49,6 +52,35 @@ class ReservationRepository {
             await ParkingSlot.findByIdAndUpdate(parkingSlotId, { status: "AVAILABLE" });
             throw error;
         }
+    }
+
+    expireOverdueReservations = async () => {
+        const now = new Date();
+        const overdueReservations = await Reservation.find({
+            status: 'PENDING',
+            expiryAt: { $lte: now },
+        })
+            .select('_id parkingSlotId')
+            .lean();
+
+        if (overdueReservations.length === 0) {
+            return { expiredCount: 0 };
+        }
+
+        const reservationIds = overdueReservations.map((reservation) => reservation._id);
+        const parkingSlotIds = overdueReservations.map((reservation) => reservation.parkingSlotId);
+
+        await Reservation.updateMany(
+            { _id: { $in: reservationIds } },
+            { status: 'EXPIRED' },
+        );
+
+        await ParkingSlot.updateMany(
+            { _id: { $in: parkingSlotIds }, status: 'RESERVED' },
+            { status: 'AVAILABLE' },
+        );
+
+        return { expiredCount: overdueReservations.length };
     }
 
     findReservationById = async ({ reservationId }) => {

@@ -7,12 +7,18 @@ class ReservationService {
         this.#reservationRepository = reservationRepository;
     }
 
+    #expireOverdueReservations = async () => {
+        return this.#reservationRepository.expireOverdueReservations();
+    }
+
     createReservation = async ({
         driverId,
         vehicleId,
         parkingSlotId,
         expectedArrival,
     }) => {
+        await this.#expireOverdueReservations();
+
         const vehicle = await this.#reservationRepository.findVehicleById({ vehicleId });
         if (!vehicle) {
             throw new NotFoundError("Vehicle not found");
@@ -58,6 +64,8 @@ class ReservationService {
     }
 
     getMyReservations = async ({ driverId, status }) => {
+        await this.#expireOverdueReservations();
+
         const reservations = await this.#reservationRepository.findReservationsByDriverId({
             driverId,
             status,
@@ -67,6 +75,8 @@ class ReservationService {
     }
 
     getAllReservations = async ({ page, limit, status }) => {
+        await this.#expireOverdueReservations();
+
         const filter = {};
         if (status) {
             filter.status = status;
@@ -111,6 +121,10 @@ class ReservationService {
         }
         const deletedReservation = await this.#reservationRepository.deleteReservation({ reservationId });
         return deletedReservation;
+    }
+
+    expireOverdueReservations = async () => {
+        return this.#reservationRepository.expireOverdueReservations();
     }
 }
 

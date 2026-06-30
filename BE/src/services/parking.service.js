@@ -4,14 +4,17 @@ class ParkingService {
     #parkingRepository;
     #userRepository
     #vehicleRepository
+    #reservationRepository
     constructor({ 
         parkingRepository,
         userRepository, 
         vehicleRepository,
+        reservationRepository,
     }) {
         this.#parkingRepository = parkingRepository;
         this.#userRepository = userRepository;
         this.#vehicleRepository = vehicleRepository;
+        this.#reservationRepository = reservationRepository;
     }
 
     checkoutParkingSession = async ({
@@ -229,6 +232,8 @@ class ParkingService {
     //-----------------
 
     getParkingSlots = async ({ vehicleType, floorId, status }) => {
+        await this.#reservationRepository.expireOverdueReservations();
+
         let vehicleTypeId = null;
 
         if (vehicleType) {
