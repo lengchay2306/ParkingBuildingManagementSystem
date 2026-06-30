@@ -322,16 +322,14 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const fieldsDisabled = !isEditing;
 
   return (
-    <section className={cn("overflow-hidden rounded-2xl border border-border bg-card", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-background/40 px-5 py-3">
+    <section className={cn("dashboard-section overflow-hidden p-0", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-5 py-4">
         <div>
-          <div className="flex items-center gap-2 text-[13.5px] font-medium">
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
             <UsersRound className="size-4 text-primary" />
             Registered users
           </div>
-          <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-            {totalCount} accounts
-          </div>
+          <div className="mt-1 text-sm text-muted-foreground">{totalCount} accounts</div>
         </div>
 
         <form
@@ -364,7 +362,7 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
         </form>
       </div>
 
-      <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] gap-2 border-b border-border bg-background/30 px-5 py-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] gap-2 border-b border-border bg-card px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <span>User</span>
         <span>Email</span>
         <span>Role</span>
@@ -750,7 +748,7 @@ function UserRow({
   const status = user.status || "UNKNOWN";
 
   return (
-    <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] items-center gap-2 px-5 py-2.5 text-[13px] transition-colors hover:bg-secondary/50">
+    <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] items-center gap-2 px-5 py-3.5 text-sm transition-colors hover:bg-secondary/60">
       <button
         type="button"
         onClick={onSelect}
@@ -763,7 +761,7 @@ function UserRow({
           <span className="truncate font-medium">{user.fullName}</span>
         </div>
         <span className="truncate text-muted-foreground">{user.email}</span>
-        <span className="truncate font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">
           {roleName}
         </span>
         <span
@@ -777,7 +775,7 @@ function UserRow({
           <span className="size-1.5 rounded-full bg-current" />
           {status}
         </span>
-        <span className="truncate font-mono text-[11px] text-muted-foreground">
+        <span className="truncate font-mono text-xs text-muted-foreground">
           {formatDate(user.createdAt)}
         </span>
       </button>

@@ -191,6 +191,13 @@ export const requireGuest = async () => {
   if (typeof window === "undefined") {
     return;
   }
+
+  const storedRole = getStoredRole();
+  const hasAccessCookie = document.cookie.includes("accessToken=");
+  if (!storedRole && !hasAccessCookie) {
+    return;
+  }
+
   const role = await getSessionRole();
   if (role) {
     throw redirect({ to: getRoleHome(role) });

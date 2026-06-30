@@ -1,6 +1,6 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-export type ParkingSlotStatus = "AVAILABLE" | "UNAVAILABLE" | "CURRENTLY-IN-USED";
+export type ParkingSlotStatus = "AVAILABLE" | "RESERVED" | "UNAVAILABLE" | "CURRENTLY-IN-USED";
 
 export type ParkingSlot = {
   _id: string;
@@ -10,6 +10,7 @@ export type ParkingSlot = {
 
 export type FloorSlotStats = {
   available: number;
+  reserved?: number;
   unavailable: number;
   inUsed: number;
   total: number;

@@ -50,7 +50,13 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 glass">
+    <header
+      className={
+        isLoginPage
+          ? "sticky top-0 z-40 border-b border-border bg-background"
+          : "sticky top-0 z-40 glass"
+      }
+    >
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid size-6 place-items-center rounded-md bg-primary text-[11px] font-bold text-primary-foreground">
@@ -106,12 +112,12 @@ export function SiteHeader() {
             <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
           </Button>
 
-          <div className="hidden items-center gap-2 md:flex">
-            <span className="size-1.5 animate-pulse rounded-full bg-status-empty" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Live · v4.2
-            </span>
-          </div>
+          {!isLoginPage ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <span className="size-1.5 animate-pulse rounded-full bg-status-empty" />
+             
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

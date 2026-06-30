@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   CarFront,
   CheckCircle2,
+  ChevronDown,
   CircleDashed,
   Clock3,
   LoaderCircle,
@@ -15,13 +16,19 @@ import {
   Plus,
   RefreshCw,
   Save,
-  ShieldCheck,
   Trash2,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { SiteHeader } from "@/components/SiteHeader";
+import {
+  DashboardEmptyState,
+  DashboardLegend,
+  DashboardMain,
+  DashboardSection,
+  DashboardSectionHeader,
+} from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -91,8 +98,6 @@ export const Route = createFileRoute("/driver")({
 type QuickAction = {
   id: "reserve" | "my-reservations";
   title: string;
-  description: string;
-  cta: string;
   icon: LucideIcon;
   highlighted?: boolean;
 };
@@ -101,38 +106,43 @@ const quickActions: QuickAction[] = [
   {
     id: "reserve",
     title: "Reserve Parking Slot",
-    description: "Book in advance when reservation is supported at this facility.",
-    cta: "Open reservation",
     icon: MapPin,
     highlighted: true,
   },
   {
     id: "my-reservations",
     title: "My Reservations",
-    description: "Review reservations and cancel pending reservations quickly.",
-    cta: "Open reservations",
     icon: Clock3,
   },
 ];
 
+const reservedByYouButtonStyle =
+  "border-status-yours/50 bg-status-yours/15 text-status-yours";
+const reservedByYouBadgeStyle =
+  "border-status-yours/45 bg-status-yours/15 text-status-yours";
+
 const slotStatusText: Record<ParkingSlotStatus, string> = {
   AVAILABLE: "Available",
+  RESERVED: "Reserved",
   UNAVAILABLE: "Unavailable",
   "CURRENTLY-IN-USED": "Currently in used",
 };
 
 const slotStatusBadge: Record<ParkingSlotStatus, string> = {
   AVAILABLE: "bg-status-empty/20 text-status-empty border-status-empty/40",
+  RESERVED: "bg-status-reserved/15 text-status-reserved border-status-reserved/45",
   UNAVAILABLE: "bg-muted text-muted-foreground border-border",
   "CURRENTLY-IN-USED": "bg-status-full/20 text-status-full border-status-full/45",
 };
 
 const slotButtonStyles: Record<ParkingSlotStatus, string> = {
   AVAILABLE:
-    "border-status-empty/40 bg-status-empty/10 text-status-empty hover:border-status-empty/70 hover:-translate-y-0.5",
-  UNAVAILABLE: "cursor-not-allowed border-border bg-background/55 text-muted-foreground opacity-80",
+    "border-status-empty/50 bg-status-empty/15 text-status-empty hover:border-status-empty hover:bg-status-empty/20",
+  RESERVED:
+    "cursor-not-allowed border-status-reserved/50 bg-status-reserved/15 text-status-reserved opacity-70",
+  UNAVAILABLE: "cursor-not-allowed border-border bg-secondary text-muted-foreground",
   "CURRENTLY-IN-USED":
-    "cursor-not-allowed border-status-full/40 bg-status-full/12 text-status-full opacity-80",
+    "cursor-not-allowed border-status-full/50 bg-status-full/15 text-status-full",
 };
 
 const vehicleTypesQueryKey = ["vehicle-types"] as const;
@@ -152,7 +162,7 @@ function DriverPage() {
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
   const [selectedFloorId, setSelectedFloorId] = useState<string>("");
   const [selectedReservationVehicleId, setSelectedReservationVehicleId] = useState<string>("");
-  const [activeQuickAction, setActiveQuickAction] = useState<QuickAction["id"]>("reserve");
+  const [activeQuickAction, setActiveQuickAction] = useState<QuickAction["id"] | null>(null);
   const [licensePlate, setLicensePlate] = useState("");
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [vehicleFormError, setVehicleFormError] = useState<string | null>(null);
@@ -168,11 +178,39 @@ function DriverPage() {
   const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
+  const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(false);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
-  const reserveSectionRef = useRef<HTMLElement | null>(null);
+  const [expectedArrivalDate, setExpectedArrivalDate] = useState(getDefaultExpectedArrivalDate);
+  const [expectedArrivalTime, setExpectedArrivalTime] = useState(getDefaultExpectedArrivalTime);
+  const minExpectedArrivalTime =
+    expectedArrivalDate === getLocalDateInputValue()
+      ? toLocalTimeInputValue(Date.now() + 60_000)
+      : undefined;
+  const reserveSectionRef = useRef<HTMLDivElement | null>(null);
   const reservationSectionRef = useRef<HTMLElement | null>(null);
+  const vehiclesSectionRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const node = vehiclesSectionRef.current;
+    if (!node) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting) {
+          setIsVehiclesExpanded(true);
+        }
+      },
+      { threshold: 0.2 },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   const profileQuery = useQuery({
@@ -302,6 +340,7 @@ function DriverPage() {
       toast.success("Reservation cancelled", {
         description: "The selected reservation has been cancelled.",
       });
+      setSelectedSpotId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: myReservationsQueryKey }),
         queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
@@ -372,12 +411,9 @@ function DriverPage() {
     (vehicle) => vehicle._id === selectedReservationVehicleId,
   );
   const profile = profileQuery.data ?? null;
-  const primaryVehicle = activeVehicles[0] ?? null;
-  const primaryVehicleType = primaryVehicle
-    ? getVehicleTypeName(primaryVehicle, vehicleTypes)
-    : null;
 
   const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
+  const reservedCount = floorSlots.filter((slot) => slot.status === "RESERVED").length;
   const unavailableCount = floorSlots.filter((slot) => slot.status === "UNAVAILABLE").length;
   const inUsedCount = floorSlots.filter((slot) => slot.status === "CURRENTLY-IN-USED").length;
 
@@ -589,12 +625,6 @@ function DriverPage() {
     : null;
   const isReservationActionPending =
     reserveSlotMutation.isPending || cancelReservationMutation.isPending;
-  const selectedFloorVehicleType =
-    selectedFloor?.vehicleType?.type ??
-    (selectedFloorVehicleTypeId
-      ? (vehicleTypes.find((type) => type._id === selectedFloorVehicleTypeId)?.type ??
-        "Unknown type")
-      : null);
 
   const handleReserveSelectedSlot = () => {
     if (!selectedSpot) {
@@ -614,20 +644,21 @@ function DriverPage() {
       return;
     }
 
-    reserveSlotMutation.mutate({
-      vehicleId: selectedReservationVehicle._id,
-      parkingSlotId: selectedSpot._id,
-      expectedArrival: buildExpectedArrivalIso(60),
-    });
-  };
-
-  const handleCancelSelectedReservation = () => {
-    if (!selectedReservation) {
-      toast.error("No reservation found for this slot.");
+    const expectedArrival = parseExpectedArrival(expectedArrivalDate, expectedArrivalTime);
+    if (!expectedArrival) {
+      toast.error("Choose a valid expected arrival time.");
+      return;
+    }
+    if (expectedArrival.getTime() <= Date.now()) {
+      toast.error("Expected arrival must be in the future.");
       return;
     }
 
-    cancelReservationMutation.mutate(selectedReservation._id);
+    reserveSlotMutation.mutate({
+      vehicleId: selectedReservationVehicle._id,
+      parkingSlotId: selectedSpot._id,
+      expectedArrival: expectedArrival.toISOString(),
+    });
   };
 
   const handleCancelReservationById = (reservationId: string) => {
@@ -635,9 +666,15 @@ function DriverPage() {
   };
 
   const handleQuickActionClick = (actionId: QuickAction["id"]) => {
-    setActiveQuickAction(actionId);
+    const nextAction = activeQuickAction === actionId ? null : actionId;
+    setActiveQuickAction(nextAction);
+
+    if (!nextAction) {
+      return;
+    }
+
     requestAnimationFrame(() => {
-      if (actionId === "my-reservations") {
+      if (nextAction === "my-reservations") {
         reservationSectionRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "start",
@@ -654,24 +691,24 @@ function DriverPage() {
   return (
     <div className="min-h-screen">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1320px] px-4 pb-12 pt-6 md:px-6">
-        <section className="rounded-3xl border border-border/75 bg-card/75 p-5 shadow-soft md:p-8">
+      <DashboardMain wide>
+        <DashboardSection>
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="flex min-w-0 items-center gap-4">
               <div className="relative">
-                <div className="grid size-20 place-items-center rounded-full border border-border bg-background/80">
+                <div className="grid size-20 place-items-center rounded-full border border-border bg-secondary">
                   <UserRound className="size-10 text-muted-foreground" />
                 </div>
-                <span className="absolute bottom-1 right-1 size-3 rounded-full bg-status-empty ring-2 ring-background" />
+                <span className="absolute bottom-1 right-1 size-3 rounded-full bg-status-empty ring-2 ring-card" />
               </div>
 
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold tracking-tight">
+                  <h1 className="truncate text-2xl font-semibold tracking-tight md:text-3xl">
                     {profile?.fullName ??
                       (profileQuery.isLoading ? "Loading profile..." : "Driver")}
                   </h1>
-                  <span className="rounded-md border border-primary/40 bg-primary/12 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.15em] text-primary">
+                  <span className="rounded-md border border-primary/40 bg-primary/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                     {profile
                       ? `${getProfileRoleName(profile)} · ${profile.status ?? "ACTIVE"}`
                       : "Driver active"}
@@ -680,16 +717,6 @@ function DriverPage() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {profile?.email ?? "Profile email unavailable"}
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <CarFront className="size-4" />
-                    {primaryVehicle ? primaryVehicleType : "No registered vehicle"}
-                  </span>
-                  <span className="text-border">|</span>
-                  <span className="font-mono tracking-wide">
-                    Plate: {primaryVehicle?.licensePlate ?? "Not registered"}
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -698,7 +725,7 @@ function DriverPage() {
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/70 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
                   >
                     <UserRound className="size-4" />
                     View profile
@@ -872,39 +899,40 @@ function DriverPage() {
               </Dialog>
             </div>
           </div>
+        </DashboardSection>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <InfoStat
-              label="Available spots"
-              value={`${availableCount}`}
-              tone="text-status-empty"
-            />
-            <InfoStat
-              label="Unavailable spots"
-              value={`${unavailableCount}`}
-              tone="text-foreground"
-            />
-            <InfoStat label="In-used spots" value={`${inUsedCount}`} tone="text-primary" />
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft md:p-6">
+        <DashboardSection ref={vehiclesSectionRef} compact>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Xe của tôi</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {vehiclesQuery.isLoading
-                  ? "Đang tải danh sách xe..."
-                  : `${vehicles.length} xe đã đăng ký`}
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsVehiclesExpanded((expanded) => !expanded)}
+              className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left transition hover:opacity-90"
+              aria-expanded={isVehiclesExpanded}
+            >
+              <div className="min-w-0 space-y-1">
+                <h2 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
+                  Xe của tôi
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {vehiclesQuery.isLoading
+                    ? "Đang tải danh sách xe..."
+                    : `${vehicles.length} xe đã đăng ký`}
+                </p>
+              </div>
+              <ChevronDown
+                className={`mt-1 size-5 shrink-0 text-muted-foreground transition-transform ${
+                  isVehiclesExpanded ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 aria-label="Làm mới danh sách xe"
                 onClick={() => void vehiclesQuery.refetch()}
                 disabled={vehiclesQuery.isFetching}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-background/55 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-secondary text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw className={`size-4 ${vehiclesQuery.isFetching ? "animate-spin" : ""}`} />
               </button>
@@ -1075,7 +1103,8 @@ function DriverPage() {
             </DialogContent>
           </Dialog>
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-background/35">
+          {isVehiclesExpanded ? (
+            <div className="dashboard-panel mt-4 max-h-72 overflow-y-auto">
             {vehiclesQuery.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
@@ -1114,37 +1143,38 @@ function DriverPage() {
                         INACTIVE
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
-                        <CheckCircle2 className="size-3.5" />
-                        {vehicle.monthlyCardId ? "Thẻ tháng" : "Đã đăng ký"}
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
+                          <CheckCircle2 className="size-3.5" />
+                          {vehicle.monthlyCardId ? "Thẻ tháng" : "Đã đăng ký"}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleStartEditVehicle(vehicle)}
+                          className="size-8 rounded-lg"
+                          aria-label={`Sửa ${vehicle.licensePlate}`}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeleteVehicle(vehicle)}
+                          disabled={deletingVehicleId === vehicle._id}
+                          className="size-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={`Xóa ${vehicle.licensePlate}`}
+                        >
+                          {deletingVehicleId === vehicle._id ? (
+                            <LoaderCircle className="size-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-3.5" />
+                          )}
+                        </Button>
+                      </>
                     )}
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleStartEditVehicle(vehicle)}
-                      disabled={isInactive}
-                      className="size-8 rounded-lg disabled:pointer-events-none"
-                      aria-label={`Sửa ${vehicle.licensePlate}`}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDeleteVehicle(vehicle)}
-                      disabled={isInactive || deletingVehicleId === vehicle._id}
-                      className="size-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none"
-                      aria-label={`Xóa ${vehicle.licensePlate}`}
-                    >
-                      {deletingVehicleId === vehicle._id ? (
-                        <LoaderCircle className="size-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-3.5" />
-                      )}
-                    </Button>
                   </div>
                 </div>
               );
@@ -1154,10 +1184,15 @@ function DriverPage() {
                 Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
               </div>
             )}
-          </div>
-        </section>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Cuộn xuống hoặc bấm tiêu đề để xem danh sách xe.
+            </p>
+          )}
+        </DashboardSection>
 
-        <section className="mt-6 rounded-3xl border border-border/70 bg-card/65 p-2 shadow-soft">
+        <DashboardSection compact className="p-3">
           <div className="grid gap-2 md:grid-cols-2">
             {quickActions.map((action) => {
               const Icon = action.icon;
@@ -1166,54 +1201,44 @@ function DriverPage() {
                 <button
                   key={action.title}
                   type="button"
+                  aria-pressed={isActionHighlighted}
                   onClick={() => handleQuickActionClick(action.id)}
-                  className={`rounded-2xl border px-4 py-4 text-left transition ${
+                  className={`rounded-xl border px-4 py-4 text-left transition ${
                     isActionHighlighted
-                      ? "border-primary/45 bg-primary/10"
-                      : "border-border bg-background/35 hover:bg-background/60"
+                      ? "border-primary/50 bg-primary/15 shadow-sm"
+                      : "border-border bg-secondary hover:bg-secondary/80"
                   }`}
                 >
-                  <div className="mb-3 inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background/65">
+                  <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card">
                     <Icon className="size-4 text-primary" />
                   </div>
                   <h2 className="text-base font-semibold tracking-tight">{action.title}</h2>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    {action.description}
-                  </p>
-                  <span className="mt-3 inline-block text-xs font-medium text-primary">
-                    {action.cta}
-                  </span>
                 </button>
               );
             })}
           </div>
-        </section>
+        </DashboardSection>
 
         {activeQuickAction === "my-reservations" ? (
-          <section
-            ref={reservationSectionRef}
-            className="mt-6 rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft md:p-6"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                  My reservation
-                </p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight">Reservation history</h3>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void myReservationsQuery.refetch()}
-                disabled={myReservationsQuery.isFetching}
-                className="h-10 rounded-xl"
-              >
-                <RefreshCw
-                  className={`size-4 ${myReservationsQuery.isFetching ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </Button>
-            </div>
+          <DashboardSection ref={reservationSectionRef}>
+            <DashboardSectionHeader
+              kicker="My reservation"
+              title="Reservation history"
+              actions={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void myReservationsQuery.refetch()}
+                  disabled={myReservationsQuery.isFetching}
+                  className="h-10 rounded-xl"
+                >
+                  <RefreshCw
+                    className={`size-4 ${myReservationsQuery.isFetching ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
+              }
+            />
 
             <div className="mt-4 flex flex-wrap items-end gap-3">
               <div className="space-y-2">
@@ -1255,7 +1280,7 @@ function DriverPage() {
                   return (
                     <div
                       key={reservation._id}
-                      className="rounded-2xl border border-border bg-background/45 p-4"
+                      className="rounded-xl border border-border bg-secondary p-4"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -1308,7 +1333,7 @@ function DriverPage() {
                       ) : null}
 
                       {reservationSlotId && reservationBySlotId.has(reservationSlotId) ? (
-                        <p className="mt-2 text-xs text-status-reserved">
+                        <p className="mt-2 text-xs text-status-yours">
                           This slot is currently locked for you.
                         </p>
                       ) : null}
@@ -1317,39 +1342,28 @@ function DriverPage() {
                 })}
               </div>
             ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/35 px-4 py-3 text-sm text-muted-foreground">
+              <DashboardEmptyState className="mt-4 text-left">
                 No reservations on {formatReservationHistoryDateLabel(reservationHistoryDate)}.
-              </div>
+              </DashboardEmptyState>
             )}
-          </section>
+          </DashboardSection>
         ) : null}
 
         {activeQuickAction === "reserve" ? (
-          <section
-            ref={reserveSectionRef}
-            className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]"
-          >
-            <div className="rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft md:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                    View parking information
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-tight">
-                    {selectedFloor?.floorName ?? "Floor layout"}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Choose an available slot to reserve. Supported reservations are held for up to
-                    15 minutes.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <Legend label={`Available ${availableCount}`} tone="bg-status-empty" />
-                  <Legend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
-                  <Legend label={`In used ${inUsedCount}`} tone="bg-status-full" />
-                </div>
-              </div>
+          <div ref={reserveSectionRef} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <DashboardSection>
+              <DashboardSectionHeader
+                kicker="View parking information"
+                title={selectedFloor?.floorName ?? "Floor layout"}
+                actions={
+                  <>
+                    <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
+                    <DashboardLegend label={`Reserved ${reservedCount}`} tone="bg-status-reserved" />
+                    <DashboardLegend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
+                    <DashboardLegend label={`In used ${inUsedCount}`} tone="bg-status-full" />
+                  </>
+                }
+              />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[240px_auto]">
                 <div className="space-y-2">
@@ -1396,48 +1410,56 @@ function DriverPage() {
                 <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 xl:grid-cols-10">
                   {floorSlots.map((slot) => {
                     const isAvailable = slot.status === "AVAILABLE";
+                    const isReserved = slot.status === "RESERVED";
                     const isReservedByMe = reservationBySlotId.has(slot._id);
                     const isSelectable = isAvailable || isReservedByMe;
                     const isSelected = selectedSpotId === slot._id;
                     const slotLabel = isReservedByMe
                       ? "Reserved by you"
                       : slotStatusText[slot.status];
+                    const slotStyle = isReservedByMe
+                      ? reservedByYouButtonStyle
+                      : slotButtonStyles[slot.status];
+                    const statusLabel = isReservedByMe
+                      ? "Yours"
+                      : isReserved
+                        ? "Reserved"
+                        : null;
                     return (
                       <button
                         key={slot._id}
                         type="button"
                         disabled={!isSelectable}
                         onClick={() => setSelectedSpotId(slot._id)}
-                        className={`relative rounded-lg border p-2 text-left text-xs font-medium transition ${
-                          isReservedByMe
-                            ? "border-status-reserved/45 bg-status-reserved/12 text-status-reserved"
-                            : slotButtonStyles[slot.status]
-                        } ${isSelected ? "ring-2 ring-foreground" : "ring-1 ring-transparent"} ${
-                          isSelectable ? "cursor-pointer" : "cursor-not-allowed"
-                        }`}
+                        className={`relative flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center text-sm font-semibold transition ${slotStyle} ${
+                          isSelected ? "border-primary ring-2 ring-inset ring-primary/70" : ""
+                        } ${isSelectable ? "cursor-pointer" : ""}`}
                         aria-label={`${slot.slotNumber} (${slotLabel})`}
                       >
-                        <span className="font-mono text-[11px]">{slot.slotNumber}</span>
-                        {isReservedByMe ? (
-                          <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.12em]">
-                            Reserved
-                          </span>
-                        ) : null}
+                        <span className="font-mono text-[11px] leading-none">{slot.slotNumber}</span>
+                        <span
+                          className={`min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] ${
+                            statusLabel ? "opacity-100" : "opacity-0"
+                          }`}
+                          aria-hidden={!statusLabel}
+                        >
+                          {statusLabel ?? "—"}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/35 px-4 py-3 text-sm text-muted-foreground">
+                <DashboardEmptyState className="mt-4 text-left">
                   No slots found for this floor.
-                </div>
+                </DashboardEmptyState>
               )}
-            </div>
+            </DashboardSection>
 
-            <aside className="rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft">
+            <DashboardSection compact>
               {selectedSpot ? (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-border bg-background/40 p-4">
+                  <div className="rounded-xl border border-border bg-secondary p-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-lg font-semibold tracking-tight">
                         {selectedSpot.slotNumber}
@@ -1445,7 +1467,7 @@ function DriverPage() {
                       <span
                         className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
                           selectedReservation
-                            ? "border-status-reserved/45 bg-status-reserved/15 text-status-reserved"
+                            ? reservedByYouBadgeStyle
                             : slotStatusBadge[selectedSpot.status]
                         }`}
                       >
@@ -1459,21 +1481,11 @@ function DriverPage() {
                         <CircleDashed className="size-4" />
                         {selectedFloor?.floorName ?? "Floor"}
                       </p>
-                      <p className="inline-flex items-center gap-2">
-                        <Clock3 className="size-4" />
-                        Hold limit: 15 minutes
-                      </p>
-                      <p className="inline-flex items-center gap-2">
-                        <ShieldCheck className="size-4" />
-                        Camera monitored 24/7
-                      </p>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-border bg-background/40 p-4">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      Reserve parking slot
-                    </p>
+                  <div className="rounded-xl border border-border bg-secondary p-4">
+                    <p className="dashboard-kicker">Reserve parking slot</p>
                     {myReservationsError ? (
                       <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                         {myReservationsError}
@@ -1499,26 +1511,38 @@ function DriverPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedFloorVehicleType
-                            ? `Only ${selectedFloorVehicleType} vehicles can reserve this floor.`
-                            : "Vehicle type is validated by backend."}
-                        </p>
                       </div>
 
-                      <div className="rounded-xl border border-border bg-background/60 px-3 py-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Expected arrival</span>
-                          <span className="font-semibold">{formatFutureTime(60)}</span>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="driver-expected-arrival-date">Ngày đến</Label>
+                          <Input
+                            id="driver-expected-arrival-date"
+                            type="date"
+                            value={expectedArrivalDate}
+                            onChange={(event) => setExpectedArrivalDate(event.target.value)}
+                            min={getLocalDateInputValue()}
+                            disabled={Boolean(selectedReservation)}
+                            className="h-10 rounded-xl"
+                          />
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Arrival and expiry times are finalized by backend.
-                        </p>
+                        <div className="space-y-2">
+                          <Label htmlFor="driver-expected-arrival-time">Giờ đến</Label>
+                          <Input
+                            id="driver-expected-arrival-time"
+                            type="time"
+                            value={expectedArrivalTime}
+                            onChange={(event) => setExpectedArrivalTime(event.target.value)}
+                            min={minExpectedArrivalTime}
+                            disabled={Boolean(selectedReservation)}
+                            className="h-10 rounded-xl"
+                          />
+                        </div>
                       </div>
 
                       {selectedReservation ? (
-                        <div className="rounded-xl border border-status-reserved/45 bg-status-reserved/10 px-3 py-2 text-sm">
-                          <p className="font-medium text-status-reserved">Current reservation</p>
+                        <div className="rounded-xl border border-status-yours/45 bg-status-yours/10 px-3 py-2 text-sm">
+                          <p className="font-medium text-status-yours">Current reservation</p>
                           <div className="mt-1 space-y-1 text-xs text-muted-foreground">
                             <p>
                               Vehicle: {getReservationVehicleLabel(selectedReservation) ?? "N/A"}
@@ -1534,6 +1558,9 @@ function DriverPage() {
                               {selectedReservation.expiryAt
                                 ? formatDateTime(selectedReservation.expiryAt)
                                 : "N/A"}
+                            </p>
+                            <p className="text-status-yours/80">
+                              To cancel, go to My reservation.
                             </p>
                           </div>
                         </div>
@@ -1563,46 +1590,23 @@ function DriverPage() {
                             </>
                           )}
                         </Button>
-
-                        {selectedReservation ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={handleCancelSelectedReservation}
-                            disabled={isReservationActionPending}
-                            className="h-10 rounded-xl text-sm font-medium"
-                          >
-                            {cancelReservationMutation.isPending ? (
-                              <>
-                                <LoaderCircle className="size-4 animate-spin" />
-                                Cancelling...
-                              </>
-                            ) : (
-                              "Cancel reservation"
-                            )}
-                          </Button>
-                        ) : null}
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="grid h-full place-items-center rounded-2xl border border-dashed border-border bg-background/35 p-6 text-center">
-                  <div>
-                    <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full border border-border bg-background">
-                      <MapPin className="size-6 text-muted-foreground" />
-                    </div>
-                    <h4 className="text-xl font-semibold tracking-tight">No spot selected</h4>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Click an available slot to create or cancel a reservation.
-                    </p>
+                <DashboardEmptyState>
+                  <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full border border-border bg-card">
+                    <MapPin className="size-6 text-muted-foreground" />
                   </div>
-                </div>
+                  <h4 className="text-lg font-semibold text-foreground">No spot selected</h4>
+                  <p className="mt-2">Click an available slot to create a reservation.</p>
+                </DashboardEmptyState>
               )}
-            </aside>
-          </section>
+            </DashboardSection>
+          </div>
         ) : null}
-      </main>
+      </DashboardMain>
     </div>
   );
 }
@@ -1635,12 +1639,28 @@ function formatReservationHistoryDateLabel(dateKey: string) {
   }).format(new Date(year, month - 1, day));
 }
 
-function buildExpectedArrivalIso(minutesFromNow: number) {
-  return new Date(Date.now() + minutesFromNow * 60_000).toISOString();
+function parseExpectedArrival(dateValue: string, timeValue: string) {
+  if (!dateValue || !timeValue) {
+    return null;
+  }
+
+  const date = new Date(`${dateValue}T${timeValue}`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function formatFutureTime(minutesFromNow: number) {
-  return formatDateTime(buildExpectedArrivalIso(minutesFromNow));
+function getDefaultExpectedArrivalDate() {
+  return getLocalDateInputValue(new Date(Date.now() + 60 * 60_000));
+}
+
+function getDefaultExpectedArrivalTime() {
+  return toLocalTimeInputValue(Date.now() + 60 * 60_000);
+}
+
+function toLocalTimeInputValue(timestamp: number) {
+  const date = new Date(timestamp);
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 function formatDateTime(value: string) {
@@ -1674,7 +1694,7 @@ function getReservationSlotLabel(reservation: Reservation) {
 function getReservationStatusBadge(status: Reservation["status"]) {
   switch (status) {
     case "PENDING":
-      return "border-status-reserved/45 bg-status-reserved/15 text-status-reserved";
+      return reservedByYouBadgeStyle;
     case "CLAIMED":
       return "border-status-empty/45 bg-status-empty/15 text-status-empty";
     case "CANCELLED":
@@ -1736,24 +1756,4 @@ function formatRegisteredDate(value?: string) {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function Legend({ label, tone }: { label: string; tone: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs text-muted-foreground">
-      <span className={`size-2 rounded-full ${tone}`} />
-      {label}
-    </span>
-  );
-}
-
-function InfoStat({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-background/50 px-4 py-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className={`mt-2 text-xl font-semibold tracking-tight ${tone}`}>{value}</p>
-    </div>
-  );
 }
