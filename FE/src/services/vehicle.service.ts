@@ -105,7 +105,9 @@ export const getMyVehicles = async () => {
     method: "GET",
     credentials: "include",
   });
-  const payload = await parseJson<{ vehicles?: Vehicle[] }>(response);
+  const payload = await parseJson<{ vehicles?: Vehicle[]; user?: { vehicles?: Vehicle[] } }>(
+    response,
+  );
 
   if (response.status === 404) {
     return [];
@@ -118,7 +120,7 @@ export const getMyVehicles = async () => {
     );
   }
 
-  return payload.data?.vehicles ?? [];
+  return payload.data?.vehicles ?? payload.data?.user?.vehicles ?? [];
 };
 
 export const getVehicleByLicensePlate = async (licensePlate: string) => {
@@ -195,6 +197,33 @@ export const updateMyVehicle = async (vehicleId: string, request: UpdateVehicleR
   const vehicle = payload.data?.vehicle;
   if (!vehicle) {
     throw new VehicleApiError(response.status, "Vehicle update response data is missing.");
+  }
+
+  return vehicle;
+};
+
+/** Soft delete — backend sets status to INACTIVE (record is kept). */
+export const softDeleteMyVehicle = async (vehicleId: string) => {
+  const response = await fetch(
+    `${API_BASE}/api/v1/vehicles/${encodeURIComponent(vehicleId)}/soft-delete`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{ vehicle?: Vehicle }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 400
+        ? "Xe đã bị xóa trước đó hoặc không thuộc tài khoản của bạn."
+        : vehicleErrorMessage(response.status);
+    throw new VehicleApiError(response.status, payload.message || fallback);
+  }
+
+  const vehicle = payload.data?.vehicle;
+  if (!vehicle) {
+    throw new VehicleApiError(response.status, "Vehicle delete response data is missing.");
   }
 
   return vehicle;

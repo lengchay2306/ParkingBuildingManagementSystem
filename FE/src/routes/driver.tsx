@@ -15,8 +15,8 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Search,
   ShieldCheck,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,9 +56,9 @@ import {
 } from "@/services/reservation.service";
 import {
   createVehicle,
-  getVehicleByLicensePlate,
   getMyVehicles,
   getVehicleTypes,
+  softDeleteMyVehicle,
   updateMyVehicle,
   type Vehicle,
   type VehicleType,
@@ -157,9 +157,6 @@ function DriverPage() {
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [vehicleFormError, setVehicleFormError] = useState<string | null>(null);
   const [isVehicleFormOpen, setIsVehicleFormOpen] = useState(false);
-  const [lookupPlate, setLookupPlate] = useState("");
-  const [lookupVehicle, setLookupVehicle] = useState<Vehicle | null>(null);
-  const [lookupError, setLookupError] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -170,6 +167,8 @@ function DriverPage() {
   const [editVehicleLicensePlate, setEditVehicleLicensePlate] = useState("");
   const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
+  const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
+  const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
   const reserveSectionRef = useRef<HTMLElement | null>(null);
   const reservationSectionRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -180,6 +179,8 @@ function DriverPage() {
     queryKey: myProfileQueryKey,
     queryFn: getMyProfile,
     enabled: hasMounted,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
   const vehicleTypesQuery = useQuery({
     queryKey: vehicleTypesQueryKey,
@@ -231,9 +232,6 @@ function DriverPage() {
       setEditingVehicle(null);
       setEditVehicleLicensePlate("");
       setEditVehicleTypeId("");
-      setLookupVehicle((previous) =>
-        previous?._id === updatedVehicle._id ? updatedVehicle : previous,
-      );
       toast.success("Vehicle updated", {
         description: `${updatedVehicle.licensePlate} has been updated.`,
       });
@@ -243,15 +241,20 @@ function DriverPage() {
       setEditVehicleError(getErrorMessage(error, "Unable to update vehicle."));
     },
   });
-  const lookupVehicleMutation = useMutation({
-    mutationFn: getVehicleByLicensePlate,
-    onSuccess: (vehicle) => {
-      setLookupVehicle(vehicle);
-      setLookupError(null);
+  const deleteVehicleMutation = useMutation({
+    mutationFn: softDeleteMyVehicle,
+    onSuccess: async (deletedVehicle) => {
+      setDeletingVehicleId(null);
+      toast.success("Đã xóa xe", {
+        description: `${deletedVehicle.licensePlate} đã chuyển sang trạng thái INACTIVE.`,
+      });
+      await queryClient.invalidateQueries({ queryKey: myVehiclesQueryKey });
     },
     onError: (error) => {
-      setLookupVehicle(null);
-      setLookupError(getErrorMessage(error, "Vehicle not found."));
+      setDeletingVehicleId(null);
+      toast.error("Không thể xóa xe", {
+        description: getErrorMessage(error, "Vui lòng thử lại."),
+      });
     },
   });
   const updateProfileMutation = useMutation({
@@ -266,7 +269,9 @@ function DriverPage() {
       });
     },
     onError: (error) => {
-      setEditProfileError(getErrorMessage(error, "Không thể cập nhật hồ sơ."));
+      const message = getErrorMessage(error, "Không thể cập nhật hồ sơ.");
+      setEditProfileError(message);
+      toast.error("Cập nhật thất bại", { description: message });
     },
   });
   const reserveSlotMutation = useMutation({
@@ -323,7 +328,18 @@ function DriverPage() {
   );
   const vehicleTypes = vehicleTypesQuery.data ?? emptyVehicleTypes;
   const vehicles = vehiclesQuery.data ?? emptyVehicles;
+  const activeVehicles = useMemo(
+    () => vehicles.filter((vehicle) => vehicle.status !== "INACTIVE"),
+    [vehicles],
+  );
   const reservations = myReservationsQuery.data ?? emptyReservations;
+  const filteredHistoryReservations = useMemo(
+    () =>
+      reservations.filter((reservation) =>
+        reservationMatchesDateFilter(reservation, reservationHistoryDate),
+      ),
+    [reservations, reservationHistoryDate],
+  );
   const myPendingReservations = reservations.filter(
     (reservation) => reservation.status === "PENDING",
   );
@@ -343,20 +359,20 @@ function DriverPage() {
   const selectedFloorVehicleTypeId = selectedFloor?.vehicleType?._id ?? null;
   const compatibleVehicles = useMemo(
     () =>
-      vehicles.filter((vehicle) => {
+      activeVehicles.filter((vehicle) => {
         const typeId = getVehicleTypeId(vehicle);
         if (!selectedFloorVehicleTypeId) {
           return Boolean(typeId);
         }
         return typeId === selectedFloorVehicleTypeId;
       }),
-    [selectedFloorVehicleTypeId, vehicles],
+    [activeVehicles, selectedFloorVehicleTypeId],
   );
   const selectedReservationVehicle = compatibleVehicles.find(
     (vehicle) => vehicle._id === selectedReservationVehicleId,
   );
   const profile = profileQuery.data ?? null;
-  const primaryVehicle = vehicles[0] ?? null;
+  const primaryVehicle = activeVehicles[0] ?? null;
   const primaryVehicleType = primaryVehicle
     ? getVehicleTypeName(primaryVehicle, vehicleTypes)
     : null;
@@ -426,19 +442,15 @@ function DriverPage() {
     });
   };
 
-  const handleVehicleLookupSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLookupError(null);
-
-    const normalizedPlate = lookupPlate.trim().replace(/\s+/g, " ").toUpperCase();
-    if (normalizedPlate.length < 4) {
-      setLookupVehicle(null);
-      setLookupError("Enter a valid license plate to search.");
+  const handleDeleteVehicle = (vehicle: Vehicle) => {
+    const confirmed = window.confirm(
+      `Xóa xe ${vehicle.licensePlate}?\n\nXe sẽ chuyển sang trạng thái INACTIVE (soft delete), không bị xóa vĩnh viễn khỏi hệ thống.`,
+    );
+    if (!confirmed) {
       return;
     }
-
-    setLookupPlate(normalizedPlate);
-    lookupVehicleMutation.mutate(normalizedPlate);
+    setDeletingVehicleId(vehicle._id);
+    deleteVehicleMutation.mutate(vehicle._id);
   };
 
   const handleEditVehicleOpenChange = (open: boolean) => {
@@ -660,7 +672,9 @@ function DriverPage() {
                       (profileQuery.isLoading ? "Loading profile..." : "Driver")}
                   </h1>
                   <span className="rounded-md border border-primary/40 bg-primary/12 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.15em] text-primary">
-                    {profile ? `${getProfileRoleName(profile)} active` : "Driver active"}
+                    {profile
+                      ? `${getProfileRoleName(profile)} · ${profile.status ?? "ACTIVE"}`
+                      : "Driver active"}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -669,7 +683,7 @@ function DriverPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
                     <CarFront className="size-4" />
-                    {primaryVehicle ? `${primaryVehicleType} Standard` : "No registered vehicle"}
+                    {primaryVehicle ? primaryVehicleType : "No registered vehicle"}
                   </span>
                   <span className="text-border">|</span>
                   <span className="font-mono tracking-wide">
@@ -877,15 +891,17 @@ function DriverPage() {
         <section className="mt-6 rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft md:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Vehicle registry
+              <h2 className="text-2xl font-semibold tracking-tight">Xe của tôi</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {vehiclesQuery.isLoading
+                  ? "Đang tải danh sách xe..."
+                  : `${vehicles.length} xe đã đăng ký`}
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">My registered vehicles</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                aria-label="Refresh registered vehicles"
+                aria-label="Làm mới danh sách xe"
                 onClick={() => void vehiclesQuery.refetch()}
                 disabled={vehiclesQuery.isFetching}
                 className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-background/55 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -895,16 +911,16 @@ function DriverPage() {
 
               <Dialog open={isVehicleFormOpen} onOpenChange={handleVehicleFormOpenChange}>
                 <DialogTrigger asChild>
-                  <Button type="button" className="h-9 rounded-xl px-4 text-[13px] font-semibold">
+                  <Button type="button" variant="secondary" className="h-9 rounded-xl px-4 text-[13px] font-semibold">
                     <Plus className="size-4" />
-                    Register vehicle
+                    Thêm xe
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Register vehicle</DialogTitle>
+                    <DialogTitle>Thêm xe mới</DialogTitle>
                     <DialogDescription>
-                      Add a license plate and vehicle type to your account.
+                      Nhập biển số và loại xe để đăng ký vào tài khoản của bạn.
                     </DialogDescription>
                   </DialogHeader>
 
@@ -978,7 +994,7 @@ function DriverPage() {
                       ) : (
                         <>
                           <Plus className="size-4" />
-                          Register vehicle
+                          Thêm xe
                         </>
                       )}
                     </Button>
@@ -987,69 +1003,6 @@ function DriverPage() {
               </Dialog>
             </div>
           </div>
-
-          <form
-            onSubmit={handleVehicleLookupSubmit}
-            className="mt-5 grid gap-3 rounded-2xl border border-border bg-background/35 p-3 md:grid-cols-[minmax(0,1fr)_auto]"
-          >
-            <div className="min-w-0">
-              <Label htmlFor="vehicle-lookup-plate" className="sr-only">
-                Search vehicle by license plate
-              </Label>
-              <Input
-                id="vehicle-lookup-plate"
-                value={lookupPlate}
-                onChange={(event) => setLookupPlate(event.target.value.toUpperCase())}
-                autoCapitalize="characters"
-                autoComplete="off"
-                placeholder="Search license plate"
-                className="h-10 rounded-xl font-mono tracking-wide"
-              />
-            </div>
-            <Button
-              type="submit"
-              variant="secondary"
-              disabled={lookupVehicleMutation.isPending}
-              className="h-10 rounded-xl px-4 text-[13px] font-semibold"
-            >
-              {lookupVehicleMutation.isPending ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Search className="size-4" />
-              )}
-              Search
-            </Button>
-          </form>
-
-          {lookupError ? (
-            <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {lookupError}
-            </div>
-          ) : null}
-
-          {lookupVehicle ? (
-            <div className="mt-3 rounded-2xl border border-primary/35 bg-primary/10 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/35 bg-background/65">
-                    <Search className="size-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-mono text-sm font-semibold tracking-wide">
-                      {lookupVehicle.licensePlate}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {getVehicleTypeName(lookupVehicle, vehicleTypes)} |{" "}
-                      {formatRegisteredDate(lookupVehicle.createdAt)}
-                    </p>
-                  </div>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/35 bg-background/45 px-2.5 py-1 text-xs font-medium text-primary">
-                  Lookup result
-                </span>
-              </div>
-            </div>
-          ) : null}
 
           <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
             <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
@@ -1126,19 +1079,23 @@ function DriverPage() {
             {vehiclesQuery.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
-                Loading registered vehicles...
+                Đang tải xe của bạn...
               </div>
             ) : vehicleListError ? (
               <div className="p-4 text-sm text-destructive">{vehicleListError}</div>
             ) : vehicles.length > 0 ? (
-              vehicles.map((vehicle) => (
+              vehicles.map((vehicle) => {
+                const isInactive = vehicle.status === "INACTIVE";
+                return (
                 <div
                   key={vehicle._id}
-                  className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 p-4 first:border-t-0"
+                  className={`flex flex-wrap items-center justify-between gap-3 border-t border-border/70 p-4 first:border-t-0 ${
+                    isInactive ? "opacity-50" : ""
+                  }`}
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-background/65">
-                      <CarFront className="size-5 text-primary" />
+                      <CarFront className={`size-5 ${isInactive ? "text-muted-foreground" : "text-primary"}`} />
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-mono text-sm font-semibold tracking-wide">
@@ -1151,25 +1108,51 @@ function DriverPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
-                      <CheckCircle2 className="size-3.5" />
-                      {vehicle.monthlyCardId ? "Monthly card" : "Registered"}
-                    </span>
+                    {isInactive ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                        <CircleDashed className="size-3.5" />
+                        INACTIVE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
+                        <CheckCircle2 className="size-3.5" />
+                        {vehicle.monthlyCardId ? "Thẻ tháng" : "Đã đăng ký"}
+                      </span>
+                    )}
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
                       onClick={() => handleStartEditVehicle(vehicle)}
-                      className="size-8 rounded-lg"
-                      aria-label={`Edit ${vehicle.licensePlate}`}
+                      disabled={isInactive}
+                      className="size-8 rounded-lg disabled:pointer-events-none"
+                      aria-label={`Sửa ${vehicle.licensePlate}`}
                     >
                       <Pencil className="size-3.5" />
                     </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteVehicle(vehicle)}
+                      disabled={isInactive || deletingVehicleId === vehicle._id}
+                      className="size-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none"
+                      aria-label={`Xóa ${vehicle.licensePlate}`}
+                    >
+                      {deletingVehicleId === vehicle._id ? (
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                    </Button>
                   </div>
                 </div>
-              ))
+              );
+              })
             ) : (
-              <div className="p-4 text-sm text-muted-foreground">No vehicles registered yet.</div>
+              <div className="p-4 text-sm text-muted-foreground">
+                Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
+              </div>
             )}
           </div>
         </section>
@@ -1211,7 +1194,7 @@ function DriverPage() {
             ref={reservationSectionRef}
             className="mt-6 rounded-3xl border border-border/75 bg-card/70 p-5 shadow-soft md:p-6"
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   My reservation
@@ -1232,6 +1215,29 @@ function DriverPage() {
               </Button>
             </div>
 
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="reservation-history-date">Ngày</Label>
+                <Input
+                  id="reservation-history-date"
+                  type="date"
+                  value={reservationHistoryDate}
+                  onChange={(event) => setReservationHistoryDate(event.target.value)}
+                  className="h-10 w-full min-w-[180px] rounded-xl sm:w-auto"
+                />
+              </div>
+              {reservationHistoryDate !== getLocalDateInputValue() ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setReservationHistoryDate(getLocalDateInputValue())}
+                  className="h-10 rounded-xl"
+                >
+                  Hôm nay
+                </Button>
+              ) : null}
+            </div>
+
             {myReservationsQuery.isLoading ? (
               <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-background/40 px-4 py-3 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
@@ -1241,9 +1247,9 @@ function DriverPage() {
               <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {myReservationsError}
               </div>
-            ) : reservations.length > 0 ? (
+            ) : filteredHistoryReservations.length > 0 ? (
               <div className="mt-4 space-y-3">
-                {reservations.map((reservation) => {
+                {filteredHistoryReservations.map((reservation) => {
                   const reservationSlotId = getReservationSlotId(reservation);
                   const isPending = reservation.status === "PENDING";
                   return (
@@ -1312,7 +1318,7 @@ function DriverPage() {
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/35 px-4 py-3 text-sm text-muted-foreground">
-                You have no reservations yet.
+                No reservations on {formatReservationHistoryDateLabel(reservationHistoryDate)}.
               </div>
             )}
           </section>
@@ -1599,6 +1605,34 @@ function DriverPage() {
       </main>
     </div>
   );
+}
+
+function getLocalDateInputValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function reservationMatchesDateFilter(reservation: Reservation, dateKey: string) {
+  const source = reservation.expectedArrival ?? reservation.reservedAt;
+  if (!source) {
+    return false;
+  }
+  return getLocalDateInputValue(new Date(source)) === dateKey;
+}
+
+function formatReservationHistoryDateLabel(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) {
+    return dateKey;
+  }
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 }
 
 function buildExpectedArrivalIso(minutesFromNow: number) {

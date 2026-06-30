@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,21 +48,27 @@ export function ReservationListPanel({
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">("ALL");
+  const [reservationDate, setReservationDate] = useState(() => getLocalDateInputValue());
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null);
 
   const reservationsQuery = useQuery({
-    queryKey: ["reservations-manage", { page, statusFilter }],
-    queryFn: () =>
-      getAllReservations({
-        page,
-        limit: pageSize,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-      }),
+    queryKey: ["reservations-manage", { statusFilter }],
+    queryFn: () => fetchAllReservations(statusFilter),
   });
 
-  const reservations = reservationsQuery.data?.reservations ?? [];
-  const pagination = reservationsQuery.data?.pagination;
-  const totalPages = Math.max(pagination?.totalPages ?? 1, 1);
+  const allReservations = reservationsQuery.data ?? [];
+  const filteredReservations = useMemo(
+    () =>
+      allReservations.filter((reservation) =>
+        reservationMatchesDateFilter(reservation, reservationDate),
+      ),
+    [allReservations, reservationDate],
+  );
+  const totalPages = Math.max(Math.ceil(filteredReservations.length / pageSize), 1);
+  const reservations = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredReservations.slice(start, start + pageSize);
+  }, [filteredReservations, page]);
   const canGoBack = page > 1;
   const canGoNext = page < totalPages;
 
@@ -82,17 +90,46 @@ export function ReservationListPanel({
   });
 
   const headerMeta = useMemo(
-    () => `${pagination?.totalCount ?? reservations.length} reservations`,
-    [pagination?.totalCount, reservations.length],
+    () => `${filteredReservations.length} reservations`,
+    [filteredReservations.length],
   );
 
   const filterToolbar = (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2",
+        "flex flex-wrap items-end gap-2",
         tableOnly ? "px-1 py-1" : "justify-end",
       )}
     >
+      <div className="space-y-1.5">
+        <Label htmlFor="reservation-manage-date" className="text-[10px] uppercase tracking-[0.14em]">
+          Ngày
+        </Label>
+        <Input
+          id="reservation-manage-date"
+          type="date"
+          value={reservationDate}
+          onChange={(event) => {
+            setPage(1);
+            setReservationDate(event.target.value);
+          }}
+          className="h-9 w-[160px] rounded-xl"
+        />
+      </div>
+      {reservationDate !== getLocalDateInputValue() ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            setPage(1);
+            setReservationDate(getLocalDateInputValue());
+          }}
+          className="h-9 rounded-xl"
+        >
+          Hôm nay
+        </Button>
+      ) : null}
       {statusFilterOptions.map((option) => (
         <button
           key={option}
@@ -227,7 +264,7 @@ export function ReservationListPanel({
             ))
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
-              No reservations found.
+              Không có reservation nào vào ngày {formatReservationDateLabel(reservationDate)}.
             </div>
           )}
         </div>
@@ -310,6 +347,54 @@ export function ReservationListPanel({
       </AlertDialog>
     </section>
   );
+}
+
+function getLocalDateInputValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function reservationMatchesDateFilter(reservation: Reservation, dateKey: string) {
+  const source = reservation.expectedArrival ?? reservation.reservedAt;
+  if (!source) {
+    return false;
+  }
+  return getLocalDateInputValue(new Date(source)) === dateKey;
+}
+
+async function fetchAllReservations(statusFilter: ReservationStatus | "ALL") {
+  const batchSize = 100;
+  let currentPage = 1;
+  let totalPages = 1;
+  const reservations: Reservation[] = [];
+
+  do {
+    const result = await getAllReservations({
+      page: currentPage,
+      limit: batchSize,
+      status: statusFilter === "ALL" ? undefined : statusFilter,
+    });
+    reservations.push(...result.reservations);
+    totalPages = result.pagination.totalPages;
+    currentPage += 1;
+  } while (currentPage <= totalPages);
+
+  return reservations;
+}
+
+function formatReservationDateLabel(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) {
+    return dateKey;
+  }
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 }
 
 function getDriverLabel(reservation: Reservation) {
