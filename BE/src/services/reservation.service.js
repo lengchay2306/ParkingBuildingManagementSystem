@@ -116,8 +116,8 @@ class ReservationService {
         if (!existingReservation) {
             throw new NotFoundError("Reservation not found");
         }
-        if (existingReservation.status !== "PENDING") {
-            throw new BadRequestError("Only PENDING reservations can be deleted");
+        if (existingReservation.status == "PENDING") {
+        throw new BadRequestError("PENDING CANNOT BE DELETED");
         }
         const deletedReservation = await this.#reservationRepository.deleteReservation({ reservationId });
         return deletedReservation;
