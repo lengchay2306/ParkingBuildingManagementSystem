@@ -250,7 +250,7 @@ export function ReservationListPanel({
                     type="button"
                     onClick={() => setDeletingReservation(reservation)}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-500"
-                    aria-label={`Delete reservation ${reservation._id}`}
+                    aria-label={`Delete reservation ${getSlotLabel(reservation)}`}
                   >
                     <Trash2 className="size-3.5" />
                     Delete
@@ -313,8 +313,7 @@ export function ReservationListPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Reservation <span className="font-mono">{deletingReservation?._id}</span> sẽ bị xóa vĩnh
-              viễn. Hành động này không thể hoàn tác.
+              Reservation này sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

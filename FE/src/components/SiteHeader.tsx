@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 
-import { getStoredRole, logout, type RoleName } from "@/lib/auth";
+import { getSessionRole, logout, type RoleName } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 const THEME_STORAGE_KEY = "parkos-theme";
@@ -35,7 +35,17 @@ export function SiteHeader() {
   }, [theme]);
 
   useEffect(() => {
-    setRole(getStoredRole());
+    let cancelled = false;
+
+    void getSessionRole().then((sessionRole) => {
+      if (!cancelled) {
+        setRole(sessionRole);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [path]);
 
   const handleLogout = async () => {
