@@ -1,5 +1,6 @@
 import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { getRoleHome, getSessionRole } from "@/lib/auth";
@@ -36,6 +37,16 @@ const features = [
 ];
 
 function Index() {
+  const router = useRouter();
+
+  useEffect(() => {
+    void getSessionRole().then((role) => {
+      if (role) {
+        void router.navigate({ to: getRoleHome(role) });
+      }
+    });
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
