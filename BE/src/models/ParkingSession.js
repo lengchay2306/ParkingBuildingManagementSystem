@@ -36,6 +36,11 @@ const parkingSessionSchema = mongoose.Schema({
         ref: "User",
         default: null,
     },
+    deleteStaffId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
     checkInTime: {
         type: Date,
         required: true,

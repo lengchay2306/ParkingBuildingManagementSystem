@@ -360,4 +360,15 @@ router.patch(
     }
 )
 
+router.delete(
+    'delete-error-parking-session/:parkingSessionId',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER']),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController');
+
+        await parkingController.deleteErrorParkingSession(req, res, next);
+    }
+)
+
 export default router;

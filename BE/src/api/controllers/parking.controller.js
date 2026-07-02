@@ -59,6 +59,28 @@ class ParkingController {
         }
     }
 
+    deleteErrorParkingSession = async (req, res, next) => {
+        try {
+            const { userId } = req.body
+
+            const { parkingSessionId } = req.params
+
+            const updatedParkingSession = await this.#parkingService.deleteErrorParkingSession({
+                staffId: userId,
+                parkingSessionId: parkingSessionId
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    updatedParkingSession,
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
     getAllParkingSessions = async (req, res, next) => {
         try {
             const {
