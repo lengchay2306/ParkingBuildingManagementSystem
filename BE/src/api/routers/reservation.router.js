@@ -215,7 +215,7 @@ router.get(
 router.get(
     "/",
     authentication,
-    authorizationByRole(['ADMIN', 'MANAGER']),
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.getAllReservations(req, res, next);
