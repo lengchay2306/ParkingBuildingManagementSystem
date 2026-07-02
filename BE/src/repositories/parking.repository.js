@@ -179,6 +179,7 @@ class ParkingRepository {
                                 "checkOutUserId",
                                 "checkInStaffId",
                                 "checkOutStaffId",
+                                "deleteStaffId",
                             ]).lean(),
             ParkingSession.countDocuments(filter)
         ]);
@@ -196,6 +197,9 @@ class ParkingRepository {
                             : null,
             checkOutStaffId: session.checkOutStaffId
                             ? { ...session.checkOutStaffId, password: undefined }
+                            : null,
+            deleteStaffId: session.deleteStaffId
+                            ? { ...session.deleteStaffId, password: undefined }
                             : null,
         }))
 
@@ -227,6 +231,7 @@ class ParkingRepository {
             'checkOutUserId',
             'checkInStaffId',
             'checkOutStaffId',
+            'deleteStaffId',
         ]).lean()
 
         return updatedParkingSession
