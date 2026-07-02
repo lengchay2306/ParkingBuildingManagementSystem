@@ -1,9 +1,17 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, LoaderCircle, RefreshCw, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,9 +54,12 @@ export function ReservationListPanel({
   tableOnly = false,
 }: ReservationListPanelProps) {
   const queryClient = useQueryClient();
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | "ALL">("ALL");
   const [reservationDate, setReservationDate] = useState(() => getLocalDateInputValue());
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
+  const [viewingReservation, setViewingReservation] = useState<Reservation | null>(null);
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null);
 
   const reservationsQuery = useQuery({
@@ -57,13 +68,14 @@ export function ReservationListPanel({
   });
 
   const allReservations = reservationsQuery.data ?? [];
-  const filteredReservations = useMemo(
-    () =>
-      allReservations.filter((reservation) =>
-        reservationMatchesDateFilter(reservation, reservationDate),
-      ),
-    [allReservations, reservationDate],
-  );
+  const filteredReservations = useMemo(() => {
+    if (!isDateFilterActive) {
+      return allReservations;
+    }
+    return allReservations.filter((reservation) =>
+      reservationMatchesDateFilter(reservation, reservationDate),
+    );
+  }, [allReservations, isDateFilterActive, reservationDate]);
   const totalPages = Math.max(Math.ceil(filteredReservations.length / pageSize), 1);
   const reservations = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -89,10 +101,29 @@ export function ReservationListPanel({
     },
   });
 
-  const headerMeta = useMemo(
-    () => `${filteredReservations.length} reservations`,
-    [filteredReservations.length],
-  );
+  const headerMeta = useMemo(() => {
+    const countLabel = `${filteredReservations.length} reservations`;
+    if (!isDateFilterActive) {
+      return countLabel;
+    }
+    return `${countLabel} · ${formatReservationDateLabel(reservationDate)}`;
+  }, [filteredReservations.length, isDateFilterActive, reservationDate]);
+
+  const clearDateFilter = () => {
+    setPage(1);
+    setIsDateFilterActive(false);
+    setReservationDate(getLocalDateInputValue());
+  };
+
+  const applyDateFilter = () => {
+    setPage(1);
+    setIsDateFilterActive(true);
+  };
+
+  const openDatePicker = () => {
+    applyDateFilter();
+    dateInputRef.current?.showPicker?.();
+  };
 
   const filterToolbar = (
     <div
@@ -105,30 +136,60 @@ export function ReservationListPanel({
         <Label htmlFor="reservation-manage-date" className="text-[10px] uppercase tracking-[0.14em]">
           Ngày
         </Label>
-        <Input
-          id="reservation-manage-date"
-          type="date"
-          value={reservationDate}
-          onChange={(event) => {
-            setPage(1);
-            setReservationDate(event.target.value);
-          }}
-          className="h-9 w-[160px] rounded-xl"
-        />
+        <div className="flex items-center gap-1.5">
+          <Input
+            ref={dateInputRef}
+            id="reservation-manage-date"
+            type="date"
+            value={reservationDate}
+            onChange={(event) => {
+              setReservationDate(event.target.value);
+              if (isDateFilterActive) {
+                setPage(1);
+              }
+            }}
+            className={cn(
+              "h-9 w-[160px] rounded-xl",
+              isDateFilterActive && "border-primary/60 ring-1 ring-primary/20",
+            )}
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant={isDateFilterActive ? "default" : "secondary"}
+            onClick={openDatePicker}
+            className="size-9 shrink-0 rounded-xl"
+            aria-label="Lọc reservation theo ngày"
+            title="Lọc theo ngày"
+          >
+            <CalendarDays className="size-4" />
+          </Button>
+        </div>
       </div>
-      {reservationDate !== getLocalDateInputValue() ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            setPage(1);
-            setReservationDate(getLocalDateInputValue());
-          }}
-          className="h-9 rounded-xl"
-        >
-          Hôm nay
-        </Button>
+      {isDateFilterActive ? (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setPage(1);
+              setReservationDate(getLocalDateInputValue());
+            }}
+            className="h-9 rounded-xl"
+          >
+            Hôm nay
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={clearDateFilter}
+            className="h-9 rounded-xl"
+          >
+            Bỏ lọc ngày
+          </Button>
+        </>
       ) : null}
       {statusFilterOptions.map((option) => (
         <button
@@ -137,6 +198,10 @@ export function ReservationListPanel({
           onClick={() => {
             setPage(1);
             setStatusFilter(option);
+            if (option === "ALL") {
+              setIsDateFilterActive(false);
+              setReservationDate(getLocalDateInputValue());
+            }
           }}
           className={cn(
             "rounded-full border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] transition-colors",
@@ -221,29 +286,39 @@ export function ReservationListPanel({
                 key={reservation._id}
                 className="grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4 transition-colors hover:bg-secondary/80"
               >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{getDriverLabel(reservation)}</div>
-                  <div className="truncate font-mono text-[11px] text-muted-foreground">
-                    {getDriverSubLabel(reservation)}
+                <button
+                  type="button"
+                  onClick={() => setViewingReservation(reservation)}
+                  className="col-span-4 grid cursor-pointer grid-cols-[1.4fr_1.2fr_1fr_0.8fr] items-center gap-4 rounded-lg text-left transition-colors hover:bg-background/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={`Xem chi tiết đặt chỗ ${getSlotLabel(reservation)}`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{getDriverLabel(reservation)}</div>
+                    <div className="truncate font-mono text-[11px] text-muted-foreground">
+                      {getDriverSubLabel(reservation)}
+                    </div>
                   </div>
-                </div>
 
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[12px]">{getVehicleLabel(reservation)}</div>
-                  <div className="truncate text-[12px] text-muted-foreground">
-                    {getSlotLabel(reservation)}
+                  <div className="min-w-0">
+                    <div className="truncate font-mono text-[12px]">{getVehicleLabel(reservation)}</div>
+                    <div className="truncate text-[12px] text-muted-foreground">
+                      {getSlotLabel(reservation)}
+                    </div>
                   </div>
-                </div>
 
-                <div className="text-[12px] text-muted-foreground">
-                  {formatDateTime(reservation.expectedArrival)}
-                </div>
+                  <div className="text-[12px] text-muted-foreground">
+                    {formatDateTime(reservation.expectedArrival)}
+                  </div>
 
-                <div>
-                  <Badge className={cn("border", getStatusBadgeClass(reservation.status))} variant="outline">
-                    {reservation.status}
-                  </Badge>
-                </div>
+                  <div>
+                    <Badge
+                      className={cn("border", getStatusBadgeClass(reservation.status))}
+                      variant="outline"
+                    >
+                      {reservation.status}
+                    </Badge>
+                  </div>
+                </button>
 
                 <div className="flex justify-end">
                   <button
@@ -260,7 +335,11 @@ export function ReservationListPanel({
             ))
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
-              Không có reservation nào vào ngày {formatReservationDateLabel(reservationDate)}.
+              {isDateFilterActive
+                ? `Không có reservation nào vào ngày ${formatReservationDateLabel(reservationDate)}.`
+                : statusFilter === "ALL"
+                  ? "Không có reservation nào."
+                  : `Không có reservation với trạng thái ${statusFilter}.`}
             </div>
           )}
         </div>
@@ -300,6 +379,16 @@ export function ReservationListPanel({
           </Button>
         </div>
       </div>
+
+      <ReservationDetailDialog
+        reservation={viewingReservation}
+        open={viewingReservation !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingReservation(null);
+          }
+        }}
+      />
 
       <AlertDialog
         open={!!deletingReservation}
