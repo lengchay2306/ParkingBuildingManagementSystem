@@ -58,11 +58,22 @@ const seedData = async () => {
         const vehicleTypesData = [
             { type: "SEDAN" },
             { type: "SUV" },
+            { type: "EBIKE" },
+            { type: "ECAR" },
+            { type: "MOTORBIKE" },
+            { type: "BIKE" },
+            { type: "HATCHBACK" },
+            { type: "CUV" },
             { type: "MPV" },
             { type: "PICKUP" },
         ];
         const createdVehicleTypes = await VehicleType.insertMany(vehicleTypesData);
         console.log(`  Created ${createdVehicleTypes.length} vehicle types.`);
+
+        const vehicleTypeMap = createdVehicleTypes.reduce((acc, item) => {
+            acc[item.type] = item;
+            return acc;
+        }, {});
 
         // ===== 3. USERS =====
         console.log("Seeding Users...");
@@ -150,88 +161,56 @@ const seedData = async () => {
         const customer3 = createdUsers.find(u => u.email === "customer3@example.com");
 
         // ===== 4. PRICE POLICIES =====
+        // Business rule:
+        // - each vehicle type has 2 policies: first 4 hours (0-4) and next 4 hours (4-8)
+        // - bigger vehicle size => higher parking price
         console.log("Seeding PricePolicies...");
-        const sedanType = createdVehicleTypes.find(v => v.type === "SEDAN");
-        const suvType = createdVehicleTypes.find(v => v.type === "SUV");
-        const mpvType = createdVehicleTypes.find(v => v.type === "MPV");
-        const pickupType = createdVehicleTypes.find(v => v.type === "PICKUP");
-
-        const pricePoliciesData = [
-            {
-                vehicleTypeId: sedanType._id,
-                policyName: "Sedan - Giờ hành chính",
-                fromHour: 6,
-                toHour: 18,
-                ratePerHour: 20000,
-                monthlyRate: 1500000,
-            },
-            {
-                vehicleTypeId: sedanType._id,
-                policyName: "Sedan - Ngoài giờ",
-                fromHour: 18,
-                toHour: 6,
-                ratePerHour: 15000,
-                monthlyRate: null,
-            },
-            {
-                vehicleTypeId: suvType._id,
-                policyName: "SUV - Giờ hành chính",
-                fromHour: 6,
-                toHour: 18,
-                ratePerHour: 30000,
-                monthlyRate: 2000000,
-            },
-            {
-                vehicleTypeId: suvType._id,
-                policyName: "SUV - Ngoài giờ",
-                fromHour: 18,
-                toHour: 6,
-                ratePerHour: 25000,
-                monthlyRate: null,
-            },
-            {
-                vehicleTypeId: mpvType._id,
-                policyName: "MPV - Giờ hành chính",
-                fromHour: 6,
-                toHour: 18,
-                ratePerHour: 25000,
-                monthlyRate: 1800000,
-            },
-            {
-                vehicleTypeId: mpvType._id,
-                policyName: "MPV - Ngoài giờ",
-                fromHour: 18,
-                toHour: 6,
-                ratePerHour: 20000,
-                monthlyRate: null,
-            },
-            {
-                vehicleTypeId: pickupType._id,
-                policyName: "Pickup - Giờ hành chính",
-                fromHour: 6,
-                toHour: 18,
-                ratePerHour: 30000,
-                monthlyRate: 2000000,
-            },
-            {
-                vehicleTypeId: pickupType._id,
-                policyName: "Pickup - Ngoài giờ",
-                fromHour: 18,
-                toHour: 6,
-                ratePerHour: 25000,
-                monthlyRate: null,
-            },
+        const typePricingConfig = [
+            { type: "BIKE", baseRate: 4000, monthlyRate: 250000 },
+            { type: "MOTORBIKE", baseRate: 6000, monthlyRate: 320000 },
+            { type: "EBIKE", baseRate: 7000, monthlyRate: 380000 },
+            { type: "HATCHBACK", baseRate: 12000, monthlyRate: 900000 },
+            { type: "SEDAN", baseRate: 14000, monthlyRate: 1100000 },
+            { type: "CUV", baseRate: 16000, monthlyRate: 1300000 },
+            { type: "ECAR", baseRate: 17000, monthlyRate: 1400000 },
+            { type: "SUV", baseRate: 19000, monthlyRate: 1550000 },
+            { type: "MPV", baseRate: 21000, monthlyRate: 1700000 },
+            { type: "PICKUP", baseRate: 23000, monthlyRate: 1850000 },
         ];
+
+        const pricePoliciesData = typePricingConfig.flatMap((item) => {
+            const vehicleType = vehicleTypeMap[item.type];
+            const next4HourRate = Math.round(item.baseRate * 1.25);
+
+            return [
+                {
+                    vehicleTypeId: vehicleType._id,
+                    policyName: `${item.type} - First 4 Hours`,
+                    fromHour: 0,
+                    toHour: 4,
+                    ratePerHour: item.baseRate,
+                    monthlyRate: item.monthlyRate,
+                },
+                {
+                    vehicleTypeId: vehicleType._id,
+                    policyName: `${item.type} - Next 4 Hours`,
+                    fromHour: 4,
+                    toHour: 9999,
+                    ratePerHour: next4HourRate,
+                    monthlyRate: null,
+                },
+            ];
+        });
         const createdPricePolicies = await PricePolicy.insertMany(pricePoliciesData);
         console.log(`  Created ${createdPricePolicies.length} price policies.`);
 
         // ===== 5. MONTHLY CARDS =====
         console.log("Seeding MonthlyCards...");
         const sedanMonthlyPolicy = createdPricePolicies.find(
-            p => p.policyName === "Sedan - Giờ hành chính"
+            p => p.policyName === "SEDAN - First 4 Hours"
         );
         const suvMonthlyPolicy = createdPricePolicies.find(
-            p => p.policyName === "SUV - Giờ hành chính"
+            p => p.policyName === "SUV - First 4 Hours"
         );
 
         const now = new Date();
@@ -267,37 +246,37 @@ const seedData = async () => {
             {
                 userId: customer1._id,
                 licensePlate: "51A-123.45",
-                vehicleTypeId: sedanType._id,
+                vehicleTypeId: vehicleTypeMap.SEDAN._id,
                 monthlyCardId: createdMonthlyCards[0]._id,
             },
             {
                 userId: customer1._id,
                 licensePlate: "51A-678.90",
-                vehicleTypeId: suvType._id,
+                vehicleTypeId: vehicleTypeMap.SUV._id,
                 monthlyCardId: createdMonthlyCards[1]._id,
             },
             {
                 userId: customer2._id,
                 licensePlate: "30H-111.22",
-                vehicleTypeId: sedanType._id,
+                vehicleTypeId: vehicleTypeMap.HATCHBACK._id,
                 monthlyCardId: null,
             },
             {
                 userId: customer2._id,
                 licensePlate: "30H-333.44",
-                vehicleTypeId: mpvType._id,
+                vehicleTypeId: vehicleTypeMap.MPV._id,
                 monthlyCardId: null,
             },
             {
                 userId: customer3._id,
                 licensePlate: "43A-555.66",
-                vehicleTypeId: pickupType._id,
+                vehicleTypeId: vehicleTypeMap.PICKUP._id,
                 monthlyCardId: null,
             },
             {
                 userId: customer3._id,
                 licensePlate: "43A-777.88",
-                vehicleTypeId: sedanType._id,
+                vehicleTypeId: vehicleTypeMap.ECAR._id,
                 monthlyCardId: createdMonthlyCards[2]._id,
             },
         ];
@@ -307,11 +286,16 @@ const seedData = async () => {
         // ===== 7. FLOORS =====
         console.log("Seeding Floors...");
         const floorsData = [
-            { floorName: "Tầng 1 - Sedan", vehicleTypeId: sedanType._id, totalSlot: 20 },
-            { floorName: "Tầng 2 - Sedan", vehicleTypeId: sedanType._id, totalSlot: 20 },
-            { floorName: "Tầng 3 - SUV", vehicleTypeId: suvType._id, totalSlot: 15 },
-            { floorName: "Tầng 4 - MPV", vehicleTypeId: mpvType._id, totalSlot: 15 },
-            { floorName: "Tầng 5 - Pickup", vehicleTypeId: pickupType._id, totalSlot: 10 },
+            { floorName: "Tầng 1 - BIKE", vehicleTypeId: vehicleTypeMap.BIKE._id, totalSlot: 30 },
+            { floorName: "Tầng 2 - MOTORBIKE", vehicleTypeId: vehicleTypeMap.MOTORBIKE._id, totalSlot: 28 },
+            { floorName: "Tầng 3 - EBIKE", vehicleTypeId: vehicleTypeMap.EBIKE._id, totalSlot: 25 },
+            { floorName: "Tầng 4 - HATCHBACK", vehicleTypeId: vehicleTypeMap.HATCHBACK._id, totalSlot: 22 },
+            { floorName: "Tầng 5 - SEDAN", vehicleTypeId: vehicleTypeMap.SEDAN._id, totalSlot: 20 },
+            { floorName: "Tầng 6 - CUV", vehicleTypeId: vehicleTypeMap.CUV._id, totalSlot: 18 },
+            { floorName: "Tầng 7 - ECAR", vehicleTypeId: vehicleTypeMap.ECAR._id, totalSlot: 18 },
+            { floorName: "Tầng 8 - SUV", vehicleTypeId: vehicleTypeMap.SUV._id, totalSlot: 16 },
+            { floorName: "Tầng 9 - MPV", vehicleTypeId: vehicleTypeMap.MPV._id, totalSlot: 14 },
+            { floorName: "Tầng 10 - PICKUP", vehicleTypeId: vehicleTypeMap.PICKUP._id, totalSlot: 12 },
         ];
         const createdFloors = await Floor.insertMany(floorsData);
         console.log(`  Created ${createdFloors.length} floors.`);

@@ -168,6 +168,63 @@ class ParkingService {
         };
     }
 
+    deleteErrorParkingSession = async ({
+        staffId,
+        parkingSessionId,
+    }) => {
+        const existingStaff = await this.#userRepository.findByUserId({
+            userId: staffId,
+        })
+
+        if (!existingStaff) {
+            throw new NotFoundError(`Cannot find this user from token!`)
+        }
+
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            _id: parkingSessionId,
+        });
+
+        if (!existingParkingSession || existingParkingSession.status !== 'ACTIVE') {
+            throw new BadRequestError(`You cant delete this session`)
+        }
+
+        const updatedParkingSession = await this.#parkingRepository.updateParkingSession({
+            field: { _id: existingParkingSession._id },
+            updateData: {
+                deleteStaffId: staffId,
+            },
+        })
+
+        if (!updatedParkingSession) {
+            throw new BadRequestError(`Cannot delete this parking session!`)
+        }
+
+        await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSession.parkingSlotId },
+
+        })
+
+        return {
+            ...updatedParkingSession,
+            parkingSlotId: {
+                ...updatedParkingSession.parkingSlotId,
+                status: 'ACTIVE'
+            },
+            checkInUserId: {
+                ...updatedParkingSession.checkInUserId,
+                password: undefined,
+            },
+            checkInStaffId: {
+                ...updatedParkingSession.checkInStaffId,
+                password: undefined,
+            },
+            deleteStaffId: {
+                ...updatedParkingSession.deleteStaffId,
+                password: undefined,
+            },
+        }
+    }
+
     getAllParkingSessions = async ({
         page,
         limit,

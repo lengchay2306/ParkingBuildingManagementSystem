@@ -5,7 +5,18 @@ const vehicleTypeSchema = mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        enum: ["SEDAN", "SUV", "MPV", "PICKUP"],
+        enum: [
+            "SEDAN",
+            "SUV",
+            "EBIKE",
+            "ECAR",
+            "MOTORBIKE",
+            "BIKE",
+            "HATCHBACK",
+            "CUV",
+            "MPV",
+            "PICKUP",
+        ],
     }
 })
 
