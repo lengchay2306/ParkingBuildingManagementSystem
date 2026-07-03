@@ -4,7 +4,15 @@ const parkingSessionSchema = mongoose.Schema({
     vehicleId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Vehicle",
-        required: true,
+        // required: true,
+    },
+    phone: {
+        type: String,
+        default: null,
+    },
+    licensePlate: {
+        type: String,
+        default: null,
     },
     parkingSlotId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -19,7 +27,7 @@ const parkingSessionSchema = mongoose.Schema({
     checkInUserId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        // required: true,
     },
     checkOutUserId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -55,6 +63,11 @@ const parkingSessionSchema = mongoose.Schema({
         required: true,
         enum: ["ACTIVE", "COMPLETED"],
     },
+    isGuest: {
+        type: Boolean,
+        reqtuired: true,
+        default: false
+    }
 })
 
 parkingSessionSchema.set('toJSON', { virtuals: true })

@@ -4,6 +4,7 @@ import {
     parkingSessionSchema,
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
+    guestParkingSessionSchema,
 } from '../../validators/parking.validator.js'
 
 const router = express.Router();
@@ -300,11 +301,23 @@ router.post(
     "/create-parking-session",
     authentication,
     authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
-    validateData(parkingSessionSchema, "query"),
+    validateData(parkingSessionSchema),
     async (req, res, next) => {
         const parkingController = req.container.resolve('parkingController');
 
         await parkingController.createNewParkingSession(req, res, next);
+    }
+)
+
+router.post(
+    "/create-parking-session/guest",
+    authentication,
+    authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
+    validateData(guestParkingSessionSchema),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController');
+
+        await parkingController.createNewParkingSessionForGuest(req, res, next);
     }
 )
 
