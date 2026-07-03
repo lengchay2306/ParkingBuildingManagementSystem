@@ -229,7 +229,7 @@ router.get(
  *     summary: Cancel a reservation (Customer)
  *     description: |
  *       Customer cancels their own PENDING reservation (soft cancel — status set to CANCELLED).
- *       Cannot cancel if expected arrival is within 15 minutes.
+ *       Cannot cancel if expected arrival is within 15 minutes or has already passed.
  *       Only accessible by CUSTOMER.
  *     tags: [Reservation]
  *     security:
@@ -262,7 +262,7 @@ router.get(
  *                   status: "CANCELLED"
  *                 message: "Reservation cancelled successfully"
  *       400:
- *         description: Not your reservation, not PENDING, or within 15 minutes of expected arrival
+ *         description: Not your reservation, not PENDING, within 15 minutes of expected arrival, or past expected arrival
  *       401:
  *         description: Unauthorized
  *       403:

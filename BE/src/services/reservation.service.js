@@ -100,8 +100,10 @@ class ReservationService {
         }
 
         const fifteenMinFromNow = new Date(Date.now() + 1000 * 60 * 15);
-        if (new Date(existingReservation.expectedArrival) < fifteenMinFromNow) {
-            throw new BadRequestError("Cannot cancel: reservation is within 15 minutes of expected arrival");
+        const expectedArrival = new Date(existingReservation.expectedArrival);
+
+        if (expectedArrival <= fifteenMinFromNow) {
+            throw new BadRequestError("Cannot cancel: reservation is within 15 minutes of expected arrival or past expected arrival");
         }
 
         const cancelledReservation = await this.#reservationRepository.cancelReservation({
