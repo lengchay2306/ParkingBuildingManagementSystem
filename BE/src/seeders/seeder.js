@@ -313,13 +313,6 @@ const seedData = async () => {
                 });
             }
         }
-        // Mark some slots as unavailable or in-use for realism
-        parkingSlotsData[0].status = "CURRENTLY-IN-USED";
-        parkingSlotsData[1].status = "CURRENTLY-IN-USED";
-        parkingSlotsData[20].status = "CURRENTLY-IN-USED";
-        parkingSlotsData[40].status = "UNAVAILABLE";
-        parkingSlotsData[55].status = "CURRENTLY-IN-USED";
-
         const createdParkingSlots = await ParkingSlot.insertMany(parkingSlotsData);
         console.log(`  Created ${createdParkingSlots.length} parking slots.`);
 

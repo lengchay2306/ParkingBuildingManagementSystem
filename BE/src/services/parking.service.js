@@ -105,11 +105,16 @@ class ParkingService {
             throw new BadRequestError(`This vehicle doesn't register yet!`)
         }
 
+        const normalizedLicensePlate = licensePlate.trim().toUpperCase()
+
         const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
             //because when input user vehicleId, it will include all old parking sessions
             //so i call findAllParkingSessionByField function
-            vehicleId: usersVehicles._id,
             status: 'ACTIVE',
+            $or: [
+                { vehicleId: usersVehicles._id },
+                { licensePlate: normalizedLicensePlate }
+            ],
         })
 
         if (isAlreadyInParkingSession.length > 0) {
@@ -120,7 +125,11 @@ class ParkingService {
             _id: parkingSlotId,
         });
 
-        if (!existingParkingSlot || existingParkingSlot.status !== 'AVAILABLE') {
+        if (
+            !existingParkingSlot
+            || existingParkingSlot.status === 'CURRENTLY-IN-USED'
+            || existingParkingSlot.status === 'UNAVAILABLE'
+        ) {
             throw new BadRequestError(`This parking slot is not available!`)
         }
 
@@ -142,6 +151,80 @@ class ParkingService {
             checkInStaffId: staffId,
             checkInTime: Date.now(),
             status: "ACTIVE",
+            isGuest: false,
+        })
+
+        if (!newParkingSession) {
+            throw new BadRequestError(`Cannot create new parking session!`)
+        }
+
+        await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSlot._id },
+            updateData: {
+                status: 'CURRENTLY-IN-USED',
+            }
+        })
+        return {
+            ...newParkingSession,
+            parkingSlotId: {
+                ...newParkingSession.parkingSlotId,
+                status: 'CURRENTLY-IN-USED'
+            },
+            checkInUserId: {
+                ...newParkingSession.checkInUserId,
+                password: undefined,
+            },
+            checkInStaffId: {
+                ...newParkingSession.checkInStaffId,
+                password: undefined,
+            }
+        };
+    }
+    
+    createNewParkingSessionForGuest = async ({
+        phone,
+        licensePlate,
+        staffId,
+        parkingSlotId,
+        vehicleTypeId,
+    }) => {
+        const normalizedLicensePlate = licensePlate.trim().toUpperCase()
+        const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
+            //because when input user vehicleId, it will include all old parking sessions
+            //so i call findAllParkingSessionByField function
+            licensePlate: normalizedLicensePlate,
+            status: 'ACTIVE',
+        })
+
+        if (isAlreadyInParkingSession.length > 0) {
+            throw new BadRequestError(`This vehicle already in parking building!`)
+        }
+
+        const existingParkingSlot = await this.#parkingRepository.findParkingSlot({
+            _id: parkingSlotId,
+        });
+
+        if (!existingParkingSlot || existingParkingSlot.status !== 'AVAILABLE') {
+            throw new BadRequestError(`This parking slot is not available!`)
+        }
+
+        const vehicleTypeIdFromVehicles = vehicleTypeId
+
+        const vehicleTypeIdFromSlot = existingParkingSlot.floorId?.vehicleTypeId?._id ||
+                                    existingParkingSlot.floorId?.vehicleTypeId
+
+        if (String(vehicleTypeIdFromVehicles) !== String(vehicleTypeIdFromSlot) ) {
+            throw new BadRequestError(`This slot is not fit with this type of vehicle`)
+        }
+
+        const newParkingSession = await this.#parkingRepository.createNewParkingSession({
+            parkingSlotId: existingParkingSlot._id,
+            sessionType: "DAILY",
+            checkInStaffId: staffId,
+            checkInTime: Date.now(),
+            status: "ACTIVE",
+            licensePlate: normalizedLicensePlate,
+            isGuest: true
         })
 
         if (!newParkingSession) {
