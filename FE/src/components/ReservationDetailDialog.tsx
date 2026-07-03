@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -15,12 +17,20 @@ type ReservationDetailDialogProps = {
   reservation: Reservation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showCreateSessionAction?: boolean;
+  onCreateSession?: () => void;
+  isCreatingSession?: boolean;
+  createSessionDisabledReason?: string;
 };
 
 export function ReservationDetailDialog({
   reservation,
   open,
   onOpenChange,
+  showCreateSessionAction = false,
+  onCreateSession,
+  isCreatingSession = false,
+  createSessionDisabledReason,
 }: ReservationDetailDialogProps) {
   if (!reservation) {
     return null;
@@ -82,6 +92,30 @@ export function ReservationDetailDialog({
               <DetailRow label="Hết hạn giữ chỗ" value={formatDateTime(reservation.expiryAt)} />
             </DetailGrid>
           </section>
+
+          {showCreateSessionAction ? (
+            <section className="space-y-3 border-t border-border pt-4">
+              <SectionHeading>Check-in</SectionHeading>
+              {createSessionDisabledReason ? (
+                <p className="text-sm text-muted-foreground">{createSessionDisabledReason}</p>
+              ) : null}
+              <Button
+                type="button"
+                className="w-full rounded-xl"
+                disabled={Boolean(createSessionDisabledReason) || isCreatingSession || !onCreateSession}
+                onClick={onCreateSession}
+              >
+                {isCreatingSession ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Đang tạo parking session...
+                  </>
+                ) : (
+                  "Tạo parking session"
+                )}
+              </Button>
+            </section>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
