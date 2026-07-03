@@ -29,6 +29,20 @@ const parkingSessionSchema = Joi.object({
                         .required(),
 });
 
+const guestParkingSessionSchema = Joi.object({
+    phone: Joi.string()
+                .pattern(/^(03|05|07|08|09)\d{8}$/)
+                .messages({
+                    'string.pattern.base': 'Wrong phone format',
+                }),
+    licensePlate: Joi.string().required(),
+    parkingSlotId: Joi.string()
+                        .custom(validateMongoObjectId)
+                        .required(),
+    vehicleTypeId: Joi.string()
+                    .custom(validateMongoObjectId),
+});
+
 const checkParkingSessionSchema = Joi.object({
     phone: Joi.string()
                 .pattern(/^(03|05|07|08|09)\d{8}$/)
@@ -40,6 +54,7 @@ const checkParkingSessionSchema = Joi.object({
 
 export {
     parkingSessionSchema,
+    guestParkingSessionSchema,
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
 }

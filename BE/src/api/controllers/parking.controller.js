@@ -59,6 +59,36 @@ class ParkingController {
         }
     }
 
+    createNewParkingSessionForGuest = async (req, res, next) => {
+        try {
+            const { 
+                phone, 
+                licensePlate,
+                parkingSlotId,
+                vehicleTypeId,
+            } = req.body
+
+            const { userId } = req.user
+
+            const newParkingSession = await this.#parkingService.createNewParkingSessionForGuest({
+                phone,
+                licensePlate,
+                staffId: userId,
+                parkingSlotId,
+                vehicleTypeId,
+            })
+
+            res.status(201).json({
+                status: 'success',
+                data: {
+                    parkingSession: newParkingSession
+                }
+            });
+        } catch (error) {
+            next(error)
+        }
+    }
+
     deleteErrorParkingSession = async (req, res, next) => {
         try {
             const { userId } = req.body

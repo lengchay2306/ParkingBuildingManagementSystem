@@ -119,12 +119,14 @@ class ParkingRepository {
 
     createNewParkingSession = async ({
         vehicleId,
+        licensePlate,
         parkingSlotId,
         sessionType,
         checkInUserId,
         checkInStaffId,
         checkInTime,
         status,
+        isGuest,
     }) => {
         const newParkingSession = await ParkingSession.create({
             vehicleId,
@@ -134,6 +136,7 @@ class ParkingRepository {
             checkInTime,
             checkInStaffId,
             status,
+            isGuest,
         })
 
         await newParkingSession.populate([

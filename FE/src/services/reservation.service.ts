@@ -119,7 +119,7 @@ export const getMyReservations = async (status?: ReservationStatus) => {
   return payload.data?.reservations ?? [];
 };
 
-/** ADMIN / MANAGER — paginated list of all reservations. */
+/** ADMIN / MANAGER / STAFF — paginated list of all reservations. */
 export const getAllReservations = async ({
   page = 1,
   limit = 10,
@@ -238,4 +238,65 @@ export const getReservationSlotId = (reservation: Reservation) => {
     return reservation.parkingSlotId;
   }
   return reservation.parkingSlotId?._id ?? null;
+};
+
+/** Fetch every page until all reservations are loaded. */
+export const fetchAllReservationsPages = async ({
+  status,
+  batchSize = 100,
+}: {
+  status?: ReservationStatus;
+  batchSize?: number;
+} = {}) => {
+  let currentPage = 1;
+  let totalPages = 1;
+  const reservations: Reservation[] = [];
+
+  do {
+    const result = await getAllReservations({
+      page: currentPage,
+      limit: batchSize,
+      status,
+    });
+    reservations.push(...result.reservations);
+    totalPages = result.pagination.totalPages;
+    currentPage += 1;
+  } while (currentPage <= totalPages);
+
+  return reservations;
+};
+
+const staffRelevantReservationStatuses: ReservationStatus[] = ["PENDING", "CLAIMED"];
+
+export const isStaffRelevantReservation = (reservation: Reservation) => {
+  if (!staffRelevantReservationStatuses.includes(reservation.status as ReservationStatus)) {
+    return false;
+  }
+  if (reservation.status === "PENDING" && reservation.expiryAt) {
+    return new Date(reservation.expiryAt).getTime() > Date.now();
+  }
+  return true;
+};
+
+/** Latest relevant reservation per parking slot id. */
+export const mapReservationsBySlotId = (reservations: Reservation[]) => {
+  const sorted = [...reservations].sort((left, right) => {
+    const leftTime = new Date(left.reservedAt ?? 0).getTime();
+    const rightTime = new Date(right.reservedAt ?? 0).getTime();
+    return rightTime - leftTime;
+  });
+
+  const bySlotId = new Map<string, Reservation>();
+  for (const reservation of sorted) {
+    if (!isStaffRelevantReservation(reservation)) {
+      continue;
+    }
+    const slotId = getReservationSlotId(reservation);
+    if (!slotId || bySlotId.has(slotId)) {
+      continue;
+    }
+    bySlotId.set(slotId, reservation);
+  }
+
+  return bySlotId;
 };
