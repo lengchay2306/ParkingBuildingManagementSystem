@@ -159,6 +159,37 @@ class ReservationRepository {
         }
         return deletedReservation;
     }
+
+    getAllReservationsByVehiclePlate = async ({ licensePlate, status }) => {
+        const vehicle = await Vehicle.findOne({ licensePlate }).lean();
+
+        if (!vehicle) {
+            return { vehicle: null, reservations: [] };
+        }
+
+        const filter = { vehicleId: vehicle._id };
+        if (status) {
+            filter.status = status;
+        }
+
+        const reservations = await Reservation.find(filter)
+            .populate('driverId', '-password')
+            .populate({
+                path: 'vehicleId',
+                populate: { path: 'vehicleTypeId' },
+            })
+            .populate({
+                path: 'parkingSlotId',
+                populate: {
+                    path: 'floorId',
+                    populate: { path: 'vehicleTypeId' },
+                },
+            })
+            .sort({ reservedAt: -1 })
+            .lean();
+
+        return { vehicle, reservations };
+    }
 }
 
 export default ReservationRepository;

@@ -1,6 +1,11 @@
 import express from 'express';
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
-import { createReservationSchema, cancelReservationSchema } from '../../validators/reservation.validator.js';
+import {
+    createReservationSchema,
+    cancelReservationSchema,
+    getReservationsByVehiclePlateParamsSchema,
+    getReservationsByVehiclePlateQuerySchema,
+} from '../../validators/reservation.validator.js';
 
 const router = express.Router();
 
@@ -219,6 +224,86 @@ router.get(
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.getAllReservations(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/reservations/by-plate/{licensePlate}:
+ *   get:
+ *     summary: Get all reservations by vehicle license plate
+ *     description: |
+ *       Look up a vehicle by license plate and return all of its reservations,
+ *       sorted by newest first (`reservedAt` descending).
+ *       Supports optional filtering by status.
+ *       Only accessible by ADMIN, MANAGER, and STAFF.
+ *     tags: [Reservation]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licensePlate
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vehicle license plate (format 51A-123.45)
+ *         example: "51A-123.45"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CLAIMED, EXPIRED, CANCELLED]
+ *         description: Filter reservations by status
+ *     responses:
+ *       200:
+ *         description: Reservations fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicle:
+ *                   _id: "665b..."
+ *                   licensePlate: "51A-123.45"
+ *                   vehicleTypeId:
+ *                     _id: "665c..."
+ *                     type: "SEDAN"
+ *                 reservations:
+ *                   - _id: "665f..."
+ *                     driverId:
+ *                       _id: "665a..."
+ *                       fullName: "Nguyen Van A"
+ *                       phone: "0901234567"
+ *                     vehicleId:
+ *                       _id: "665b..."
+ *                       licensePlate: "51A-123.45"
+ *                     parkingSlotId:
+ *                       _id: "665d..."
+ *                       slotNumber: "T101"
+ *                       floorId:
+ *                         _id: "665e..."
+ *                         floorName: "Tầng 1 - Sedan"
+ *                     reservedAt: "2026-06-15T10:00:00.000Z"
+ *                     expectedArrival: "2026-06-15T12:00:00.000Z"
+ *                     expiryAt: "2026-06-15T12:15:00.000Z"
+ *                     status: "PENDING"
+ *               message: "Reservations fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Vehicle not found
+ */
+router.get(
+    "/by-plate/:licensePlate",
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(getReservationsByVehiclePlateParamsSchema, 'params'),
+    validateData(getReservationsByVehiclePlateQuerySchema, 'query'),
+    async (req, res, next) => {
+        const reservationController = req.container.resolve('reservationController');
+        await reservationController.getAllReservationsByVehiclePlate(req, res, next);
     }
 );
 

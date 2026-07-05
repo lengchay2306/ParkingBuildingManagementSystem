@@ -71,6 +71,29 @@ class ReservationController {
         }
     }
 
+    getAllReservationsByVehiclePlate = async (req, res, next) => {
+        try {
+            const { licensePlate } = req.params;
+            const { status } = req.query;
+
+            const result = await this.#reservationService.getAllReservationsByVehiclePlate({
+                licensePlate,
+                status,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicle: result.vehicle,
+                    reservations: result.reservations,
+                },
+                message: 'Reservations fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     cancelReservation = async (req, res, next) => {
         try {
             const { reservationId } = req.params;
