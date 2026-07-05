@@ -32,9 +32,18 @@ const getReservationsByVehiclePlateQuerySchema = Joi.object({
     status: reservationStatus.optional(),
 });
 
+const recommendSlotsSchema = Joi.object({
+    vehicleId: objectId.required()
+        .messages({ 'string.pattern.name': 'vehicleId must be a valid ObjectId' }),
+    expectedArrival: Joi.date().iso().greater('now').required()
+        .messages({ 'date.greater': 'expectedArrival must be a future date' }),
+    limit: Joi.number().integer().min(1).max(10).default(3),
+});
+
 export {
     createReservationSchema,
     cancelReservationSchema,
     getReservationsByVehiclePlateParamsSchema,
     getReservationsByVehiclePlateQuerySchema,
+    recommendSlotsSchema,
 }

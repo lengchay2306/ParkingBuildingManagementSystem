@@ -1,6 +1,7 @@
 import Reservation from "../models/Reservation.js";
 import Vehicle from "../models/Vehicle.js";
 import ParkingSlot from "../models/ParkingSlot.js";
+import Floor from "../models/Floor.js";
 
 class ReservationRepository {
     findVehicleById = async ({ vehicleId }) => {
@@ -189,6 +190,50 @@ class ReservationRepository {
             .lean();
 
         return { vehicle, reservations };
+    }
+
+    findAvailableSlotsForVehicleType = async ({ vehicleTypeId }) => {
+        const floors = await Floor.find({ vehicleTypeId }).lean();
+
+        if (floors.length === 0) {
+            return [];
+        }
+
+        const floorIds = floors.map((floor) => floor._id);
+
+        return ParkingSlot.find({
+            floorId: { $in: floorIds },
+            status: 'AVAILABLE',
+        })
+            .populate({
+                path: 'floorId',
+                populate: { path: 'vehicleTypeId' },
+            })
+            .lean();
+    }
+
+    findActiveReservationsBySlotIds = async ({ parkingSlotIds }) => {
+        const now = new Date();
+
+        return Reservation.find({
+            parkingSlotId: { $in: parkingSlotIds },
+            $or: [
+                { status: 'CLAIMED' },
+                { status: 'PENDING', expiryAt: { $gt: now } },
+            ],
+        })
+            .select('parkingSlotId')
+            .lean();
+    }
+
+    findDriverPastReservationSlotIds = async ({ driverId, limit = 20 }) => {
+        const reservations = await Reservation.find({ driverId })
+            .sort({ reservedAt: -1 })
+            .limit(limit)
+            .select('parkingSlotId')
+            .lean();
+
+        return reservations.map((reservation) => String(reservation.parkingSlotId));
     }
 }
 

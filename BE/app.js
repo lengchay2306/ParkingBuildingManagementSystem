@@ -46,6 +46,7 @@ import ReservationRouter from './src/api/routers/reservation.router.js'
 import UserRouter from './src/api/routers/user.router.js'
 import VehicleRouter from './src/api/routers/vehicle.router.js'
 import PaymentRouter from './src/api/routers/payment.router.js'
+import ChatbotRouter from './src/api/routers/chatbot.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -60,6 +61,7 @@ app.use(`${url}/reservations`, ReservationRouter)
 app.use(`${url}/users`, UserRouter)
 app.use(`${url}/vehicles`, VehicleRouter)
 app.use(`${url}/payment`, PaymentRouter)
+app.use(`${url}/chatbot`, ChatbotRouter)
 
 //handle error
 app.use(handleError)
