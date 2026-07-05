@@ -85,6 +85,23 @@ class ReservationService {
         return await this.#reservationRepository.getAllReservations({ filter, page, limit });
     }
 
+    getAllReservationsByVehiclePlate = async ({ licensePlate, status }) => {
+        await this.#expireOverdueReservations();
+
+        const normalizedLicensePlate = licensePlate.trim().replace(/\s+/g, ' ').toUpperCase();
+
+        const { vehicle, reservations } = await this.#reservationRepository.getAllReservationsByVehiclePlate({
+            licensePlate: normalizedLicensePlate,
+            status,
+        });
+
+        if (!vehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        return { vehicle, reservations };
+    }
+
     cancelReservation = async ({ driverId, reservationId }) => {
         const existingReservation = await this.#reservationRepository.findReservationById({ reservationId });
         if (!existingReservation) {
