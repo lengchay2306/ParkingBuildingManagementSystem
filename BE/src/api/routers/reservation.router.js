@@ -5,6 +5,7 @@ import {
     cancelReservationSchema,
     getReservationsByVehiclePlateParamsSchema,
     getReservationsByVehiclePlateQuerySchema,
+    recommendSlotsSchema,
 } from '../../validators/reservation.validator.js';
 
 const router = express.Router();
@@ -81,6 +82,88 @@ router.post(
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.createReservation(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/reservations/recommend-slots:
+ *   post:
+ *     summary: Get smart parking slot recommendations
+ *     description: |
+ *       Suggests the best available parking slots for a vehicle and expected arrival time.
+ *       Uses rule-based scoring (proximity to entrance, floor availability, driver history, peak-hour traffic).
+ *       Does not create a reservation — use POST /reservations to book a recommended slot.
+ *       Only accessible by CUSTOMER.
+ *     tags: [Reservation]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vehicleId
+ *               - expectedArrival
+ *             properties:
+ *               vehicleId:
+ *                 type: string
+ *                 description: The vehicle ObjectId
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0e"
+ *               expectedArrival:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Expected arrival time (ISO 8601, must be in the future)
+ *                 example: "2026-06-18T14:00:00.000Z"
+ *               limit:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10
+ *                 default: 3
+ *                 description: Number of slot recommendations to return
+ *     responses:
+ *       200:
+ *         description: Slot recommendations fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicle:
+ *                   _id: "665b..."
+ *                   licensePlate: "51A-123.45"
+ *                 expectedArrival: "2026-06-18T14:00:00.000Z"
+ *                 recommendations:
+ *                   - parkingSlotId: "665d..."
+ *                     slotNumber: "T105"
+ *                     status: "AVAILABLE"
+ *                     floorName: "Tầng 5 - SEDAN"
+ *                     vehicleType: "SEDAN"
+ *                     score: 87
+ *                     reasons:
+ *                       - "Gần lối vào tầng"
+ *                       - "Tầng còn nhiều chỗ trống"
+ *                 meta:
+ *                   totalEligibleSlots: 12
+ *                   floorOccupancyRate: 0.35
+ *               message: "Slot recommendations fetched successfully"
+ *       400:
+ *         description: Vehicle does not belong to the authenticated user
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Vehicle not found or no available slots for this vehicle type
+ */
+router.post(
+    "/recommend-slots",
+    authentication,
+    authorizationByRole(['CUSTOMER']),
+    validateData(recommendSlotsSchema),
+    async (req, res, next) => {
+        const reservationController = req.container.resolve('reservationController');
+        await reservationController.recommendSlots(req, res, next);
     }
 );
 
