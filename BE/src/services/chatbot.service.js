@@ -6,7 +6,7 @@ import {
 import { BadRequestError, NotFoundError, ServiceUnavailableError } from "../error/error.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_SESSION_TITLE = "Cuộc trò chuyện mới";
 const AUTO_TITLE_MAX_LENGTH = 60;
 
