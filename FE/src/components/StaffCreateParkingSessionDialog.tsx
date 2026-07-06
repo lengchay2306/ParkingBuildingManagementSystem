@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { normalizeStaffPhone } from "@/services/reservation.service";
 
 type StaffCreateParkingSessionDialogProps = {
   open: boolean;
@@ -20,6 +21,8 @@ type StaffCreateParkingSessionDialogProps = {
   parkingSlotId: string | null;
   defaultPhone?: string;
   defaultLicensePlate?: string;
+  fromReservation?: boolean;
+  reservationDriverName?: string;
   onSubmit: (payload: { phone: string; licensePlate: string; parkingSlotId: string }) => void;
   isSubmitting?: boolean;
 };
@@ -32,6 +35,8 @@ export function StaffCreateParkingSessionDialog({
   parkingSlotId,
   defaultPhone = "",
   defaultLicensePlate = "",
+  fromReservation = false,
+  reservationDriverName,
   onSubmit,
   isSubmitting = false,
 }: StaffCreateParkingSessionDialogProps) {
@@ -59,6 +64,14 @@ export function StaffCreateParkingSessionDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {fromReservation ? (
+          <p className="rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
+            Thông tin điền sẵn từ đặt chỗ
+            {reservationDriverName ? ` của ${reservationDriverName}` : ""}. Kiểm tra trước khi tạo
+            session.
+          </p>
+        ) : null}
+
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -67,7 +80,7 @@ export function StaffCreateParkingSessionDialog({
               return;
             }
             onSubmit({
-              phone: phone.trim(),
+              phone: normalizeStaffPhone(phone.trim()) ?? phone.trim(),
               licensePlate: licensePlate.trim(),
               parkingSlotId,
             });

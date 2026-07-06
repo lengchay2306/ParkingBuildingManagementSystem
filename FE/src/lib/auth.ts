@@ -192,16 +192,14 @@ export const requireGuest = async () => {
     return;
   }
 
-  const storedRole = getStoredRole();
-  const hasAccessCookie = document.cookie.includes("accessToken=");
-  if (!storedRole && !hasAccessCookie) {
-    return;
+  const roleFromToken = normalizeRole(await getRoleNameFromAccessCookie());
+  if (roleFromToken) {
+    setStoredRole(roleFromToken);
+    throw redirect({ to: getRoleHome(roleFromToken) });
   }
 
-  const role = await getSessionRole();
-  if (role) {
-    throw redirect({ to: getRoleHome(role) });
-  }
+  // Stale localStorage role without a valid cookie should not block the login page.
+  setStoredRole(null);
 };
 
 export const requireRole = async (required: RoleName) => {

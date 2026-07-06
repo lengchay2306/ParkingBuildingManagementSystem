@@ -21,6 +21,8 @@ type ReservationDetailDialogProps = {
   onCreateSession?: () => void;
   isCreatingSession?: boolean;
   createSessionDisabledReason?: string;
+  showExpiryAt?: boolean;
+  statusLabel?: string;
 };
 
 export function ReservationDetailDialog({
@@ -31,6 +33,8 @@ export function ReservationDetailDialog({
   onCreateSession,
   isCreatingSession = false,
   createSessionDisabledReason,
+  showExpiryAt = true,
+  statusLabel,
 }: ReservationDetailDialogProps) {
   if (!reservation) {
     return null;
@@ -54,7 +58,7 @@ export function ReservationDetailDialog({
           <section className="space-y-3">
             <SectionHeading>Trạng thái</SectionHeading>
             <Badge className={cn("border", getStatusBadgeClass(reservation.status))} variant="outline">
-              {reservation.status}
+              {statusLabel ?? reservation.status}
             </Badge>
           </section>
 
@@ -89,7 +93,9 @@ export function ReservationDetailDialog({
             <DetailGrid>
               <DetailRow label="Đặt lúc" value={formatDateTime(reservation.reservedAt)} />
               <DetailRow label="Dự kiến đến" value={formatDateTime(reservation.expectedArrival)} />
-              <DetailRow label="Hết hạn giữ chỗ" value={formatDateTime(reservation.expiryAt)} />
+              {showExpiryAt ? (
+                <DetailRow label="Hết hạn giữ chỗ" value={formatDateTime(reservation.expiryAt)} />
+              ) : null}
             </DetailGrid>
           </section>
 
@@ -111,7 +117,7 @@ export function ReservationDetailDialog({
                     Đang tạo parking session...
                   </>
                 ) : (
-                  "Tạo parking session"
+                  "Tạo parking session (điền sẵn thông tin)"
                 )}
               </Button>
             </section>

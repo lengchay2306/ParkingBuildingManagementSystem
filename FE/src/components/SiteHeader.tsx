@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 
-import { getSessionRole, logout, type RoleName } from "@/lib/auth";
+import { getSessionRole, getStoredRole, logout, type RoleName } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 const THEME_STORAGE_KEY = "parkos-theme";
@@ -36,6 +36,15 @@ export function SiteHeader() {
 
   useEffect(() => {
     let cancelled = false;
+    const hasAccessCookie = document.cookie.includes("accessToken=");
+    const storedRole = getStoredRole();
+
+    if (!hasAccessCookie && !storedRole) {
+      setRole(null);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     void getSessionRole().then((sessionRole) => {
       if (!cancelled) {
@@ -97,7 +106,7 @@ export function SiteHeader() {
               size="sm"
               className="h-8 rounded-full bg-primary px-4 text-[12px] font-semibold shadow-pop hover:bg-primary/90"
             >
-              <Link to="/login">Sign in</Link>
+              <Link to="/login" preload="intent">Sign in</Link>
             </Button>
           ) : (
             <Button
