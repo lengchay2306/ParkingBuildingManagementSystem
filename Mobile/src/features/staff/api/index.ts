@@ -30,4 +30,4 @@ export {
   type VehicleType,
 } from './vehicles';
 
-export { deleteManagedReservation, type Reservation } from './reservations';
+export { deleteManagedReservation, getReservationsByLicensePlate, type Reservation } from './reservations';

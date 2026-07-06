@@ -5,8 +5,12 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
-import type { ParkingFloor, StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
+import type { ParkingFloor, Reservation, StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
 import { resolveVehicleTypeLabel } from '@/features/staff/api';
+import {
+  formatReservationSlotLabel,
+  getReservationDriverName,
+} from '@/features/staff/lib/reservation-helpers';
 import { useDesignColors } from '@/hooks/use-design-colors';
 
 type StaffCheckInConfirmStepProps = {
@@ -20,6 +24,7 @@ type StaffCheckInConfirmStepProps = {
   floors: ParkingFloor[];
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
+  pendingReservation?: Reservation | null;
   isLoadingSlots: boolean;
   isDisabled?: boolean;
   t: (vi: string, en: string) => string;
@@ -36,6 +41,7 @@ export function StaffCheckInConfirmStep({
   floors,
   selectedSlotId,
   onSelectSlot,
+  pendingReservation,
   isLoadingSlots,
   isDisabled,
   t,
@@ -48,6 +54,9 @@ export function StaffCheckInConfirmStep({
     : t('Vé ngày', 'Daily pass');
   const vehicleType = resolveVehicleTypeLabel(vehicle.vehicleTypeId);
   const showPhoneInput = !hasActiveConflict && !ownerProfile?.phone;
+  const reservationDriverName = pendingReservation ? getReservationDriverName(pendingReservation) : undefined;
+  const reservationSlotLabel = pendingReservation ? formatReservationSlotLabel(pendingReservation) : null;
+  const lockSlotSelection = !!pendingReservation && !hasActiveConflict;
 
   return (
     <View style={styles.root}>
@@ -83,6 +92,23 @@ export function StaffCheckInConfirmStep({
         </View>
       ) : null}
 
+      {pendingReservation && !hasActiveConflict ? (
+        <View style={styles.reservationCard}>
+          <Ionicons color={DesignColors.primaryFocus} name="bookmark-outline" size={22} />
+          <View style={styles.reservationBody}>
+            <ThemedText style={styles.reservationTitle}>
+              {t('Có đặt chỗ PENDING', 'PENDING reservation')}
+            </ThemedText>
+            <ThemedText style={styles.reservationMeta}>{reservationSlotLabel}</ThemedText>
+            {reservationDriverName ? (
+              <ThemedText style={styles.reservationDriver}>
+                {reservationDriverName}
+              </ThemedText>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.ownerCard}>
         <View style={styles.plateRow}>
           <ThemedText style={styles.plate}>{vehicle.licensePlate}</ThemedText>
@@ -97,7 +123,7 @@ export function StaffCheckInConfirmStep({
         <View style={styles.ownerRow}>
           <Ionicons color={DesignColors.inkMuted} name="person-outline" size={18} />
           <ThemedText style={styles.ownerValue}>
-            {ownerProfile?.fullName ?? t('Chưa có tên chủ xe', 'Owner name unavailable')}
+            {reservationDriverName ?? ownerProfile?.fullName ?? t('Chưa có tên chủ xe', 'Owner name unavailable')}
           </ThemedText>
         </View>
 
@@ -126,6 +152,7 @@ export function StaffCheckInConfirmStep({
         <StaffCheckInSlotPicker
           floors={floors}
           isLoading={isLoadingSlots}
+          lockedSlotId={lockSlotSelection ? selectedSlotId : null}
           onSelectSlot={onSelectSlot}
           selectedSlotId={selectedSlotId}
           t={t}
@@ -205,6 +232,36 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       ...Typography.caption,
       color: DesignColors.primaryFocus,
       fontWeight: '600',
+      fontSize: 12,
+    },
+    reservationCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: Spacing.sm,
+      backgroundColor: `${DesignColors.primaryFocus}12`,
+      borderRadius: Radius.xl,
+      borderWidth: 1,
+      borderColor: `${DesignColors.primaryFocus}44`,
+      padding: Spacing.md,
+    },
+    reservationBody: {
+      flex: 1,
+      gap: 4,
+    },
+    reservationTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.primaryFocus,
+      fontWeight: '700',
+    },
+    reservationMeta: {
+      ...Typography.caption,
+      color: DesignColors.ink,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    reservationDriver: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
       fontSize: 12,
     },
     ownerCard: {

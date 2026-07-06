@@ -1,10 +1,31 @@
+/** Screen share reserved for the floating close/title row. */
+export const PLATE_SCANNER_HEADER_RESERVE = 0.11;
+
+/** Screen share reserved for the bottom HUD card + safe area. */
+export const PLATE_SCANNER_HUD_RESERVE = 0.34;
+
 /** Shared viewfinder geometry — preview clip and OCR crop use the same ratios. */
 export const PLATE_VIEWFINDER = {
-  marginX: 0.12,
-  marginY: 0.32,
-  width: 0.76,
-  height: 0.36,
+  marginX: 0.09,
+  width: 0.82,
+  height: 0.28,
 } as const;
+
+/** Vertically centers the frame between header and HUD zones. */
+export function getPlateViewfinderMarginTop(): number {
+  const usable =
+    1 - PLATE_SCANNER_HEADER_RESERVE - PLATE_SCANNER_HUD_RESERVE - PLATE_VIEWFINDER.height;
+  return PLATE_SCANNER_HEADER_RESERVE + Math.max(usable, 0) / 2;
+}
+
+/** Bottom of the clear scan band (just above the HUD). */
+export function getPlateViewfinderScanBandBottom(): number {
+  return 1 - PLATE_SCANNER_HUD_RESERVE;
+}
+
+export function getPlateViewfinderFrameBottom(): number {
+  return getPlateViewfinderMarginTop() + PLATE_VIEWFINDER.height;
+}
 
 export type ViewfinderCrop = {
   originX: number;
@@ -15,10 +36,11 @@ export type ViewfinderCrop = {
 
 /**
  * Crops the captured photo to match what the user sees inside the viewfinder.
- * Preview uses cover inside the clip box, so we center-crop with the same aspect ratio.
+ * Preview uses cover inside the clip box, so we center-crop horizontally with the same aspect ratio.
  */
 export function resolveViewfinderCrop(imageWidth: number, imageHeight: number): ViewfinderCrop {
   const viewfinderAspect = PLATE_VIEWFINDER.width / PLATE_VIEWFINDER.height;
+  const marginTop = getPlateViewfinderMarginTop();
 
   let cropHeight = Math.max(1, Math.round(imageHeight * PLATE_VIEWFINDER.height));
   let cropWidth = Math.max(1, Math.round(cropHeight * viewfinderAspect));
@@ -32,7 +54,7 @@ export function resolveViewfinderCrop(imageWidth: number, imageHeight: number): 
   cropHeight = Math.min(cropHeight, imageHeight);
 
   const originX = Math.max(0, Math.round((imageWidth - cropWidth) / 2));
-  const originY = Math.max(0, Math.round((imageHeight - cropHeight) / 2));
+  const originY = Math.max(0, Math.round(imageHeight * marginTop));
 
   return {
     originX,

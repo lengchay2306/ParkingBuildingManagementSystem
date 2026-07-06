@@ -11,6 +11,7 @@ import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
 import { createStaffStyles } from '@/features/staff/styles/common';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { useSessionRole } from '@/hooks/session-role';
 import { extractRoleNameFromProfile, getMyProfile, logout, type UserProfile } from '@/lib/auth-api';
 import { AUTH_ROUTES, resolveRoleLabel, STAFF_ROUTES } from '@/roles';
 
@@ -19,6 +20,7 @@ export default function StaffProfileScreen() {
   const router = useRouter();
   const { showToast } = useAppToast();
   const { t } = useLanguagePreference();
+  const { refreshRole } = useSessionRole();
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
 
@@ -51,6 +53,7 @@ export default function StaffProfileScreen() {
     setIsLoggingOut(true);
     try {
       await logout();
+      await refreshRole();
       showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
       router.replace(AUTH_ROUTES.signIn as never);
     } catch (error) {
