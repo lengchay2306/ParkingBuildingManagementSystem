@@ -39,8 +39,12 @@ import {
 } from "@/services/parking.service";
 import {
   fetchAllReservationsPages,
+  getCreateSessionDisabledReasonFromReservation,
+  getReservationDriverName,
   getReservationSlotId,
-  mapReservationsBySlotId,
+  getReservationVehiclePlate,
+  mapStaffSlotReservationsBySlotId,
+  normalizeStaffPhone,
   type Reservation,
 } from "@/services/reservation.service";
 
@@ -96,6 +100,8 @@ function StaffPage() {
     phone: "",
     licensePlate: "",
   });
+  const [createSessionFromReservation, setCreateSessionFromReservation] = useState(false);
+  const [createSessionDriverName, setCreateSessionDriverName] = useState<string | undefined>();
 
   useEffect(() => {
     setHasMounted(true);
@@ -120,7 +126,7 @@ function StaffPage() {
   });
 
   const reservationsBySlotId = useMemo(
-    () => mapReservationsBySlotId(reservationsQuery.data ?? []),
+    () => mapStaffSlotReservationsBySlotId(reservationsQuery.data ?? []),
     [reservationsQuery.data],
   );
 
@@ -214,9 +220,13 @@ function StaffPage() {
   const openCreateSessionDialog = (
     slot: ParkingSlot,
     defaults: { phone?: string; licensePlate?: string } = {},
+    fromReservation = false,
+    driverName?: string,
   ) => {
     setViewingReservation(null);
     setViewingSession(null);
+    setCreateSessionFromReservation(fromReservation);
+    setCreateSessionDriverName(fromReservation ? driverName : undefined);
     setCreateSessionDefaults({
       phone: defaults.phone ?? "",
       licensePlate: defaults.licensePlate ?? "",
@@ -224,19 +234,40 @@ function StaffPage() {
     setCreateSessionSlot(slot);
   };
 
-  const handleCreateSessionFromReservation = () => {
-    if (!viewingReservation || createSessionMutation.isPending) {
+  const handleOpenCreateSessionFromReservation = () => {
+    if (!viewingReservation) {
       return;
     }
-    const payload = buildCreateSessionPayload(viewingReservation);
-    if (!payload) {
+
+    const slotId = getReservationSlotId(viewingReservation);
+    const slot =
+      floorSlots.find((item) => item._id === slotId) ??
+      (selectedSlot && selectedSlot._id === slotId ? selectedSlot : null);
+    if (!slot) {
+      toast.error("Không tìm thấy slot của reservation này.");
       return;
     }
-    createSessionMutation.mutate(payload);
+
+    const phone = normalizeStaffPhone(
+      typeof viewingReservation.driverId === "object"
+        ? viewingReservation.driverId.phone
+        : null,
+    );
+    const licensePlate = getReservationVehiclePlate(viewingReservation)?.trim() ?? "";
+
+    openCreateSessionDialog(
+      slot,
+      {
+        phone: phone ?? "",
+        licensePlate,
+      },
+      true,
+      getReservationDriverName(viewingReservation) ?? undefined,
+    );
   };
 
   const createSessionDisabledReason = viewingReservation
-    ? getCreateSessionDisabledReason(viewingReservation)
+    ? getCreateSessionDisabledReasonFromReservation(viewingReservation)
     : undefined;
 
   const handleSlotClick = (slot: ParkingSlot) => {
@@ -245,21 +276,33 @@ function StaffPage() {
     const reservation = reservationsBySlotId.get(slot._id);
     const session = sessionsBySlotId.get(slot._id);
 
+    if (slot.status === "CURRENTLY-IN-USED") {
+      setViewingReservation(null);
+      if (session) {
+        setViewingSession(session);
+      } else {
+        toast.info("Slot đang có xe gửi nhưng chưa có dữ liệu chi tiết.", {
+          description: "Thử bấm Refresh hoặc liên hệ quản trị.",
+        });
+      }
+      return;
+    }
+
     if (reservation) {
       setViewingSession(null);
       setViewingReservation(reservation);
       return;
     }
 
-    if (slot.status === "AVAILABLE" || slot.status === "RESERVED") {
+    if (slot.status === "AVAILABLE") {
       openCreateSessionDialog(slot);
       return;
     }
 
-    if (slot.status === "CURRENTLY-IN-USED" && session) {
-      setViewingReservation(null);
-      setViewingSession(session);
-      return;
+    if (slot.status === "RESERVED") {
+      toast.info("Slot đang Reserved nhưng chưa có thông tin đặt chỗ.", {
+        description: "Có thể dữ liệu chưa đồng bộ — thử Refresh.",
+      });
     }
   };
 
@@ -271,7 +314,7 @@ function StaffPage() {
           <DashboardSectionHeader
             kicker="Staff slot monitor"
             title={selectedFloor?.floorName ?? "Live parking slots"}
-            description="Click slot Available/Reserved để tạo session, hoặc xem đặt chỗ / xe đang gửi."
+            description="Click slot để xem đặt chỗ, xe đang gửi, hoặc tạo parking session."
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
@@ -402,10 +445,30 @@ function StaffPage() {
                       setViewingReservation(selectedSlotReservation);
                       return;
                     }
-                    openCreateSessionDialog(selectedSlot);
+                    if (selectedSlot.status === "AVAILABLE") {
+                      openCreateSessionDialog(selectedSlot);
+                    }
                   }}
                 >
-                  {selectedSlotReservation ? "Xem đặt chỗ / tạo session" : "Tạo parking session"}
+                  {selectedSlotReservation
+                    ? "Xem thông tin đặt chỗ"
+                    : selectedSlot.status === "AVAILABLE"
+                      ? "Tạo parking session"
+                      : "Chưa có thông tin đặt chỗ"}
+                </Button>
+              ) : selectedSlot.status === "CURRENTLY-IN-USED" ? (
+                <Button
+                  type="button"
+                  className="mt-4 rounded-xl"
+                  onClick={() => {
+                    if (selectedSlotSession) {
+                      setViewingSession(selectedSlotSession);
+                    } else {
+                      toast.info("Chưa có dữ liệu chi tiết cho xe đang gửi.");
+                    }
+                  }}
+                >
+                  Xem thông tin xe đang gửi
                 </Button>
               ) : null}
             </div>
@@ -430,8 +493,9 @@ function StaffPage() {
           }
         }}
         showCreateSessionAction
-        onCreateSession={handleCreateSessionFromReservation}
-        isCreatingSession={createSessionMutation.isPending}
+        showExpiryAt={false}
+        onCreateSession={handleOpenCreateSessionFromReservation}
+        isCreatingSession={false}
         createSessionDisabledReason={createSessionDisabledReason}
       />
 
@@ -452,6 +516,8 @@ function StaffPage() {
         onOpenChange={(open) => {
           if (!open) {
             setCreateSessionSlot(null);
+            setCreateSessionFromReservation(false);
+            setCreateSessionDriverName(undefined);
           }
         }}
         slotNumber={createSessionSlot?.slotNumber}
@@ -459,6 +525,8 @@ function StaffPage() {
         parkingSlotId={createSessionSlot?._id ?? null}
         defaultPhone={createSessionDefaults.phone}
         defaultLicensePlate={createSessionDefaults.licensePlate}
+        fromReservation={createSessionFromReservation}
+        reservationDriverName={createSessionDriverName}
         onSubmit={(payload) => createSessionMutation.mutate(payload)}
         isSubmitting={createSessionMutation.isPending}
       />
@@ -468,55 +536,6 @@ function StaffPage() {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function getReservationDriverPhone(reservation: Reservation) {
-  if (typeof reservation.driverId === "object") {
-    return reservation.driverId.phone ?? null;
-  }
-  return null;
-}
-
-function getReservationVehiclePlate(reservation: Reservation) {
-  if (typeof reservation.vehicleId === "object") {
-    return reservation.vehicleId.licensePlate ?? null;
-  }
-  return null;
-}
-
-function buildCreateSessionPayload(reservation: Reservation) {
-  const phone = getReservationDriverPhone(reservation);
-  const licensePlate = getReservationVehiclePlate(reservation);
-  const parkingSlotId = getReservationSlotId(reservation);
-  if (!phone || !licensePlate || !parkingSlotId) {
-    return null;
-  }
-  return { phone, licensePlate, parkingSlotId };
-}
-
-function getCreateSessionDisabledReason(reservation: Reservation) {
-  if (reservation.status !== "PENDING") {
-    return "Chỉ tạo session từ reservation đang PENDING.";
-  }
-
-  const phone = getReservationDriverPhone(reservation);
-  const licensePlate = getReservationVehiclePlate(reservation);
-  const parkingSlotId = getReservationSlotId(reservation);
-
-  if (!parkingSlotId) {
-    return "Không xác định được slot.";
-  }
-  if (!phone) {
-    return "Reservation thiếu số điện thoại khách.";
-  }
-  if (!/^(03|05|07|08|09)\d{8}$/.test(phone)) {
-    return "Số điện thoại không đúng định dạng (03/05/07/08/09 + 8 số).";
-  }
-  if (!licensePlate) {
-    return "Reservation thiếu biển số xe.";
-  }
-
-  return undefined;
 }
 
 function getSessionVehiclePlate(session: ParkingSession) {

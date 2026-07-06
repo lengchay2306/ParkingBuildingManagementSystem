@@ -1,6 +1,5 @@
 import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
-import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { getRoleHome, getSessionRole } from "@/lib/auth";
@@ -26,9 +25,9 @@ export const Route = createFileRoute("/")({
 });
 
 const heroImage =
-  "https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=1400&q=65";
 const sectionImage =
-  "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1800&q=80";
+  "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1200&q=65";
 
 const features = [
   { icon: Zap, title: "Nhanh chóng", detail: "Vào ra dưới 5 giây" },
@@ -37,16 +36,6 @@ const features = [
 ];
 
 function Index() {
-  const router = useRouter();
-
-  useEffect(() => {
-    void getSessionRole().then((role) => {
-      if (role) {
-        void router.navigate({ to: getRoleHome(role) });
-      }
-    });
-  }, [router]);
-
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -82,6 +71,7 @@ function Index() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   to="/login"
+                  preload="intent"
                   className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Đăng nhập <ArrowRight className="size-3.5" />
