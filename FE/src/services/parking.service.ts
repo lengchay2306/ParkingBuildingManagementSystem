@@ -120,21 +120,28 @@ export type ParkingSessionVehicle = {
 
 export type ParkingSession = {
   _id: string;
-  vehicleId: string | ParkingSessionVehicle;
+  vehicleId?: string | ParkingSessionVehicle | null;
   parkingSlotId:
     | string
     | {
         _id: string;
         slotNumber?: string;
         status?: ParkingSlotStatus;
+        floorId?: {
+          floorName?: string;
+          vehicleTypeId?: { _id?: string; type?: string };
+        };
       };
   sessionType: "DAILY" | "MONTH" | string;
-  checkInUserId: string | ParkingSessionUser;
+  checkInUserId?: string | ParkingSessionUser | null;
   checkOutUserId?: string | ParkingSessionUser | null;
   checkInStaffId?: string | ParkingSessionUser;
   checkInTime?: string;
   checkOutTime?: string | null;
   status: "ACTIVE" | "COMPLETED" | string;
+  licensePlate?: string | null;
+  phone?: string | null;
+  isGuest?: boolean;
 };
 
 export type ParkingSessionsPagination = {
@@ -200,6 +207,69 @@ export const getParkingSessionSlotId = (session: ParkingSession) => {
   return session.parkingSlotId?._id ?? null;
 };
 
+export const getFloorForParkingSlotId = (
+  slotId: string | null | undefined,
+  floors: ParkingFloor[],
+) => {
+  if (!slotId) {
+    return undefined;
+  }
+  return floors.find((floor) => floor.slots.some((slot) => slot._id === slotId));
+};
+
+export const getSessionVehicleTypeLabel = (
+  session: ParkingSession,
+  floors: ParkingFloor[] = [],
+) => {
+  const slot = session.parkingSlotId;
+  if (typeof slot === "object" && slot.floorId?.vehicleTypeId?.type) {
+    return slot.floorId.vehicleTypeId.type;
+  }
+
+  const floor = getFloorForParkingSlotId(getParkingSessionSlotId(session), floors);
+  return floor?.vehicleType?.type;
+};
+
+export const getSessionLicensePlate = (
+  session: ParkingSession,
+  platesBySlotId: Record<string, string> = {},
+) => {
+  const direct = session.licensePlate?.trim();
+  if (direct) {
+    return direct;
+  }
+
+  const vehicle = session.vehicleId;
+  if (vehicle && typeof vehicle === "object") {
+    const fromVehicle = vehicle.licensePlate?.trim();
+    if (fromVehicle) {
+      return fromVehicle;
+    }
+  }
+
+  const slotId = getParkingSessionSlotId(session);
+  if (slotId) {
+    const cached = platesBySlotId[slotId]?.trim();
+    if (cached) {
+      return cached;
+    }
+  }
+
+  return undefined;
+};
+
+export const enrichParkingSessionsWithPlates = (
+  sessions: ParkingSession[],
+  platesBySlotId: Record<string, string>,
+) =>
+  sessions.map((session) => {
+    const licensePlate = getSessionLicensePlate(session, platesBySlotId);
+    if (!licensePlate || session.licensePlate === licensePlate) {
+      return session;
+    }
+    return { ...session, licensePlate };
+  });
+
 /** Load active parking sessions; returns empty list if API has no rows. */
 export const fetchActiveParkingSessions = async () => {
   try {
@@ -223,6 +293,13 @@ export type CreateParkingSessionPayload = {
   parkingSlotId: string;
 };
 
+export type CreateGuestParkingSessionPayload = {
+  licensePlate: string;
+  parkingSlotId: string;
+  vehicleTypeId: string;
+  phone?: string;
+};
+
 export const createParkingSession = async (payload: CreateParkingSessionPayload) => {
   const response = await fetch(`${API_BASE}/api/v1/parking/create-parking-session`, {
     method: "POST",
@@ -242,6 +319,42 @@ export const createParkingSession = async (payload: CreateParkingSessionPayload)
   }
 
   const parkingSession = body.data?.parkingSession;
+  if (!parkingSession) {
+    throw new ParkingApiError(response.status, "Parking session response data is missing.");
+  }
+
+  return parkingSession;
+};
+
+/** Khách vãng lai — không cần SĐT / tài khoản driver (chỉ slot AVAILABLE). */
+export const createGuestParkingSession = async (payload: CreateGuestParkingSessionPayload) => {
+  const body: Record<string, string> = {
+    licensePlate: payload.licensePlate.trim().toUpperCase(),
+    parkingSlotId: payload.parkingSlotId,
+    vehicleTypeId: payload.vehicleTypeId,
+  };
+  if (payload.phone?.trim()) {
+    body.phone = payload.phone.trim();
+  }
+
+  const response = await fetch(`${API_BASE}/api/v1/parking/create-parking-session/guest`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (response.status !== 201) {
+    throw new ParkingApiError(
+      response.status,
+      apiPayload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  const parkingSession = apiPayload.data?.parkingSession;
   if (!parkingSession) {
     throw new ParkingApiError(response.status, "Parking session response data is missing.");
   }
