@@ -172,6 +172,7 @@ class ParkingRepository {
     }) => {
         const newParkingSession = await ParkingSession.create({
             vehicleId,
+            licensePlate,
             parkingSlotId,
             sessionType,
             checkInUserId,
@@ -183,7 +184,13 @@ class ParkingRepository {
 
         await newParkingSession.populate([
             'vehicleId',
-            'parkingSlotId',
+            {
+                path: 'parkingSlotId',
+                populate: {
+                    path: 'floorId',
+                    populate: { path: 'vehicleTypeId' },
+                },
+            },
             'checkInUserId',
             'checkInStaffId',
         ])
@@ -219,7 +226,13 @@ class ParkingRepository {
                             .limit(limit)
                             .populate([
                                 "vehicleId",
-                                "parkingSlotId",
+                                {
+                                    path: "parkingSlotId",
+                                    populate: {
+                                        path: "floorId",
+                                        populate: { path: "vehicleTypeId" },
+                                    },
+                                },
                                 "checkInUserId",
                                 "checkOutUserId",
                                 "checkInStaffId",

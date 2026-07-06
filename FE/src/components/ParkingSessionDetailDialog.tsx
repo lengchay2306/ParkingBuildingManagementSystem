@@ -9,12 +9,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { ParkingSession } from "@/services/parking.service";
+import {
+  getSessionLicensePlate,
+  getSessionVehicleTypeLabel,
+  type ParkingSession,
+} from "@/services/parking.service";
 
 type ParkingSessionDetailDialogProps = {
   session: ParkingSession | null;
   slotNumber?: string;
   floorName?: string;
+  vehicleTypeLabel?: string;
+  licensePlateLabel?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -23,6 +29,8 @@ export function ParkingSessionDetailDialog({
   session,
   slotNumber,
   floorName,
+  vehicleTypeLabel,
+  licensePlateLabel,
   open,
   onOpenChange,
 }: ParkingSessionDetailDialogProps) {
@@ -30,6 +38,9 @@ export function ParkingSessionDetailDialog({
     return null;
   }
 
+  const resolvedLicensePlate =
+    licensePlateLabel ?? getSessionLicensePlate(session) ?? "—";
+  const isGuest = session.isGuest || !session.checkInUserId;
   const resolvedSlotNumber =
     slotNumber ??
     (typeof session.parkingSlotId === "object" ? session.parkingSlotId.slotNumber : undefined) ??
@@ -43,6 +54,7 @@ export function ParkingSessionDetailDialog({
           <DialogDescription>
             Slot {resolvedSlotNumber}
             {floorName ? ` · ${floorName}` : ""}
+            {isGuest ? " · Khách vãng lai" : ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -57,16 +69,32 @@ export function ParkingSessionDetailDialog({
           <section className="space-y-3">
             <SectionHeading>Khách</SectionHeading>
             <DetailGrid>
-              <DetailRow label="Họ tên" value={getUserName(session.checkInUserId)} />
-              <DetailRow label="Số điện thoại" value={getUserPhone(session.checkInUserId)} />
+              {isGuest ? (
+                <>
+                  <DetailRow label="Loại khách" value="Khách vãng lai" />
+                  <DetailRow label="Số điện thoại" value={session.phone ?? "—"} />
+                </>
+              ) : (
+                <>
+                  <DetailRow label="Họ tên" value={getUserName(session.checkInUserId)} />
+                  <DetailRow label="Số điện thoại" value={getUserPhone(session.checkInUserId)} />
+                </>
+              )}
             </DetailGrid>
           </section>
 
           <section className="space-y-3">
             <SectionHeading>Xe</SectionHeading>
             <DetailGrid>
-              <DetailRow label="Biển số" value={getVehiclePlate(session.vehicleId)} mono />
-              <DetailRow label="Loại xe" value={getVehicleType(session.vehicleId)} />
+              <DetailRow label="Biển số" value={resolvedLicensePlate} mono />
+              <DetailRow
+                label="Loại xe"
+                value={
+                  vehicleTypeLabel ??
+                  getSessionVehicleTypeLabel(session) ??
+                  getVehicleType(session.vehicleId)
+                }
+              />
             </DetailGrid>
           </section>
 
@@ -132,15 +160,8 @@ function getUserPhone(user?: string | { phone?: string } | null) {
   return user.phone ?? "—";
 }
 
-function getVehiclePlate(vehicle: string | { licensePlate?: string; _id?: string }) {
-  if (typeof vehicle === "string") {
-    return vehicle;
-  }
-  return vehicle.licensePlate ?? vehicle._id ?? "—";
-}
-
-function getVehicleType(vehicle: string | { vehicleTypeId?: { type?: string } }) {
-  if (typeof vehicle === "string") {
+function getVehicleType(vehicle?: string | { vehicleTypeId?: { type?: string } } | null) {
+  if (!vehicle || typeof vehicle === "string") {
     return "—";
   }
   return vehicle.vehicleTypeId?.type ?? "—";

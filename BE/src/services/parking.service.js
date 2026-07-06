@@ -145,6 +145,7 @@ class ParkingService {
 
         const newParkingSession = await this.#parkingRepository.createNewParkingSession({
             vehicleId: usersVehicles._id,
+            licensePlate: normalizedLicensePlate,
             parkingSlotId: existingParkingSlot._id,
             sessionType: usersVehicles.monthlyCardId ? "MONTH" : "DAILY",
             checkInUserId: existingUser._id,
@@ -243,14 +244,12 @@ class ParkingService {
                 ...newParkingSession.parkingSlotId,
                 status: 'CURRENTLY-IN-USED'
             },
-            checkInUserId: {
-                ...newParkingSession.checkInUserId,
-                password: undefined,
-            },
-            checkInStaffId: {
-                ...newParkingSession.checkInStaffId,
-                password: undefined,
-            }
+            checkInUserId: newParkingSession.checkInUserId
+                ? { ...newParkingSession.checkInUserId, password: undefined }
+                : null,
+            checkInStaffId: newParkingSession.checkInStaffId
+                ? { ...newParkingSession.checkInStaffId, password: undefined }
+                : null,
         };
     }
 

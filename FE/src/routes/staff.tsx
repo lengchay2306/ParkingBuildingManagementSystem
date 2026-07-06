@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CircleDashed, MapPin, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import { StaffCreateParkingSessionDialog } from "@/components/StaffCreateParkingSessionDialog";
+import { StaffWalkInCheckInDialog } from "@/components/staff/StaffWalkInCheckInDialog";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,14 +24,18 @@ import {
   DashboardLoadingState,
   DashboardMain,
   DashboardSection,
-  DashboardSectionHeader,
-  DashboardStat,
 } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 import {
   createParkingSession,
+  createGuestParkingSession,
+  enrichParkingSessionsWithPlates,
   fetchActiveParkingSessions,
+  getFloorForParkingSlotId,
   getParkingFloors,
+  getParkingSessionSlotId,
+  getSessionLicensePlate,
+  getSessionVehicleTypeLabel,
   mapActiveParkingSessionsBySlotId,
   type ParkingFloor,
   type ParkingSession,
@@ -94,7 +99,8 @@ function StaffPage() {
   const [selectedFloorId, setSelectedFloorId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [viewingReservation, setViewingReservation] = useState<Reservation | null>(null);
-  const [viewingSession, setViewingSession] = useState<ParkingSession | null>(null);
+  const [viewingSessionSlotId, setViewingSessionSlotId] = useState<string | null>(null);
+  const [guestPlatesBySlotId, setGuestPlatesBySlotId] = useState<Record<string, string>>({});
   const [createSessionSlot, setCreateSessionSlot] = useState<ParkingSlot | null>(null);
   const [createSessionDefaults, setCreateSessionDefaults] = useState({
     phone: "",
@@ -102,6 +108,7 @@ function StaffPage() {
   });
   const [createSessionFromReservation, setCreateSessionFromReservation] = useState(false);
   const [createSessionDriverName, setCreateSessionDriverName] = useState<string | undefined>();
+  const [walkInSlot, setWalkInSlot] = useState<ParkingSlot | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -130,10 +137,13 @@ function StaffPage() {
     [reservationsQuery.data],
   );
 
-  const sessionsBySlotId = useMemo(
-    () => mapActiveParkingSessionsBySlotId(parkingSessionsQuery.data ?? []),
-    [parkingSessionsQuery.data],
-  );
+  const sessionsBySlotId = useMemo(() => {
+    const enrichedSessions = enrichParkingSessionsWithPlates(
+      parkingSessionsQuery.data ?? [],
+      guestPlatesBySlotId,
+    );
+    return mapActiveParkingSessionsBySlotId(enrichedSessions);
+  }, [parkingSessionsQuery.data, guestPlatesBySlotId]);
 
   const parkingFloors = parkingFloorsQuery.data ?? emptyParkingFloors;
   const selectedFloor = useMemo(() => {
@@ -147,10 +157,42 @@ function StaffPage() {
     () => floorSlots.find((slot) => slot._id === selectedSlotId) ?? null,
     [floorSlots, selectedSlotId],
   );
-  const selectedSlotReservation = selectedSlot
-    ? (reservationsBySlotId.get(selectedSlot._id) ?? null)
-    : null;
-  const selectedSlotSession = selectedSlot ? (sessionsBySlotId.get(selectedSlot._id) ?? null) : null;
+
+  const viewingSessionDetail = useMemo(() => {
+    if (!viewingSessionSlotId) {
+      return null;
+    }
+
+    const session = sessionsBySlotId.get(viewingSessionSlotId);
+    if (!session) {
+      return null;
+    }
+
+    const floor =
+      getFloorForParkingSlotId(viewingSessionSlotId, parkingFloors) ?? selectedFloor;
+    const slotNumber =
+      selectedSlot && selectedSlot._id === viewingSessionSlotId
+        ? selectedSlot.slotNumber
+        : typeof session.parkingSlotId === "object"
+          ? session.parkingSlotId.slotNumber
+          : undefined;
+    const licensePlate = getSessionLicensePlate(session, guestPlatesBySlotId);
+
+    return {
+      session: licensePlate ? { ...session, licensePlate } : session,
+      slotNumber,
+      floorName: floor?.floorName ?? selectedFloor?.floorName,
+      vehicleTypeLabel: getSessionVehicleTypeLabel(session, parkingFloors),
+      licensePlateLabel: licensePlate,
+    };
+  }, [
+    viewingSessionSlotId,
+    sessionsBySlotId,
+    parkingFloors,
+    selectedFloor,
+    selectedSlot,
+    guestPlatesBySlotId,
+  ]);
 
   const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
   const unavailableCount = floorSlots.filter((slot) => slot.status === "UNAVAILABLE").length;
@@ -217,6 +259,70 @@ function StaffPage() {
     },
   });
 
+  const createGuestSessionMutation = useMutation({
+    mutationFn: createGuestParkingSession,
+    onSuccess: async (session, variables) => {
+      setWalkInSlot(null);
+
+      const plate = (session.licensePlate ?? variables.licensePlate).trim().toUpperCase();
+      const slotId = variables.parkingSlotId;
+
+      setGuestPlatesBySlotId((current) => {
+        const nextPlates = { ...current, [slotId]: plate };
+
+        void queryClient
+          .fetchQuery({
+            queryKey: staffParkingSessionsQueryKey,
+            queryFn: () => fetchActiveParkingSessions(),
+          })
+          .then((freshSessions) => {
+            queryClient.setQueryData(
+              staffParkingSessionsQueryKey,
+              enrichParkingSessionsWithPlates(freshSessions, nextPlates),
+            );
+          });
+
+        return nextPlates;
+      });
+
+      const enrichedSession: ParkingSession = {
+        ...session,
+        licensePlate: plate,
+        isGuest: session.isGuest ?? true,
+      };
+
+      queryClient.setQueryData(
+        staffParkingSessionsQueryKey,
+        (current: ParkingSession[] | undefined) => {
+          const list = current ?? [];
+          const sessionSlotId = getParkingSessionSlotId(enrichedSession);
+          if (!sessionSlotId) {
+            return [...list, enrichedSession];
+          }
+          return [
+            ...list.filter((item) => getParkingSessionSlotId(item) !== sessionSlotId),
+            enrichedSession,
+          ];
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey });
+
+      toast.success("Tạo parking session thành công", {
+        description: `Khách vãng lai ${plate} đã check-in slot ${
+          typeof enrichedSession.parkingSlotId === "object"
+            ? (enrichedSession.parkingSlotId.slotNumber ?? "—")
+            : "—"
+        }.`,
+      });
+    },
+    onError: (error) => {
+      toast.error("Không thể tạo parking session", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    },
+  });
+
   const openCreateSessionDialog = (
     slot: ParkingSlot,
     defaults: { phone?: string; licensePlate?: string } = {},
@@ -224,7 +330,7 @@ function StaffPage() {
     driverName?: string,
   ) => {
     setViewingReservation(null);
-    setViewingSession(null);
+    setViewingSessionSlotId(null);
     setCreateSessionFromReservation(fromReservation);
     setCreateSessionDriverName(fromReservation ? driverName : undefined);
     setCreateSessionDefaults({
@@ -279,7 +385,7 @@ function StaffPage() {
     if (slot.status === "CURRENTLY-IN-USED") {
       setViewingReservation(null);
       if (session) {
-        setViewingSession(session);
+        setViewingSessionSlotId(slot._id);
       } else {
         toast.info("Slot đang có xe gửi nhưng chưa có dữ liệu chi tiết.", {
           description: "Thử bấm Refresh hoặc liên hệ quản trị.",
@@ -289,13 +395,15 @@ function StaffPage() {
     }
 
     if (reservation) {
-      setViewingSession(null);
+      setViewingSessionSlotId(null);
       setViewingReservation(reservation);
       return;
     }
 
     if (slot.status === "AVAILABLE") {
-      openCreateSessionDialog(slot);
+      setViewingReservation(null);
+      setViewingSessionSlotId(null);
+      setWalkInSlot(slot);
       return;
     }
 
@@ -306,33 +414,46 @@ function StaffPage() {
     }
   };
 
+  const handleWalkInCreateSession = (licensePlate: string) => {
+    const slot = walkInSlot ?? selectedSlot;
+    if (!slot || slot.status !== "AVAILABLE") {
+      toast.error("Slot không còn khả dụng.");
+      return;
+    }
+
+    const floor =
+      parkingFloors.find((item) => item.slots.some((s) => s._id === slot._id)) ?? selectedFloor;
+    const vehicleTypeId = floor?.vehicleType?._id;
+    if (!vehicleTypeId) {
+      toast.error("Không xác định được loại xe của tầng.");
+      return;
+    }
+
+    createGuestSessionMutation.mutate({
+      licensePlate,
+      parkingSlotId: slot._id,
+      vehicleTypeId,
+    });
+  };
+
+  const walkInFloor =
+    walkInSlot &&
+    (parkingFloors.find((floor) => floor.slots.some((s) => s._id === walkInSlot._id)) ??
+      selectedFloor);
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <DashboardMain wide>
         <DashboardSection>
-          <DashboardSectionHeader
-            kicker="Staff slot monitor"
-            title={selectedFloor?.floorName ?? "Live parking slots"}
-            description="Click slot để xem đặt chỗ, xe đang gửi, hoặc tạo parking session."
-            actions={
-              <div className="flex flex-wrap items-center gap-2">
-                <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
-                <DashboardLegend label={`Reserved ${reservedCount}`} tone="bg-status-reserved" />
-                <DashboardLegend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
-                <DashboardLegend label={`In used ${inUsedCount}`} tone="bg-status-full" />
-              </div>
-            }
-          />
-
-          <div className="grid gap-3 sm:grid-cols-4">
-            <DashboardStat label="Available" value={`${availableCount}`} tone="text-status-empty" />
-            <DashboardStat label="Reserved" value={`${reservedCount}`} tone="text-status-reserved" />
-            <DashboardStat label="Unavailable" value={`${unavailableCount}`} />
-            <DashboardStat label="In used" value={`${inUsedCount}`} tone="text-status-full" />
+          <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
+            <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
+            <DashboardLegend label={`Reserved ${reservedCount}`} tone="bg-status-reserved" />
+            <DashboardLegend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
+            <DashboardLegend label={`In used ${inUsedCount}`} tone="bg-status-full" />
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-[240px_auto]">
+          <div className="grid gap-3 sm:grid-cols-[240px_auto]">
             <div className="space-y-2">
               <Label htmlFor="staff-floor-filter">Floor</Label>
               <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
@@ -407,81 +528,6 @@ function StaffPage() {
             </div>
           )}
         </DashboardSection>
-
-        <DashboardSection compact>
-          {selectedSlot ? (
-            <div className="rounded-xl border border-border bg-secondary p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-xl font-semibold tracking-tight">{selectedSlot.slotNumber}</h4>
-                <span className="rounded-full border border-border bg-card px-3 py-1 text-sm font-medium">
-                  {slotStatusText[selectedSlot.status]}
-                </span>
-              </div>
-              <div className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-                <p className="inline-flex items-center gap-2">
-                  <CircleDashed className="size-4 shrink-0" />
-                  {selectedFloor?.floorName ?? "Floor"}
-                </p>
-                <p className="inline-flex items-center gap-2">
-                  <MapPin className="size-4 shrink-0" />
-                  {selectedSlotReservation
-                    ? "Slot có đặt chỗ — click lại để xem chi tiết."
-                    : selectedSlotSession
-                      ? "Slot đang có xe gửi — click lại để xem chi tiết."
-                      : selectedSlot.status === "AVAILABLE" || selectedSlot.status === "RESERVED"
-                        ? "Có thể tạo parking session cho slot này."
-                        : selectedSlot.status === "CURRENTLY-IN-USED"
-                          ? "Chưa có dữ liệu chi tiết cho slot này."
-                          : "Slot không khả dụng."}
-                </p>
-              </div>
-
-              {selectedSlot.status === "AVAILABLE" || selectedSlot.status === "RESERVED" ? (
-                <Button
-                  type="button"
-                  className="mt-4 rounded-xl"
-                  onClick={() => {
-                    if (selectedSlotReservation) {
-                      setViewingReservation(selectedSlotReservation);
-                      return;
-                    }
-                    if (selectedSlot.status === "AVAILABLE") {
-                      openCreateSessionDialog(selectedSlot);
-                    }
-                  }}
-                >
-                  {selectedSlotReservation
-                    ? "Xem thông tin đặt chỗ"
-                    : selectedSlot.status === "AVAILABLE"
-                      ? "Tạo parking session"
-                      : "Chưa có thông tin đặt chỗ"}
-                </Button>
-              ) : selectedSlot.status === "CURRENTLY-IN-USED" ? (
-                <Button
-                  type="button"
-                  className="mt-4 rounded-xl"
-                  onClick={() => {
-                    if (selectedSlotSession) {
-                      setViewingSession(selectedSlotSession);
-                    } else {
-                      toast.info("Chưa có dữ liệu chi tiết cho xe đang gửi.");
-                    }
-                  }}
-                >
-                  Xem thông tin xe đang gửi
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <DashboardEmptyState>
-              <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full border border-border bg-card">
-                <MapPin className="size-6 text-muted-foreground" />
-              </div>
-              <h4 className="text-lg font-semibold text-foreground">No slot selected</h4>
-              <p className="mt-2">Click slot đã đặt hoặc đang sử dụng để xem thông tin.</p>
-            </DashboardEmptyState>
-          )}
-        </DashboardSection>
       </DashboardMain>
 
       <ReservationDetailDialog
@@ -500,15 +546,31 @@ function StaffPage() {
       />
 
       <ParkingSessionDetailDialog
-        session={viewingSession}
-        slotNumber={selectedSlot?.slotNumber}
-        floorName={selectedFloor?.floorName}
-        open={viewingSession !== null}
+        session={viewingSessionDetail?.session ?? null}
+        slotNumber={viewingSessionDetail?.slotNumber}
+        floorName={viewingSessionDetail?.floorName}
+        vehicleTypeLabel={viewingSessionDetail?.vehicleTypeLabel}
+        licensePlateLabel={viewingSessionDetail?.licensePlateLabel}
+        open={viewingSessionSlotId !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setViewingSession(null);
+            setViewingSessionSlotId(null);
           }
         }}
+      />
+
+      <StaffWalkInCheckInDialog
+        open={walkInSlot !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWalkInSlot(null);
+          }
+        }}
+        slotNumber={walkInSlot?.slotNumber}
+        floorName={walkInFloor?.floorName ?? selectedFloor?.floorName}
+        vehicleTypeLabel={walkInFloor?.vehicleType?.type ?? selectedFloor?.vehicleType?.type}
+        onCreateSession={handleWalkInCreateSession}
+        isSubmitting={createGuestSessionMutation.isPending}
       />
 
       <StaffCreateParkingSessionDialog
@@ -539,8 +601,5 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 function getSessionVehiclePlate(session: ParkingSession) {
-  if (typeof session.vehicleId === "object") {
-    return session.vehicleId.licensePlate ?? "—";
-  }
-  return "—";
+  return getSessionLicensePlate(session) ?? "—";
 }
