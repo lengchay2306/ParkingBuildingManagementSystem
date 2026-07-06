@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -33,12 +34,29 @@ export function StaffCheckInPlateStep({
 }: StaffCheckInPlateStepProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const navigation = useNavigation();
   const [scannerVisible, setScannerVisible] = useState(false);
+
+  useEffect(() => {
+    if (!scannerVisible) {
+      return;
+    }
+
+    const parent = navigation.getParent();
+    parent?.setOptions({ tabBarStyle: { display: 'none' } });
+
+    return () => {
+      parent?.setOptions({ tabBarStyle: undefined });
+    };
+  }, [navigation, scannerVisible]);
 
   return (
     <View style={styles.root}>
       <StaffScreenHeader
-        subtitle={t('Nhập hoặc quét biển số để bắt đầu', 'Enter or scan a plate to begin')}
+        subtitle={t(
+          'Quét biển số để kiểm tra đặt chỗ và check-in',
+          'Scan a plate to check reservations and check in',
+        )}
         title={t('Check-in', 'Check-in')}
       />
 

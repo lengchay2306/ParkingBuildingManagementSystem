@@ -20,6 +20,8 @@ type StaffCheckInSlotPickerProps = {
   floors: ParkingFloor[];
   selectedSlotId: string | null;
   onSelectSlot: (slotId: string) => void;
+  /** When set, only this slot is shown (reserved for a PENDING reservation). */
+  lockedSlotId?: string | null;
   isLoading: boolean;
   t: (vi: string, en: string) => string;
 };
@@ -28,6 +30,7 @@ export function StaffCheckInSlotPicker({
   floors,
   selectedSlotId,
   onSelectSlot,
+  lockedSlotId,
   isLoading,
   t,
 }: StaffCheckInSlotPickerProps) {
@@ -36,16 +39,24 @@ export function StaffCheckInSlotPicker({
 
   const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
 
-  const floorsWithAvailability = useMemo(
-    () =>
-      orderedFloors
-        .map((floor) => ({
-          floor,
-          availableSlots: floor.slots.filter((slot) => slot.status === 'AVAILABLE'),
-        }))
-        .filter((entry) => entry.availableSlots.length > 0),
-    [orderedFloors],
-  );
+  const floorsWithAvailability = useMemo(() => {
+    if (lockedSlotId) {
+      for (const floor of orderedFloors) {
+        const lockedSlot = floor.slots.find((slot) => slot._id === lockedSlotId);
+        if (lockedSlot) {
+          return [{ floor, availableSlots: [lockedSlot] }];
+        }
+      }
+      return [];
+    }
+
+    return orderedFloors
+      .map((floor) => ({
+        floor,
+        availableSlots: floor.slots.filter((slot) => slot.status === 'AVAILABLE'),
+      }))
+      .filter((entry) => entry.availableSlots.length > 0);
+  }, [lockedSlotId, orderedFloors]);
 
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
 
@@ -78,7 +89,11 @@ export function StaffCheckInSlotPicker({
   if (floorsWithAvailability.length === 0) {
     return (
       <View style={styles.section}>
-        <ThemedText style={styles.empty}>{t('Không có ô trống', 'No available spots')}</ThemedText>
+        <ThemedText style={styles.empty}>
+          {lockedSlotId
+            ? t('Không tìm thấy ô đã đặt', 'Reserved spot not found on map')
+            : t('Không có ô trống', 'No available spots')}
+        </ThemedText>
       </View>
     );
   }
@@ -89,59 +104,71 @@ export function StaffCheckInSlotPicker({
 
   return (
     <View style={styles.section}>
-      <ThemedText style={styles.sectionTitle}>{t('Chọn ô gửi', 'Select spot')}</ThemedText>
+      <ThemedText style={styles.sectionTitle}>
+        {lockedSlotId ? t('Ô đã đặt', 'Reserved spot') : t('Chọn ô gửi', 'Select spot')}
+      </ThemedText>
 
-      <ScrollView
-        horizontal
-        contentContainerStyle={styles.pillRow}
-        showsHorizontalScrollIndicator={false}>
-        {floorsWithAvailability.map(({ floor, availableSlots }) => {
-          const active = floor._id === activeFloorId;
-          const { tabLabel } = resolveFloorPresentation(floor, t);
-          return (
-            <Pressable
-              key={floor._id}
-              onPress={() => setActiveFloorId(floor._id)}
-              style={({ pressed }) => [
-                styles.pill,
-                active && styles.pillActive,
-                pressed && styles.pillPressed,
-              ]}>
-              <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
-                {tabLabel} ({availableSlots.length})
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {!lockedSlotId ? (
+        <ScrollView
+          horizontal
+          contentContainerStyle={styles.pillRow}
+          showsHorizontalScrollIndicator={false}>
+          {floorsWithAvailability.map(({ floor, availableSlots }) => {
+            const active = floor._id === activeFloorId;
+            const { tabLabel } = resolveFloorPresentation(floor, t);
+            return (
+              <Pressable
+                key={floor._id}
+                onPress={() => setActiveFloorId(floor._id)}
+                style={({ pressed }) => [
+                  styles.pill,
+                  active && styles.pillActive,
+                  pressed && styles.pillPressed,
+                ]}>
+                <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
+                  {tabLabel} ({availableSlots.length})
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
 
       {activeEntry && activePresentation ? (
         <>
           <View style={styles.metaRow}>
             <ThemedText style={styles.metaHighlight}>
-              {activeEntry.availableSlots.length} {t('ô trống', 'available spots')}
+              {lockedSlotId
+                ? t('Ô đã giữ cho khách', 'Spot held for customer')
+                : `${activeEntry.availableSlots.length} ${t('ô trống', 'available spots')}`}
             </ThemedText>
-            <ThemedText style={styles.metaMuted}> · {t('Chạm để chọn', 'Tap to select')}</ThemedText>
+            {!lockedSlotId ? (
+              <ThemedText style={styles.metaMuted}> · {t('Chạm để chọn', 'Tap to select')}</ThemedText>
+            ) : null}
           </View>
 
           <View style={styles.grid}>
             {activeEntry.availableSlots.map((slot) => {
               const selected = selectedSlotId === slot._id;
+              const isReserved = slot.status === 'RESERVED';
               return (
                 <View key={slot._id} style={styles.cellWrap}>
                   <Pressable
+                    disabled={!!lockedSlotId}
                     onPress={() => onSelectSlot(slot._id)}
                     style={({ pressed }) => [
                       styles.cell,
+                      isReserved && styles.cellReserved,
                       selected && styles.cellSelected,
-                      pressed && styles.cellPressed,
+                      pressed && !lockedSlotId && styles.cellPressed,
                     ]}>
                     <ThemedText
                       numberOfLines={1}
                       style={[styles.cellText, selected && styles.cellTextSelected]}>
                       {slot.slotNumber}
                     </ThemedText>
-                    {!selected ? <View style={styles.availableDot} /> : null}
+                    {!selected && !isReserved ? <View style={styles.availableDot} /> : null}
+                    {!selected && isReserved ? <View style={styles.reservedDot} /> : null}
                   </Pressable>
                 </View>
               );
@@ -250,6 +277,10 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       shadowRadius: 10,
       elevation: 5,
     },
+    cellReserved: {
+      borderColor: `${DesignColors.primaryFocus}88`,
+      backgroundColor: `${DesignColors.primaryFocus}14`,
+    },
     cellPressed: {
       opacity: 0.9,
       transform: [{ scale: 0.96 }],
@@ -273,6 +304,15 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       height: 4,
       borderRadius: 2,
       backgroundColor: DesignColors.neonSuccess,
+    },
+    reservedDot: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: DesignColors.primaryFocus,
     },
     empty: {
       ...Typography.bodySm,

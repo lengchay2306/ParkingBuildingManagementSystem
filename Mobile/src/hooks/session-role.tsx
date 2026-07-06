@@ -5,6 +5,7 @@ import { type AppRole, normalizeAppRole } from '@/roles';
 
 type SessionRoleContextValue = {
   role: AppRole | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   refreshRole: () => Promise<void>;
 };
@@ -13,6 +14,7 @@ const SessionRoleContext = createContext<SessionRoleContextValue | undefined>(un
 
 export function SessionRoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshRole = useCallback(async () => {
@@ -21,23 +23,33 @@ export function SessionRoleProvider({ children }: { children: React.ReactNode })
       const isValid = await refreshSession();
       if (!isValid) {
         setRole(null);
+        setIsAuthenticated(false);
         return;
       }
-      const roleName = await resolveRoleAfterLogin();
-      setRole(normalizeAppRole(roleName));
-    } catch {
+
+      setIsAuthenticated(true);
+
       try {
-        const profile = await getMyProfile();
-        const roleName =
-          typeof profile.roleName === 'string'
-            ? profile.roleName
-            : typeof profile.roleId === 'object'
-              ? profile.roleId?.roleName
-              : null;
-        setRole(normalizeAppRole(roleName ?? null));
+        const roleName = await resolveRoleAfterLogin();
+        setRole(normalizeAppRole(roleName));
       } catch {
-        setRole(null);
+        try {
+          const profile = await getMyProfile();
+          const roleName =
+            typeof profile.roleName === 'string'
+              ? profile.roleName
+              : typeof profile.roleId === 'object'
+                ? profile.roleId?.roleName
+                : null;
+          setRole(normalizeAppRole(roleName ?? null));
+        } catch {
+          setRole(null);
+          setIsAuthenticated(false);
+        }
       }
+    } catch {
+      setRole(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
@@ -50,10 +62,11 @@ export function SessionRoleProvider({ children }: { children: React.ReactNode })
   const value = useMemo(
     () => ({
       role,
+      isAuthenticated,
       isLoading,
       refreshRole,
     }),
-    [role, isLoading, refreshRole],
+    [role, isAuthenticated, isLoading, refreshRole],
   );
 
   return <SessionRoleContext.Provider value={value}>{children}</SessionRoleContext.Provider>;

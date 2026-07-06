@@ -7,6 +7,7 @@ import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useProtectedSession } from '@/hooks/use-protected-session';
+import { useSessionRole } from '@/hooks/session-role';
 import { logout } from '@/lib/auth-api';
 import { Spacing } from '@/constants/theme';
 import { AUTH_ROUTES } from '@/roles';
@@ -17,11 +18,13 @@ export default function DashboardScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useProtectedSession();
+  const { refreshRole } = useSessionRole();
 
   async function handleLogout() {
     setIsLoggingOut(true);
     try {
       await logout();
+      await refreshRole();
       showToast('Logged out successfully', 'success');
       router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
