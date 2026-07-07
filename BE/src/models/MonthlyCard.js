@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const monthlyCardSchema = mongoose.Schema({
-    cardCode: {
-        type: String,
-        required: true,
-        trim: true,
-    },
+    // cardCode: {
+    //     type: String,
+    //     required: true,
+    //     trim: true,
+    // },
     startDate: {
         type: Date,
         default: Date.now,

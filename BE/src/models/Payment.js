@@ -4,21 +4,21 @@ const paymentSchema = mongoose.Schema({
     sessionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ParkingSession",
-        required: true,
+        // required: true,
     },
-    monthlyCardId: {
+    vehicleId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "MonthlyCard",
+        ref: "Vehicle",
     },
-    calculatedFee: {
-        type: Number,
-        required: true,
-    },
-    additionalFee: {
-        type: Number,
-        default: 0,
-    },
-    total: {
+    // calculatedFee: {
+    //     type: Number,
+    //     required: true,
+    // },
+    // additionalFee: {
+    //     type: Number,
+    //     default: 0,
+    // },
+    amount: {
         type: Number,
         required: true,
     },
@@ -30,14 +30,14 @@ const paymentSchema = mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ["UNPAID", "PAID"],
+        enum: ['PENDING', 'PAID', 'CANCELLED'],
     },
-    paymentTime: {
-        type: Date,
-        default: Date.now,
+    orderCode: {
+        type: Number,
         required: true,
-    },
-})
+        unique: true,
+    }
+}, { timestamps: true })
 
 paymentSchema.set("toJSON", { virtuals: true });
 paymentSchema.set("toObject", { virtuals: true });
