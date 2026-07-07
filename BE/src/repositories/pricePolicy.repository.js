@@ -34,6 +34,17 @@ class PricePolicyRepository {
             }
         }
     }
+
+    findMonthlyPriceByVehicleType = async ({
+        vehicleTypeId,
+    }) => {
+        const existingPricePolicy = await PricePolicy.findOne({
+            vehicleTypeId,
+            fromHour: 0,
+        }).lean();
+
+        return existingPricePolicy
+    }
 }
 
 export default PricePolicyRepository

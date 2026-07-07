@@ -1,6 +1,9 @@
 import express from 'express'
-import { validateData } from '../middleware/middleware.js'
-import { getPricePoliciesSchema } from '../../validators/payment.validator.js'
+import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js'
+import { 
+    createSubcriptionPaymentLinkSchema,
+    getPricePoliciesSchema 
+} from '../../validators/payment.validator.js'
 
 const router = express.Router()
 
@@ -82,6 +85,71 @@ router.get(
         const paymentController = req.container.resolve('paymentController')
 
         await paymentController.getAllPricePolicies(req, res, next)
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/payment/subscription/create-link:
+ *   post:
+ *     summary: Create PayOS payment link for monthly subscription
+ *     description: |
+ *       Customer creates a PayOS checkout link to pay for a monthly parking membership.
+ *       The monthly fee is taken from the price policy tier with fromHour 0 (monthlyRate).
+ *       A PENDING payment record is saved before calling PayOS.
+ *       After the customer pays, PayOS sends a webhook to activate the monthly card on the vehicle.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vehicleId
+ *             properties:
+ *               vehicleId:
+ *                 type: string
+ *                 description: ObjectId of the customer's vehicle to subscribe
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       201:
+ *         description: PayOS checkout link created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 checkoutUrl: "https://pay.payos.vn/web/..."
+ *       400:
+ *         description: |
+ *           Validation error, vehicle not found, vehicle does not belong to user,
+ *           no monthly price policy for vehicle type, or PayOS request failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (CUSTOMER role required)
+ */
+router.post(
+    '/subscription/create-link',
+    authentication,
+    authorizationByRole(['CUSTOMER']),
+    validateData(createSubcriptionPaymentLinkSchema),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+
+        await paymentController.subscriptionPayment(req, res, next)
+    }
+)
+
+router.post(
+    '/webhook',
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+
+        await paymentController.handlePayOSWebhook(req, res, next)
     }
 )
 
