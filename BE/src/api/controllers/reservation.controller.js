@@ -1,8 +1,10 @@
 class ReservationController {
     #reservationService;
+    #slotRecommendationService;
 
-    constructor({ reservationService }) {
+    constructor({ reservationService, slotRecommendationService }) {
         this.#reservationService = reservationService;
+        this.#slotRecommendationService = slotRecommendationService;
     }
 
     createReservation = async (req, res, next) => {
@@ -22,6 +24,28 @@ class ReservationController {
                 data: {
                     reservation,
                 },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    recommendSlots = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const { vehicleId, expectedArrival, limit } = req.body;
+
+            const result = await this.#slotRecommendationService.recommendSlots({
+                driverId: userId,
+                vehicleId,
+                expectedArrival: new Date(expectedArrival),
+                limit: limit ?? 3,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: result,
+                message: 'Slot recommendations fetched successfully',
             });
         } catch (error) {
             next(error);
@@ -63,6 +87,29 @@ class ReservationController {
                 data: {
                     reservations: result.reservations,
                     pagination: result.pagination,
+                },
+                message: 'Reservations fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getAllReservationsByVehiclePlate = async (req, res, next) => {
+        try {
+            const { licensePlate } = req.params;
+            const { status } = req.query;
+
+            const result = await this.#reservationService.getAllReservationsByVehiclePlate({
+                licensePlate,
+                status,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    vehicle: result.vehicle,
+                    reservations: result.reservations,
                 },
                 message: 'Reservations fetched successfully',
             });

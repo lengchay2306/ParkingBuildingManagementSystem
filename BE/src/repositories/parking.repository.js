@@ -44,6 +44,48 @@ class ParkingRepository {
 
         return result;
     }
+
+    getFloorSlotStats = async ({ floorId }) => {
+        const [available, reserved, unavailable, inUsed] = await Promise.all([
+            ParkingSlot.countDocuments({ floorId, status: 'AVAILABLE' }),
+            ParkingSlot.countDocuments({ floorId, status: 'RESERVED' }),
+            ParkingSlot.countDocuments({ floorId, status: 'UNAVAILABLE' }),
+            ParkingSlot.countDocuments({ floorId, status: 'CURRENTLY-IN-USED' }),
+        ]);
+
+        return {
+            available,
+            reserved,
+            unavailable,
+            inUsed,
+            total: available + reserved + unavailable + inUsed,
+        };
+    }
+
+    countActiveSessionsOnFloorNearTime = async ({
+        floorId,
+        expectedArrival,
+        windowMs = 60 * 60 * 1000,
+    }) => {
+        const slots = await ParkingSlot.find({ floorId }).select('_id').lean();
+        const slotIds = slots.map((slot) => slot._id);
+
+        if (slotIds.length === 0) {
+            return 0;
+        }
+
+        const windowStart = new Date(expectedArrival.getTime() - windowMs);
+        const windowEnd = new Date(expectedArrival.getTime() + windowMs);
+
+        return ParkingSession.countDocuments({
+            parkingSlotId: { $in: slotIds },
+            status: 'ACTIVE',
+            checkInTime: {
+                $gte: windowStart,
+                $lte: windowEnd,
+            },
+        });
+    }
     
     findVehicleTypeByName = async ({ vehicleType }) => {
         return VehicleType.findOne({
@@ -130,6 +172,7 @@ class ParkingRepository {
     }) => {
         const newParkingSession = await ParkingSession.create({
             vehicleId,
+            licensePlate,
             parkingSlotId,
             sessionType,
             checkInUserId,
@@ -141,7 +184,13 @@ class ParkingRepository {
 
         await newParkingSession.populate([
             'vehicleId',
-            'parkingSlotId',
+            {
+                path: 'parkingSlotId',
+                populate: {
+                    path: 'floorId',
+                    populate: { path: 'vehicleTypeId' },
+                },
+            },
             'checkInUserId',
             'checkInStaffId',
         ])
@@ -177,7 +226,13 @@ class ParkingRepository {
                             .limit(limit)
                             .populate([
                                 "vehicleId",
-                                "parkingSlotId",
+                                {
+                                    path: "parkingSlotId",
+                                    populate: {
+                                        path: "floorId",
+                                        populate: { path: "vehicleTypeId" },
+                                    },
+                                },
                                 "checkInUserId",
                                 "checkOutUserId",
                                 "checkInStaffId",

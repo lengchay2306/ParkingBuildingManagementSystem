@@ -1,6 +1,12 @@
 import express from 'express';
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
-import { createReservationSchema, cancelReservationSchema } from '../../validators/reservation.validator.js';
+import {
+    createReservationSchema,
+    cancelReservationSchema,
+    getReservationsByVehiclePlateParamsSchema,
+    getReservationsByVehiclePlateQuerySchema,
+    recommendSlotsSchema,
+} from '../../validators/reservation.validator.js';
 
 const router = express.Router();
 
@@ -76,6 +82,88 @@ router.post(
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.createReservation(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/reservations/recommend-slots:
+ *   post:
+ *     summary: Get smart parking slot recommendations
+ *     description: |
+ *       Suggests the best available parking slots for a vehicle and expected arrival time.
+ *       Uses rule-based scoring (proximity to entrance, floor availability, driver history, peak-hour traffic).
+ *       Does not create a reservation — use POST /reservations to book a recommended slot.
+ *       Only accessible by CUSTOMER.
+ *     tags: [Reservation]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vehicleId
+ *               - expectedArrival
+ *             properties:
+ *               vehicleId:
+ *                 type: string
+ *                 description: The vehicle ObjectId
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0e"
+ *               expectedArrival:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Expected arrival time (ISO 8601, must be in the future)
+ *                 example: "2026-06-18T14:00:00.000Z"
+ *               limit:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 10
+ *                 default: 3
+ *                 description: Number of slot recommendations to return
+ *     responses:
+ *       200:
+ *         description: Slot recommendations fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicle:
+ *                   _id: "665b..."
+ *                   licensePlate: "51A-123.45"
+ *                 expectedArrival: "2026-06-18T14:00:00.000Z"
+ *                 recommendations:
+ *                   - parkingSlotId: "665d..."
+ *                     slotNumber: "T105"
+ *                     status: "AVAILABLE"
+ *                     floorName: "Tầng 5 - SEDAN"
+ *                     vehicleType: "SEDAN"
+ *                     score: 87
+ *                     reasons:
+ *                       - "Gần lối vào tầng"
+ *                       - "Tầng còn nhiều chỗ trống"
+ *                 meta:
+ *                   totalEligibleSlots: 12
+ *                   floorOccupancyRate: 0.35
+ *               message: "Slot recommendations fetched successfully"
+ *       400:
+ *         description: Vehicle does not belong to the authenticated user
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Vehicle not found or no available slots for this vehicle type
+ */
+router.post(
+    "/recommend-slots",
+    authentication,
+    authorizationByRole(['CUSTOMER']),
+    validateData(recommendSlotsSchema),
+    async (req, res, next) => {
+        const reservationController = req.container.resolve('reservationController');
+        await reservationController.recommendSlots(req, res, next);
     }
 );
 
@@ -219,6 +307,86 @@ router.get(
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.getAllReservations(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/reservations/by-plate/{licensePlate}:
+ *   get:
+ *     summary: Get all reservations by vehicle license plate
+ *     description: |
+ *       Look up a vehicle by license plate and return all of its reservations,
+ *       sorted by newest first (`reservedAt` descending).
+ *       Supports optional filtering by status.
+ *       Only accessible by ADMIN, MANAGER, and STAFF.
+ *     tags: [Reservation]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licensePlate
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vehicle license plate (format 51A-123.45)
+ *         example: "51A-123.45"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CLAIMED, EXPIRED, CANCELLED]
+ *         description: Filter reservations by status
+ *     responses:
+ *       200:
+ *         description: Reservations fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 vehicle:
+ *                   _id: "665b..."
+ *                   licensePlate: "51A-123.45"
+ *                   vehicleTypeId:
+ *                     _id: "665c..."
+ *                     type: "SEDAN"
+ *                 reservations:
+ *                   - _id: "665f..."
+ *                     driverId:
+ *                       _id: "665a..."
+ *                       fullName: "Nguyen Van A"
+ *                       phone: "0901234567"
+ *                     vehicleId:
+ *                       _id: "665b..."
+ *                       licensePlate: "51A-123.45"
+ *                     parkingSlotId:
+ *                       _id: "665d..."
+ *                       slotNumber: "T101"
+ *                       floorId:
+ *                         _id: "665e..."
+ *                         floorName: "Tầng 1 - Sedan"
+ *                     reservedAt: "2026-06-15T10:00:00.000Z"
+ *                     expectedArrival: "2026-06-15T12:00:00.000Z"
+ *                     expiryAt: "2026-06-15T12:15:00.000Z"
+ *                     status: "PENDING"
+ *               message: "Reservations fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Vehicle not found
+ */
+router.get(
+    "/by-plate/:licensePlate",
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(getReservationsByVehiclePlateParamsSchema, 'params'),
+    validateData(getReservationsByVehiclePlateQuerySchema, 'query'),
+    async (req, res, next) => {
+        const reservationController = req.container.resolve('reservationController');
+        await reservationController.getAllReservationsByVehiclePlate(req, res, next);
     }
 );
 

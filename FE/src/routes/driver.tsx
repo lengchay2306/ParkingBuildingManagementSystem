@@ -22,6 +22,8 @@ import {
 import { toast } from "sonner";
 
 import { SiteHeader } from "@/components/SiteHeader";
+import { DriverChatbotWidget } from "@/components/chatbot/DriverChatbotWidget";
+import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import {
   DashboardEmptyState,
   DashboardLegend,
@@ -180,6 +182,7 @@ function DriverPage() {
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
   const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(false);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
+  const [viewingHistoryReservation, setViewingHistoryReservation] = useState<Reservation | null>(null);
   const [expectedArrivalDate, setExpectedArrivalDate] = useState(getDefaultExpectedArrivalDate);
   const [expectedArrivalTime, setExpectedArrivalTime] = useState(getDefaultExpectedArrivalTime);
   const minExpectedArrivalTime =
@@ -386,12 +389,17 @@ function DriverPage() {
     const map = new Map<string, Reservation>();
     for (const reservation of myPendingReservations) {
       const slotId = getReservationSlotId(reservation);
-      if (slotId) {
-        map.set(slotId, reservation);
+      if (!slotId) {
+        continue;
       }
+      const slot = floorSlots.find((item) => item._id === slotId);
+      if (slot?.status === "CURRENTLY-IN-USED") {
+        continue;
+      }
+      map.set(slotId, reservation);
     }
     return map;
-  }, [myPendingReservations]);
+  }, [myPendingReservations, floorSlots]);
   const selectedReservation = selectedSpot
     ? (reservationBySlotId.get(selectedSpot._id) ?? null)
     : null;
@@ -411,6 +419,12 @@ function DriverPage() {
     (vehicle) => vehicle._id === selectedReservationVehicleId,
   );
   const profile = profileQuery.data ?? null;
+  const viewingHistoryReservationDetail = useMemo(() => {
+    if (!viewingHistoryReservation) {
+      return null;
+    }
+    return enrichReservationForDetail(viewingHistoryReservation, parkingFloors, profile);
+  }, [viewingHistoryReservation, parkingFloors, profile]);
 
   const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
   const reservedCount = floorSlots.filter((slot) => slot.status === "RESERVED").length;
@@ -549,18 +563,20 @@ function DriverPage() {
     });
   };
 
-  const vehicleListError = vehiclesQuery.error
-    ? getErrorMessage(vehiclesQuery.error, "Unable to load registered vehicles.")
-    : null;
+  const vehicleListError =
+    vehiclesQuery.isError && !vehiclesQuery.data
+      ? getErrorMessage(vehiclesQuery.error, "Unable to load registered vehicles.")
+      : null;
   const vehicleTypeError = vehicleTypesQuery.error
     ? getErrorMessage(vehicleTypesQuery.error, "Unable to load vehicle types.")
     : null;
   const profileError = profileQuery.error
     ? getErrorMessage(profileQuery.error, "Unable to load profile.")
     : null;
-  const parkingFloorsError = parkingFloorsQuery.error
-    ? getErrorMessage(parkingFloorsQuery.error, "Unable to load parking slots.")
-    : null;
+  const parkingFloorsError =
+    parkingFloorsQuery.isError && !parkingFloorsQuery.data
+      ? getErrorMessage(parkingFloorsQuery.error, "Unable to load parking slots.")
+      : null;
 
   const handleVehicleFormOpenChange = (open: boolean) => {
     setIsVehicleFormOpen(open);
@@ -620,9 +636,10 @@ function DriverPage() {
     updateProfileMutation.mutate(payload);
   };
 
-  const myReservationsError = myReservationsQuery.error
-    ? getErrorMessage(myReservationsQuery.error, "Unable to load your reservations.")
-    : null;
+  const myReservationsError =
+    myReservationsQuery.isError && !myReservationsQuery.data
+      ? getErrorMessage(myReservationsQuery.error, "Unable to load your reservations.")
+      : null;
   const isReservationActionPending =
     reserveSlotMutation.isPending || cancelReservationMutation.isPending;
 
@@ -1228,7 +1245,12 @@ function DriverPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => void myReservationsQuery.refetch()}
+                  onClick={() =>
+                    void Promise.all([
+                      myReservationsQuery.refetch(),
+                      parkingFloorsQuery.refetch(),
+                    ])
+                  }
                   disabled={myReservationsQuery.isFetching}
                   className="h-10 rounded-xl"
                 >
@@ -1276,11 +1298,24 @@ function DriverPage() {
               <div className="mt-4 space-y-3">
                 {filteredHistoryReservations.map((reservation) => {
                   const reservationSlotId = getReservationSlotId(reservation);
-                  const isPending = reservation.status === "PENDING";
+                  const effectiveStatus = getEffectiveReservationStatus(
+                    reservation,
+                    parkingFloors,
+                  );
+                  const isPending = effectiveStatus === "PENDING";
                   return (
                     <div
                       key={reservation._id}
-                      className="rounded-xl border border-border bg-secondary p-4"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewingHistoryReservation(reservation)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setViewingHistoryReservation(reservation);
+                        }
+                      }}
+                      className="w-full cursor-pointer rounded-xl border border-border bg-secondary p-4 text-left transition hover:border-primary/40 hover:bg-secondary/80"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -1292,9 +1327,9 @@ function DriverPage() {
                           </p>
                         </div>
                         <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReservationStatusBadge(reservation.status)}`}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReservationStatusBadge(effectiveStatus)}`}
                         >
-                          {reservation.status}
+                          {getReservationStatusLabel(effectiveStatus)}
                         </span>
                       </div>
 
@@ -1316,7 +1351,10 @@ function DriverPage() {
                           <Button
                             type="button"
                             variant="secondary"
-                            onClick={() => handleCancelReservationById(reservation._id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleCancelReservationById(reservation._id);
+                            }}
                             disabled={cancelReservationMutation.isPending}
                             className="h-9 rounded-xl text-sm font-medium"
                           >
@@ -1564,6 +1602,13 @@ function DriverPage() {
                             </p>
                           </div>
                         </div>
+                      ) : selectedSpot.status === "CURRENTLY-IN-USED" ? (
+                        <div className="rounded-xl border border-status-full/45 bg-status-full/10 px-3 py-2 text-sm">
+                          <p className="font-medium text-status-full">Xe đang gửi tại slot này</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Parking session đã được tạo. Slot không còn ở trạng thái đặt chỗ PENDING.
+                          </p>
+                        </div>
                       ) : null}
 
                       <div className="grid gap-2">
@@ -1607,6 +1652,22 @@ function DriverPage() {
           </div>
         ) : null}
       </DashboardMain>
+
+      <ReservationDetailDialog
+        reservation={viewingHistoryReservationDetail}
+        open={viewingHistoryReservation !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingHistoryReservation(null);
+          }
+        }}
+        statusLabel={
+          viewingHistoryReservationDetail
+            ? getReservationStatusLabel(viewingHistoryReservationDetail.status)
+            : undefined
+        }
+      />
+      <DriverChatbotWidget />
     </div>
   );
 }
@@ -1691,6 +1752,76 @@ function getReservationSlotLabel(reservation: Reservation) {
   return reservation.parkingSlotId;
 }
 
+function enrichReservationForDetail(
+  reservation: Reservation,
+  parkingFloors: ParkingFloor[],
+  profile: UserProfile | null,
+): Reservation {
+  const slotId = getReservationSlotId(reservation);
+  const liveSlotStatus = slotId ? getSlotStatusFromFloors(slotId, parkingFloors) : null;
+  const effectiveStatus = getEffectiveReservationStatus(reservation, parkingFloors);
+
+  let nextReservation: Reservation = {
+    ...reservation,
+    status: effectiveStatus,
+  };
+
+  if (profile && typeof nextReservation.driverId === "string") {
+    nextReservation = {
+      ...nextReservation,
+      driverId: {
+        _id: profile._id,
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+      },
+    };
+  }
+
+  if (liveSlotStatus && typeof nextReservation.parkingSlotId === "object") {
+    return {
+      ...nextReservation,
+      parkingSlotId: {
+        ...nextReservation.parkingSlotId,
+        status: liveSlotStatus,
+      },
+    };
+  }
+
+  return nextReservation;
+}
+
+function getSlotStatusFromFloors(slotId: string, parkingFloors: ParkingFloor[]) {
+  for (const floor of parkingFloors) {
+    const slot = floor.slots?.find((item) => item._id === slotId);
+    if (slot) {
+      return slot.status;
+    }
+  }
+  return null;
+}
+
+/** PENDING + slot đang IN-USED → hiển thị như đã check-in. */
+function getEffectiveReservationStatus(
+  reservation: Reservation,
+  parkingFloors: ParkingFloor[],
+): Reservation["status"] {
+  if (reservation.status !== "PENDING") {
+    return reservation.status as Reservation["status"];
+  }
+
+  const slotId = getReservationSlotId(reservation);
+  if (!slotId) {
+    return reservation.status as Reservation["status"];
+  }
+
+  if (getSlotStatusFromFloors(slotId, parkingFloors) === "CURRENTLY-IN-USED") {
+    return "CLAIMED";
+  }
+
+  return reservation.status as Reservation["status"];
+}
+
 function getReservationStatusBadge(status: Reservation["status"]) {
   switch (status) {
     case "PENDING":
@@ -1703,6 +1834,21 @@ function getReservationStatusBadge(status: Reservation["status"]) {
       return "border-status-full/45 bg-status-full/15 text-status-full";
     default:
       return "border-border bg-muted text-muted-foreground";
+  }
+}
+
+function getReservationStatusLabel(status: Reservation["status"]) {
+  switch (status) {
+    case "PENDING":
+      return "PENDING";
+    case "CLAIMED":
+      return "CHECKED IN";
+    case "CANCELLED":
+      return "CANCELLED";
+    case "EXPIRED":
+      return "EXPIRED";
+    default:
+      return status;
   }
 }
 

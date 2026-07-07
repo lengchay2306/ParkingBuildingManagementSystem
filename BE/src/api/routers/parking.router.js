@@ -96,6 +96,10 @@ router.get(
  *       Get parking sessions by optional filters.
  *       Supports pagination, session status, and date filter.
  *       Accessible by manager, admin, and staff.
+ *
+ *       **Guest walk-in sessions** (`isGuest: true`) have no linked driver account or registered vehicle.
+ *       Use `licensePlate` on the session document and derive vehicle type from the slot's floor
+ *       (`parkingSlotId.floorId.vehicleTypeId` when populated).
  *     tags: [Parking]
  *     security:
  *       - bearerAuth: []
@@ -154,6 +158,27 @@ router.get(
  *                         _id: "666d..."
  *                         fullName: "Staff 1"
  *                       checkInTime: "2026-06-18T08:00:00.000Z"
+ *                       status: "ACTIVE"
+ *                     - _id: "6671..."
+ *                       licensePlate: "51A-123.45"
+ *                       isGuest: true
+ *                       vehicleId: null
+ *                       checkInUserId: null
+ *                       parkingSlotId:
+ *                         _id: "666e..."
+ *                         slotNumber: "T03"
+ *                         status: "CURRENTLY-IN-USED"
+ *                         floorId:
+ *                           _id: "665a..."
+ *                           floorName: "Tầng 1"
+ *                           vehicleTypeId:
+ *                             _id: "665b..."
+ *                             type: "BIKE"
+ *                       sessionType: "DAILY"
+ *                       checkInStaffId:
+ *                         _id: "666d..."
+ *                         fullName: "Staff 1"
+ *                       checkInTime: "2026-06-18T09:15:00.000Z"
  *                       status: "ACTIVE"
  *                   pagination:
  *                     currentPage: 1
@@ -309,6 +334,122 @@ router.post(
     }
 )
 
+/**
+ * @swagger
+ * /api/v1/parking/create-parking-session/guest:
+ *   post:
+ *     summary: Create a guest walk-in parking session
+ *     description: |
+ *       Staff, manager, or admin checks in a **walk-in guest** (khách vãng lai) without a driver account.
+ *
+ *       **Typical staff flow**
+ *       1. Call `GET /api/v1/parking/slots` and pick an **AVAILABLE** slot on the correct floor/vehicle type.
+ *       2. Scan or enter the license plate at the front desk.
+ *       3. POST to this endpoint with `licensePlate`, `parkingSlotId`, and `vehicleTypeId` (from the slot's floor).
+ *       4. Slot status becomes `CURRENTLY-IN-USED`; session is created with `isGuest: true`.
+ *
+ *       **Rules**
+ *       - Slot must be `AVAILABLE` (not reserved, in-use, or unavailable).
+ *       - `vehicleTypeId` must match the vehicle type of the slot's floor.
+ *       - The same `licensePlate` cannot already have an **ACTIVE** session in the building.
+ *       - No registered `vehicleId` or `checkInUserId` is required; `phone` is optional.
+ *
+ *       **Difference from** `POST /api/v1/parking/create-parking-session`
+ *       - Regular check-in requires customer `phone` + a registered vehicle.
+ *       - Guest check-in only needs the plate and a compatible available slot.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - licensePlate
+ *               - parkingSlotId
+ *               - vehicleTypeId
+ *             properties:
+ *               licensePlate:
+ *                 type: string
+ *                 description: Guest vehicle license plate (normalized to uppercase on save)
+ *                 example: "51A-123.45"
+ *               parkingSlotId:
+ *                 type: string
+ *                 description: Target parking slot ObjectId (must be AVAILABLE)
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
+ *               vehicleTypeId:
+ *                 type: string
+ *                 description: Vehicle type ObjectId of the slot's floor (e.g. BIKE, SEDAN)
+ *                 example: "665b1b2c3d4e5f6a7b8c9d0e"
+ *               phone:
+ *                 type: string
+ *                 description: Optional guest phone (Vietnam format). Not required for walk-in.
+ *                 example: "0901234567"
+ *           examples:
+ *             walkInBike:
+ *               summary: Walk-in guest on bike floor
+ *               value:
+ *                 licensePlate: "51A-123.45"
+ *                 parkingSlotId: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                 vehicleTypeId: "665b1b2c3d4e5f6a7b8c9d0e"
+ *             walkInWithPhone:
+ *               summary: Walk-in guest with optional phone
+ *               value:
+ *                 licensePlate: "30H-999.88"
+ *                 parkingSlotId: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                 vehicleTypeId: "665b1b2c3d4e5f6a7b8c9d0e"
+ *                 phone: "0912345678"
+ *     responses:
+ *       201:
+ *         description: Guest parking session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     parkingSession:
+ *                       type: object
+ *             example:
+ *               status: success
+ *               data:
+ *                 parkingSession:
+ *                   _id: "6671..."
+ *                   licensePlate: "51A-123.45"
+ *                   isGuest: true
+ *                   vehicleId: null
+ *                   checkInUserId: null
+ *                   phone: null
+ *                   parkingSlotId:
+ *                     _id: "665a..."
+ *                     slotNumber: "T03"
+ *                     status: "CURRENTLY-IN-USED"
+ *                   sessionType: "DAILY"
+ *                   checkInStaffId:
+ *                     _id: "666d..."
+ *                     fullName: "Staff 1"
+ *                   checkInTime: "2026-06-18T09:15:00.000Z"
+ *                   status: "ACTIVE"
+ *       400:
+ *         description: |
+ *           Validation or business rule failure. Common messages:
+ *           - `This vehicle already in parking building!` — active session exists for this plate
+ *           - `This parking slot is not available!` — slot is not AVAILABLE
+ *           - `This slot is not fit with this type of vehicle` — vehicleTypeId mismatch
+ *           - `Wrong phone format` — optional phone failed validation
+ *           - `Wrong format ID of mongoDB objectId` — invalid parkingSlotId or vehicleTypeId
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (insufficient role — STAFF, MANAGER, or ADMIN required)
+ */
 router.post(
     "/create-parking-session/guest",
     authentication,

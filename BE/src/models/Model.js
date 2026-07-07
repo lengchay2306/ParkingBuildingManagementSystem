@@ -10,6 +10,8 @@ import Ticket from './Ticket.js'
 import User from "./User.js"
 import Vehicle from './Vehicle.js'
 import VehicleType from './VehicleType.js'
+import ChatSession from './ChatSession.js'
+import ChatMessage from './ChatMessage.js'
 
 export {
     Floor,
@@ -24,4 +26,6 @@ export {
     User,
     Vehicle,
     VehicleType,
+    ChatSession,
+    ChatMessage,
 }

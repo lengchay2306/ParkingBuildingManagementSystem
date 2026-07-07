@@ -7,6 +7,7 @@ import ReservationController from "./src/api/controllers/reservation.controller.
 import UserController from "./src/api/controllers/user.controller.js";
 import VehicleController from "./src/api/controllers/vehicle.controller.js";
 import PaymentController from "./src/api/controllers/payment.controller.js";
+import ChatbotController from "./src/api/controllers/chatbot.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -14,9 +15,11 @@ import HashService from "./src/services/hash.service.js";
 import TokenService from "./src/services/token.service.js";
 import ParkingService from "./src/services/parking.service.js";
 import ReservationService from "./src/services/reservation.service.js";
+import SlotRecommendationService from "./src/services/slotRecommendation.service.js";
 import UserService from "./src/services/user.service.js";
 import VehicleService from "./src/services/vehicle.service.js";
 import PaymentService from "./src/services/payment.service.js";
+import ChatbotService from "./src/services/chatbot.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -28,6 +31,7 @@ import VehicleRepository from "./src/repositories/vehicle.repository.js";
 import PricePolicyRepository from "./src/repositories/pricePolicy.repository.js";
 import PaymentRepository from "./src/repositories/payment.repository.js";
 import MonthlyCardRepository from "./src/repositories/monthlyCard.repository.js";
+import ChatSessionRepository from "./src/repositories/chatSession.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
@@ -68,6 +72,9 @@ export function setupContainer({ io, notificationNamespace }) {
         paymentController: asClass(PaymentController, {
             lifetime: Lifetime.SCOPED,
         }),
+        chatbotController: asClass(ChatbotController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -85,6 +92,9 @@ export function setupContainer({ io, notificationNamespace }) {
         reservationService: asClass(ReservationService, {
             lifetime: Lifetime.SCOPED,
         }),
+        slotRecommendationService: asClass(SlotRecommendationService, {
+            lifetime: Lifetime.SCOPED,
+        }),
         userService: asClass(UserService, {
             lifetime: Lifetime.SCOPED,
         }),
@@ -92,6 +102,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         paymentService: asClass(PaymentService, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        chatbotService: asClass(ChatbotService, {
             lifetime: Lifetime.SCOPED,
         }),
 
@@ -121,6 +134,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         monthlyCardRepository: asClass(MonthlyCardRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        chatSessionRepository: asClass(ChatSessionRepository, {
             lifetime: Lifetime.SCOPED,
         }),
     })
