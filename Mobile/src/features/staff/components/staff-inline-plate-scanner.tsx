@@ -23,7 +23,12 @@ import {
   CHECKIN_CAMERA_OVERLAY_INSET,
 } from '@/features/staff/components/staff-check-in-layout';
 import { usePlateScanner } from '@/features/staff/hooks/use-plate-scanner';
-import { PLATE_VIEWFINDER } from '@/features/staff/lib/plate-scanner-viewfinder';
+import {
+  PLATE_VIEWFINDER,
+  getPlateViewfinderFrameBottom,
+  getPlateViewfinderMarginTop,
+  getPlateViewfinderScanBandBottom,
+} from '@/features/staff/lib/plate-scanner-viewfinder';
 import { useDesignColors } from '@/hooks/use-design-colors';
 
 type StaffInlinePlateScannerProps = {
@@ -36,8 +41,12 @@ type StaffInlinePlateScannerProps = {
 
 function PlateScanOverlay({ accentColor }: { accentColor: string }) {
   const scanY = useSharedValue(0);
-  const { marginY, width, height } = PLATE_VIEWFINDER;
+  const { width, height } = PLATE_VIEWFINDER;
+  const marginTop = getPlateViewfinderMarginTop();
   const marginX = (1 - width) / 2;
+  const frameBottom = getPlateViewfinderFrameBottom();
+  const scanBandBottom = getPlateViewfinderScanBandBottom();
+  const gapBandHeight = Math.max(scanBandBottom - frameBottom, 0);
 
   React.useEffect(() => {
     scanY.value = withRepeat(
@@ -48,32 +57,43 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
   }, [scanY]);
 
   const scanLineStyle = useAnimatedStyle(() => ({
-    top: `${marginY * 100 + scanY.value * height * 100}%` as `${number}%`,
+    top: `${marginTop * 100 + scanY.value * height * 100}%` as `${number}%`,
   }));
 
   const frameLeft = `${marginX * 100}%` as `${number}%`;
   const frameWidth = `${width * 100}%` as `${number}%`;
-  const frameTop = `${marginY * 100}%` as `${number}%`;
+  const frameTop = `${marginTop * 100}%` as `${number}%`;
   const frameHeight = `${height * 100}%` as `${number}%`;
   const sideGutter = `${marginX * 100}%` as `${number}%`;
-  const verticalGutter = `${marginY * 100}%` as `${number}%`;
+  const topGutter = `${marginTop * 100}%` as `${number}%`;
+  const hudGutter = `${(1 - scanBandBottom) * 100}%` as `${number}%`;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: verticalGutter }]} />
-      <View
-        style={[overlayStyles.dim, { bottom: 0, left: 0, right: 0, height: verticalGutter }]}
-      />
+      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: topGutter }]} />
+      {gapBandHeight > 0 ? (
+        <View
+          style={[
+            overlayStyles.dimSoft,
+            {
+              top: `${frameBottom * 100}%`,
+              left: 0,
+              right: 0,
+              height: `${gapBandHeight * 100}%`,
+            },
+          ]}
+        />
+      ) : null}
       <View
         style={[
           overlayStyles.dim,
-          { top: verticalGutter, bottom: verticalGutter, left: 0, width: sideGutter },
+          { top: topGutter, bottom: hudGutter, left: 0, width: sideGutter },
         ]}
       />
       <View
         style={[
           overlayStyles.dim,
-          { top: verticalGutter, bottom: verticalGutter, right: 0, width: sideGutter },
+          { top: topGutter, bottom: hudGutter, right: 0, width: sideGutter },
         ]}
       />
       <View
@@ -103,6 +123,10 @@ const overlayStyles = StyleSheet.create({
   dim: {
     position: 'absolute',
     backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  dimSoft: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   frame: {
     position: 'absolute',

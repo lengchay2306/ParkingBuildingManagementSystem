@@ -24,6 +24,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { useGuestOnlySession } from '@/hooks/use-guest-only-session';
 import { useSessionRole } from '@/hooks/session-role';
 import { useSignMascotInteraction } from '@/hooks/use-sign-mascot-interaction';
 import { useThemePreference } from '@/hooks/theme-preference';
@@ -119,6 +120,7 @@ export default function SignPlatformScreen() {
   const router = useRouter();
   const { showToast } = useAppToast();
   const { refreshRole } = useSessionRole();
+  useGuestOnlySession();
   useSuppressErrorToasts();
   const { t, language, setLanguage } = useLanguagePreference();
   const { resolvedScheme, setThemePreference } = useThemePreference();
