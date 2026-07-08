@@ -24,9 +24,9 @@ const parkingSessionSchema = Joi.object({
                     'string.pattern.base': 'Wrong phone format',
                 }),
     licensePlate: Joi.string().required(),
-    parkingSlotId: Joi.string()
-                        .custom(validateMongoObjectId)
-                        .required(),
+    // parkingSlotId: Joi.string()
+    //                     .custom(validateMongoObjectId)
+    //                     .required(),
 });
 
 const guestParkingSessionSchema = Joi.object({

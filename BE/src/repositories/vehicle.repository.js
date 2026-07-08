@@ -62,6 +62,7 @@ class VehicleRepository {
     getVehicleById = async ({ vehicleId }) => {
         const vehicle = await Vehicle.findById(vehicleId)
                                     .populate("vehicleTypeId")
+                                    .populate("monthlyCardId")
                                     .lean();
         return vehicle;
     }

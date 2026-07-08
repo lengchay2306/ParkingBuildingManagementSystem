@@ -270,8 +270,12 @@ router.get(
  * @swagger
  * /api/v1/parking/create-parking-session:
  *   post:
- *     summary: Create a new parking session
- *     description: Staff, manager, or admin creates a check-in parking session for a customer's vehicle.
+ *     summary: Create a new parking session (reservation check-in)
+ *     description: |
+ *       Staff, manager, or admin checks in a registered customer who has an active PENDING reservation.
+ *       The parking slot is resolved automatically from the reservation — staff does not pass parkingSlotId.
+ *       Validates customer phone, vehicle ownership, reservation expiry, slot RESERVED status, and vehicle type match.
+ *       On success the linked reservation is marked CLAIMED.
  *     tags: [Parking]
  *     security:
  *       - bearerAuth: []
@@ -284,7 +288,6 @@ router.get(
  *             required:
  *               - phone
  *               - licensePlate
- *               - parkingSlotId
  *             properties:
  *               phone:
  *                 type: string
@@ -294,10 +297,6 @@ router.get(
  *                 type: string
  *                 description: Vehicle license plate
  *                 example: "51A-12345"
- *               parkingSlotId:
- *                 type: string
- *                 description: Parking slot ObjectId
- *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
  *     responses:
  *       201:
  *         description: Parking session created successfully
@@ -316,7 +315,9 @@ router.get(
  *                   checkInTime: "2026-06-16T08:00:00.000Z"
  *                   status: "ACTIVE"
  *       400:
- *         description: Invalid input data, vehicle/user not found, or parking slot not available
+ *         description: |
+ *           Invalid input, vehicle/user not found, no active pending reservation,
+ *           reserved slot invalid, or vehicle type mismatch
  *       401:
  *         description: Unauthorized
  *       403:
@@ -467,7 +468,10 @@ router.post(
  * /api/v1/parking/checkout-parking-session/{parkingSessionId}:
  *   patch:
  *     summary: Checkout a parking session
- *     description: Staff, manager, or admin checks out an active parking session for a customer.
+ *     description: |
+ *       Staff, manager, or admin checks out an active parking session for a customer.
+ *       Vehicles with an active monthly card can checkout without prior payment.
+ *       Daily/guest sessions require a PAID payment linked to the session before checkout.
  *     tags: [Parking]
  *     security:
  *       - bearerAuth: []
@@ -496,7 +500,9 @@ router.post(
  *       204:
  *         description: Parking session checked out successfully
  *       400:
- *         description: Invalid request data, parking session/user not found, or checkout failed
+ *         description: |
+ *           Invalid request data, parking session/user not found, payment required,
+ *           or checkout failed
  *       401:
  *         description: Unauthorized
  *       403:
