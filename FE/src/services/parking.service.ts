@@ -270,21 +270,182 @@ export const enrichParkingSessionsWithPlates = (
     return { ...session, licensePlate };
   });
 
-/** Load active parking sessions; returns empty list if API has no rows. */
-export const fetchActiveParkingSessions = async () => {
+/** Driver: active (or latest) parking session for one registered vehicle. */
+export const getActiveUserParkingSession = async (
+  vehicleId: string,
+): Promise<ParkingSession | null> => {
+  const response = await fetch(
+    `${API_BASE}/api/v1/parking/active-user-parking-session/${encodeURIComponent(vehicleId)}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (!response.ok) {
+    if (response.status === 400) {
+      return null;
+    }
+    throw new ParkingApiError(
+      response.status,
+      payload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  return payload.data?.parkingSession ?? null;
+};
+
+export const getParkingSessionsSafe = async (params: GetParkingSessionsParams = {}) => {
   try {
-    const result = await getParkingSessions({
-      page: 1,
-      limit: 200,
-      status: "ACTIVE",
-    });
-    return result.parkingSessions;
+    return await getParkingSessions(params);
   } catch (error) {
     if (error instanceof ParkingApiError && error.status === 400) {
-      return [];
+      return { parkingSessions: [], pagination: undefined };
     }
     throw error;
   }
+};
+
+/** Driver: load parking session per vehicle (404/400 → no session for that vehicle). */
+export const fetchParkingSessionsForVehicleIds = async (vehicleIds: string[]) => {
+  const uniqueIds = [...new Set(vehicleIds.filter(Boolean))];
+  const map = new Map<string, ParkingSession>();
+
+  if (uniqueIds.length === 0) {
+    return map;
+  }
+
+  await Promise.all(
+    uniqueIds.map(async (vehicleId) => {
+      const session = await getActiveUserParkingSession(vehicleId);
+      if (session) {
+        map.set(vehicleId, session);
+      }
+    }),
+  );
+
+  return map;
+};
+
+/** Staff: all ACTIVE sessions (any check-in date) + today's COMPLETED for stale slot fallback. */
+export const fetchStaffOccupancySessions = async () => {
+  const today = new Date();
+  const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const [activeResult, completedResult] = await Promise.all([
+    getParkingSessionsSafe({ page: 1, limit: 300, status: "ACTIVE" }),
+    getParkingSessionsSafe({ page: 1, limit: 100, status: "COMPLETED", date: dateKey }),
+  ]);
+
+  const byId = new Map<string, ParkingSession>();
+  for (const session of completedResult.parkingSessions) {
+    byId.set(session._id, session);
+  }
+  for (const session of activeResult.parkingSessions) {
+    byId.set(session._id, session);
+  }
+
+  return [...byId.values()];
+};
+
+/** Staff: load active parking sessions; returns empty list if API has no rows. */
+export const fetchActiveParkingSessions = async () => {
+  const result = await getParkingSessionsSafe({
+    page: 1,
+    limit: 200,
+    status: "ACTIVE",
+  });
+  return result.parkingSessions;
+};
+
+export const mapParkingSessionsBySlotId = (sessions: ParkingSession[]) => {
+  const bySlotId = new Map<string, ParkingSession>();
+
+  for (const session of sessions) {
+    const slotId = getParkingSessionSlotId(session);
+    if (!slotId) {
+      continue;
+    }
+
+    const existing = bySlotId.get(slotId);
+    if (!existing) {
+      bySlotId.set(slotId, session);
+      continue;
+    }
+
+    if (session.status === "ACTIVE" && existing.status !== "ACTIVE") {
+      bySlotId.set(slotId, session);
+    }
+  }
+
+  return bySlotId;
+};
+
+export type ManageReservationDisplayStatus =
+  | "PENDING"
+  | "CLAIMED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | "CHECKED IN"
+  | "CHECKED OUT"
+  | string;
+
+export const getReservationVehicleId = (reservation: {
+  vehicleId: string | { _id: string };
+}) => {
+  if (typeof reservation.vehicleId === "object") {
+    return reservation.vehicleId._id;
+  }
+  return reservation.vehicleId;
+};
+
+export const findSessionForReservation = (
+  reservation: {
+    vehicleId: string | { _id: string };
+    parkingSlotId: string | { _id: string };
+  },
+  sessions: ParkingSession[],
+  getSlotId: (reservation: { parkingSlotId: string | { _id: string } }) => string | null,
+) => {
+  const vehicleId = getReservationVehicleId(reservation);
+  const reservationSlotId = getSlotId(reservation);
+
+  for (const session of sessions) {
+    const sessionSlotId = getParkingSessionSlotId(session);
+    if (reservationSlotId && sessionSlotId !== reservationSlotId) {
+      continue;
+    }
+
+    const sessionVehicleId =
+      typeof session.vehicleId === "object" ? session.vehicleId?._id : session.vehicleId;
+    if (vehicleId && sessionVehicleId && sessionVehicleId !== vehicleId) {
+      continue;
+    }
+
+    return session;
+  }
+
+  return null;
+};
+
+export const getManageReservationDisplayStatus = (
+  reservation: { status: string },
+  parkingSession: ParkingSession | null,
+): ManageReservationDisplayStatus => {
+  if (parkingSession?.status === "COMPLETED" && parkingSession.checkOutTime) {
+    return "CHECKED OUT";
+  }
+
+  if (parkingSession?.status === "ACTIVE") {
+    return "CHECKED IN";
+  }
+
+  if (reservation.status === "CLAIMED") {
+    return "CHECKED IN";
+  }
+
+  return reservation.status;
 };
 
 export type CreateParkingSessionPayload = {
@@ -368,7 +529,7 @@ export type CheckoutParkingSessionPayload = {
 };
 
 export const getCheckoutPhoneForSession = (session: ParkingSession) => {
-  if (typeof session.checkInUserId === "object") {
+  if (session.checkInUserId && typeof session.checkInUserId === "object") {
     return session.checkInUserId.phone?.trim() ?? "";
   }
   return session.phone?.trim() ?? "";

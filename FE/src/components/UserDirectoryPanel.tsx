@@ -45,12 +45,17 @@ import {
 type UserDirectoryPanelProps = {
   className?: string;
   compact?: boolean;
+  tableOnly?: boolean;
 };
 
 const pageSize = 100;
 const licensePlatePattern = /^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/;
 
-export function UserDirectoryPanel({ className, compact = false }: UserDirectoryPanelProps) {
+export function UserDirectoryPanel({
+  className,
+  compact = false,
+  tableOnly = false,
+}: UserDirectoryPanelProps) {
   const queryClient = useQueryClient();
   const [hasMounted, setHasMounted] = useState(false);
   const [page, setPage] = useState(1);
@@ -322,47 +327,86 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
   const fieldsDisabled = !isEditing;
 
   return (
-    <section className={cn("dashboard-section overflow-hidden p-0", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-5 py-4">
-        <div>
-          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <UsersRound className="size-4 text-primary" />
-            Registered users
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">{totalCount} accounts</div>
+    <section
+      className={cn(
+        tableOnly ? "flex h-full min-h-0 flex-col" : "dashboard-section overflow-hidden p-0",
+        className,
+      )}
+    >
+      {tableOnly ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+            {totalCount} users
+          </p>
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+            <div className="relative w-48 sm:w-56">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search"
+                className="h-9 rounded-xl pl-8 text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              disabled={usersQuery.isFetching}
+              onClick={() => void usersQuery.refetch()}
+              aria-label="Refresh users"
+            >
+              <RefreshCw className={cn("size-4", usersQuery.isFetching && "animate-spin")} />
+            </Button>
+          </form>
         </div>
-
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex min-w-0 flex-1 justify-end gap-2 sm:flex-none"
-        >
-          <div className="relative min-w-0 sm:w-56">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search users"
-              className="h-9 rounded-xl pl-8 text-sm"
-            />
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-5 py-4">
+          <div>
+            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <UsersRound className="size-4 text-primary" />
+              Registered users
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">{totalCount} accounts</div>
           </div>
-          <Button type="submit" size="sm" variant="secondary" className="h-9 rounded-xl px-3">
-            <Search className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={usersQuery.isFetching}
-            onClick={() => void usersQuery.refetch()}
-            className="h-9 rounded-xl px-3"
-            aria-label="Refresh users"
-          >
-            <RefreshCw className={`size-3.5 ${usersQuery.isFetching ? "animate-spin" : ""}`} />
-          </Button>
-        </form>
-      </div>
 
-      <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] gap-2 border-b border-border bg-card px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex min-w-0 flex-1 justify-end gap-2 sm:flex-none"
+          >
+            <div className="relative min-w-0 sm:w-56">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search users"
+                className="h-9 rounded-xl pl-8 text-sm"
+              />
+            </div>
+            <Button type="submit" size="sm" variant="secondary" className="h-9 rounded-xl px-3">
+              <Search className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={usersQuery.isFetching}
+              onClick={() => void usersQuery.refetch()}
+              className="h-9 rounded-xl px-3"
+              aria-label="Refresh users"
+            >
+              <RefreshCw className={`size-3.5 ${usersQuery.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </form>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] gap-2 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+          tableOnly ? "px-1" : "px-5",
+        )}
+      >
         <span>User</span>
         <span>Email</span>
         <span>Role</span>
@@ -371,7 +415,13 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
         <span className="text-right">Edit</span>
       </div>
 
-      <div className={cn("divide-y divide-border", compact ? "max-h-[320px] overflow-y-auto" : "")}>
+      <div
+        className={cn(
+          "divide-y divide-border",
+          compact ? "max-h-[320px] overflow-y-auto" : "",
+          tableOnly ? "min-h-0 flex-1 overflow-y-auto" : "",
+        )}
+      >
         {usersQuery.isLoading ? (
           <div className="flex items-center gap-2 px-5 py-5 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />
@@ -395,7 +445,12 @@ export function UserDirectoryPanel({ className, compact = false }: UserDirectory
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background/30 px-5 py-3">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-3 border-t border-border py-3",
+          tableOnly ? "mt-auto px-1" : "bg-background/30 px-5",
+        )}
+      >
         <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
           Page {page} / {totalPages}
         </span>

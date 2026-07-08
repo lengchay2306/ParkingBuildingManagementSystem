@@ -27,8 +27,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import {
+  fetchStaffOccupancySessions,
+  findSessionForReservation,
+  getManageReservationDisplayStatus,
+  type ManageReservationDisplayStatus,
+  type ParkingSession,
+} from "@/services/parking.service";
+import {
   deleteReservationByManage,
   getAllReservations,
+  getReservationSlotId,
   type Reservation,
   type ReservationStatus,
 } from "@/services/reservation.service";
@@ -67,6 +75,34 @@ export function ReservationListPanel({
     queryFn: () => fetchAllReservations(statusFilter),
   });
 
+  const parkingSessionsQuery = useQuery({
+    queryKey: ["parking-sessions-manage-reservations"],
+    queryFn: () => fetchStaffOccupancySessions(),
+  });
+
+  const parkingSessions = parkingSessionsQuery.data ?? [];
+  const sessionByReservationId = useMemo(() => {
+    const map = new Map<string, ParkingSession>();
+    for (const reservation of reservationsQuery.data ?? []) {
+      const session = findSessionForReservation(
+        reservation,
+        parkingSessions,
+        getReservationSlotId,
+      );
+      if (session) {
+        map.set(reservation._id, session);
+      }
+    }
+    return map;
+  }, [reservationsQuery.data, parkingSessions]);
+
+  const viewingParkingSession = viewingReservation
+    ? (sessionByReservationId.get(viewingReservation._id) ?? null)
+    : null;
+  const viewingDisplayStatus = viewingReservation
+    ? getManageReservationDisplayStatus(viewingReservation, viewingParkingSession)
+    : null;
+
   const allReservations = reservationsQuery.data ?? [];
   const filteredReservations = useMemo(() => {
     if (!isDateFilterActive) {
@@ -88,7 +124,11 @@ export function ReservationListPanel({
     mutationFn: (reservationId: string) => deleteReservationByManage(reservationId),
     onSuccess: async () => {
       setDeletingReservation(null);
-      await queryClient.invalidateQueries({ queryKey: ["reservations-manage"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["reservations-manage"] }),
+        queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage-reservations"] }),
+        queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage"] }),
+      ]);
       toast.success("Đã xóa đặt chỗ", {
         description: "Bản ghi reservation đã được xóa thành công.",
       });
@@ -217,11 +257,18 @@ export function ReservationListPanel({
         type="button"
         size="icon"
         variant="ghost"
-        onClick={() => void reservationsQuery.refetch()}
-        disabled={reservationsQuery.isFetching}
+        onClick={() =>
+          void Promise.all([reservationsQuery.refetch(), parkingSessionsQuery.refetch()])
+        }
+        disabled={reservationsQuery.isFetching || parkingSessionsQuery.isFetching}
         aria-label="Refresh reservations"
       >
-        <RefreshCw className={cn("size-4", reservationsQuery.isFetching && "animate-spin")} />
+        <RefreshCw
+          className={cn(
+            "size-4",
+            (reservationsQuery.isFetching || parkingSessionsQuery.isFetching) && "animate-spin",
+          )}
+        />
       </Button>
     </div>
   );
@@ -281,7 +328,11 @@ export function ReservationListPanel({
                 : "Unable to load reservations."}
             </div>
           ) : reservations.length > 0 ? (
-            reservations.map((reservation) => (
+            reservations.map((reservation) => {
+              const parkingSession = sessionByReservationId.get(reservation._id) ?? null;
+              const displayStatus = getManageReservationDisplayStatus(reservation, parkingSession);
+
+              return (
               <article
                 key={reservation._id}
                 className="grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4 transition-colors hover:bg-secondary/80"
@@ -307,15 +358,25 @@ export function ReservationListPanel({
                   </div>
 
                   <div className="text-[12px] text-muted-foreground">
-                    {formatDateTime(reservation.expectedArrival)}
+                    <p>{formatDateTime(reservation.expectedArrival)}</p>
+                    {parkingSession?.checkInTime ? (
+                      <p className="mt-0.5 text-[11px] text-emerald-500">
+                        In: {formatDateTime(parkingSession.checkInTime)}
+                      </p>
+                    ) : null}
+                    {parkingSession?.checkOutTime ? (
+                      <p className="mt-0.5 text-[11px] text-primary">
+                        Out: {formatDateTime(parkingSession.checkOutTime)}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div>
                     <Badge
-                      className={cn("border", getStatusBadgeClass(reservation.status))}
+                      className={cn("border", getStatusBadgeClass(displayStatus))}
                       variant="outline"
                     >
-                      {reservation.status}
+                      {displayStatus}
                     </Badge>
                   </div>
                 </button>
@@ -332,7 +393,8 @@ export function ReservationListPanel({
                   </button>
                 </div>
               </article>
-            ))
+            );
+            })
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               {isDateFilterActive
@@ -382,12 +444,14 @@ export function ReservationListPanel({
 
       <ReservationDetailDialog
         reservation={viewingReservation}
+        parkingSession={viewingParkingSession}
         open={viewingReservation !== null}
         onOpenChange={(open) => {
           if (!open) {
             setViewingReservation(null);
           }
         }}
+        statusLabel={viewingDisplayStatus ?? undefined}
       />
 
       <AlertDialog
@@ -528,12 +592,15 @@ function formatDateTime(value?: string) {
   }).format(date);
 }
 
-function getStatusBadgeClass(status: string) {
+function getStatusBadgeClass(status: ManageReservationDisplayStatus) {
   switch (status) {
     case "PENDING":
       return "border-amber-400/40 bg-amber-500/10 text-amber-500";
     case "CLAIMED":
+    case "CHECKED IN":
       return "border-emerald-400/40 bg-emerald-500/10 text-emerald-500";
+    case "CHECKED OUT":
+      return "border-primary/40 bg-primary/10 text-primary";
     case "EXPIRED":
       return "border-slate-400/40 bg-slate-500/10 text-slate-300";
     case "CANCELLED":
