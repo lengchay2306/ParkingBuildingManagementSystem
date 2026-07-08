@@ -9,17 +9,26 @@ import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import {
   createParkingSession,
   getActiveUserParkingSession,
+  getReservationsByLicensePlate,
   getVehicleByLicensePlate,
   resolveVehicleOwnerPhone,
   resolveVehicleOwnerProfile,
   resolveVehicleTypeLabel,
   type ParkingSession,
+  type Reservation,
   type StaffActiveParkingSession,
   type StaffVehicle,
   type VehicleOwnerProfile,
 } from '@/features/staff/api';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
+import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
+import {
+  findStaffRelevantReservation,
+  formatReservationSlotLabel,
+  getReservationDriverPhone,
+  getReservationSlotId,
+} from '@/features/staff/lib/reservation-helpers';
 import { formatTimeLabel, resolveSlotLabel } from '@/features/staff/lib/utils';
 import {
   staffPhoneErrorMessage,
@@ -42,6 +51,7 @@ export default function StaffCheckInScreen() {
   const [plateQuery, setPlateQuery] = useState('');
   const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
   const [foundVehicle, setFoundVehicle] = useState<StaffVehicle | null>(null);
+  const [pendingReservation, setPendingReservation] = useState<Reservation | null>(null);
   const [activeSession, setActiveSession] = useState<StaffActiveParkingSession | null>(null);
   const [checkInPhone, setCheckInPhone] = useState('');
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -69,6 +79,7 @@ export default function StaffCheckInScreen() {
 
   const resetConfirmState = useCallback(() => {
     setFoundVehicle(null);
+    setPendingReservation(null);
     setActiveSession(null);
     setCheckInPhone('');
     setSelectedSlotId(null);
@@ -81,22 +92,44 @@ export default function StaffCheckInScreen() {
 
   const resolveVehicle = useCallback(
     async (plateOverride?: string) => {
-      const plate = (plateOverride ?? plateQuery).trim();
-      if (!plate) {
+      const rawPlate = (plateOverride ?? plateQuery).trim();
+      if (!rawPlate) {
         showToast(t('Nhập biển số để tra cứu', 'Enter a license plate to search'), 'error');
+        return;
+      }
+
+      const plate = formatLicensePlateForApi(rawPlate);
+      if (!plate) {
+        showToast(
+          t('Biển số phải đúng định dạng 51A-123.45', 'License plate must match format 51A-123.45'),
+          'error',
+        );
         return;
       }
 
       setIsSearchingVehicle(true);
       try {
-        const vehicle = await getVehicleByLicensePlate(plate);
+        const [vehicle, reservationLookup] = await Promise.all([
+          getVehicleByLicensePlate(plate),
+          getReservationsByLicensePlate(plate, 'PENDING').catch(() => null),
+        ]);
         const existingSession = await getActiveUserParkingSession(vehicle._id);
+        const relevantReservation = reservationLookup
+          ? findStaffRelevantReservation(reservationLookup.reservations)
+          : null;
+        const reservedSlotId = relevantReservation ? getReservationSlotId(relevantReservation) : null;
+        const reservationPhone = relevantReservation
+          ? getReservationDriverPhone(relevantReservation)
+          : undefined;
 
         setFoundVehicle(vehicle);
+        setPendingReservation(relevantReservation);
         setPlateQuery(vehicle.licensePlate);
         setActiveSession(existingSession);
-        setCheckInPhone(resolveVehicleOwnerPhone(vehicle, existingSession));
-        setSelectedSlotId(null);
+        setCheckInPhone(
+          reservationPhone || resolveVehicleOwnerPhone(vehicle, existingSession),
+        );
+        setSelectedSlotId(reservedSlotId);
         setStep('confirm');
 
         if (existingSession) {
@@ -114,7 +147,18 @@ export default function StaffCheckInScreen() {
           return;
         }
 
-        showToast(t('Đã tìm thấy xe', 'Vehicle found'), 'success');
+        if (relevantReservation) {
+          showToast(
+            t(
+              `Có đặt chỗ tại ${formatReservationSlotLabel(relevantReservation)}`,
+              `Reservation found at ${formatReservationSlotLabel(relevantReservation)}`,
+            ),
+            'success',
+          );
+          return;
+        }
+
+        showToast(t('Không có đặt chỗ — chọn ô trống', 'No reservation — select an available spot'), 'success');
       } catch (error) {
         resetConfirmState();
         showToast(
@@ -252,6 +296,7 @@ export default function StaffCheckInScreen() {
           onSelectSlot={setSelectedSlotId}
           onViewActiveSession={activeSession ? handleViewActiveSession : undefined}
           ownerProfile={ownerProfile}
+          pendingReservation={pendingReservation}
           phone={checkInPhone}
           selectedSlotId={selectedSlotId}
           t={t}

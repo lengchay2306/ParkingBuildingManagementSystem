@@ -2,9 +2,16 @@ import { authenticatedFetch } from '@/lib/auth-api';
 
 export type ReservationStatus = 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
 
+export type ReservationDriver = {
+  _id: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+};
+
 export type Reservation = {
   _id: string;
-  driverId: string;
+  driverId: string | ReservationDriver;
   vehicleId:
     | string
     | {

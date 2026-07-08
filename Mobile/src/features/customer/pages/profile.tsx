@@ -23,6 +23,7 @@ import { MaxContentWidth } from '@/constants/theme';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
+import { useSessionRole } from '@/hooks/session-role';
 import {
   extractRoleNameFromProfile,
   getMyProfile,
@@ -97,6 +98,7 @@ export default function ProfileScreen() {
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
 
   useProtectedSession();
+  const { refreshRole } = useSessionRole();
 
   const loadProfile = useCallback(async (refreshing = false) => {
     if (refreshing) {
@@ -297,6 +299,7 @@ export default function ProfileScreen() {
     setIsLoggingOut(true);
     try {
       await logout();
+      await refreshRole();
       showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
       router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {

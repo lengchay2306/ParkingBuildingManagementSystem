@@ -1,15 +1,18 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
 import { Tabs } from 'expo-router';
+import React from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppToastProvider } from '@/components/app-toast';
 import { Typography } from '@/constants/design';
+import { MobileChatbotWidget } from '@/features/chatbot/components/mobile-chatbot-widget';
 import { StaffTabIcon } from '@/features/staff/components/staff-tab-icon';
 import { StaffWorkspaceProvider } from '@/features/staff/context/staff-workspace-context';
+import { useAndroidAuthenticatedBack } from '@/hooks/use-android-authenticated-back';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { LanguagePreferenceProvider, useLanguagePreference } from '@/hooks/language-preference';
 import { SessionRoleProvider, useSessionRole } from '@/hooks/session-role';
@@ -35,8 +38,16 @@ function RootNavigator() {
   const { resolvedScheme } = useThemePreference();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
-  const { role, isLoading: isRoleLoading } = useSessionRole();
+  const insets = useSafeAreaInsets();
+  const { role, isAuthenticated, isLoading: isRoleLoading } = useSessionRole();
   const isStaff = role === 'STAFF';
+
+  useAndroidAuthenticatedBack(isAuthenticated);
+
+  const tabBarBottomInset =
+    insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 32 : 0;
+  const tabBarContentHeight = 52;
+  const tabBarVerticalPadding = 6;
 
   const lightTheme = {
     ...DefaultTheme,
@@ -65,9 +76,9 @@ function RootNavigator() {
     backgroundColor: DesignColors.surface1,
     borderTopWidth: 1,
     borderTopColor: DesignColors.hairline,
-    height: 72,
-    paddingBottom: 10,
-    paddingTop: 8,
+    height: tabBarContentHeight + tabBarVerticalPadding * 2 + tabBarBottomInset,
+    paddingBottom: tabBarBottomInset + tabBarVerticalPadding,
+    paddingTop: tabBarVerticalPadding,
     elevation: 0,
     shadowOpacity: 0,
   };
@@ -259,6 +270,7 @@ function RootNavigator() {
             <Tabs.Screen name="(staff)/staff-settings" options={{ href: null }} />
             <Tabs.Screen name="(staff)/staff" options={{ href: null }} />
           </Tabs>
+          <MobileChatbotWidget />
         </AppToastProvider>
       </SafeAreaView>
     </ThemeProvider>

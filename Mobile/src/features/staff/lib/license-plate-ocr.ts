@@ -115,3 +115,8 @@ export function extractLicensePlateFromOcrText(text: string): string | null {
 export function normalizeLicensePlate(plate: string): string {
   return plate.trim().toUpperCase();
 }
+
+/** Normalize manual or OCR input to BE format `51A-123.45`, or null if invalid. */
+export function formatLicensePlateForApi(plate: string): string | null {
+  return tryNormalizePlate(plate.trim());
+}

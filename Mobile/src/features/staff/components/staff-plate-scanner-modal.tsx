@@ -29,7 +29,12 @@ import {
   isOcrReady,
   recognizePlateText,
 } from '@/features/staff/lib/ocr-runtime';
-import { PLATE_VIEWFINDER } from '@/features/staff/lib/plate-scanner-viewfinder';
+import {
+  PLATE_VIEWFINDER,
+  getPlateViewfinderFrameBottom,
+  getPlateViewfinderMarginTop,
+  getPlateViewfinderScanBandBottom,
+} from '@/features/staff/lib/plate-scanner-viewfinder';
 import { useDesignColors } from '@/hooks/use-design-colors';
 
 const CAMERA_WARMUP_MS = 1200;
@@ -39,6 +44,11 @@ const SCAN_INTERVAL_MS = {
   cloud: 5000,
 } as const;
 
+const OVERLAY_DIM = 'rgba(8,12,20,0.38)';
+const CORNER_SIZE = 26;
+const CORNER_STROKE = 3;
+const APP_BRAND_NAME = 'PARKOS';
+
 type StaffPlateScannerModalProps = {
   visible: boolean;
   onClose: () => void;
@@ -46,51 +56,135 @@ type StaffPlateScannerModalProps = {
   t: (vi: string, en: string) => string;
 };
 
+function ViewfinderCorners({
+  accentColor,
+  marginX,
+  marginY,
+  width,
+  height,
+}: {
+  accentColor: string;
+  marginX: number;
+  marginY: number;
+  width: number;
+  height: number;
+}) {
+  const frameStyle = {
+    left: `${marginX * 100}%` as `${number}%`,
+    top: `${marginY * 100}%` as `${number}%`,
+    width: `${width * 100}%` as `${number}%`,
+    height: `${height * 100}%` as `${number}%`,
+  };
+
+  const cornerBase = {
+    position: 'absolute' as const,
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
+    borderColor: accentColor,
+  };
+
+  return (
+    <View pointerEvents="none" style={[overlayStyles.frameHost, frameStyle]}>
+      <View
+        style={[
+          cornerBase,
+          { top: 0, left: 0, borderTopWidth: CORNER_STROKE, borderLeftWidth: CORNER_STROKE, borderTopLeftRadius: 10 },
+        ]}
+      />
+      <View
+        style={[
+          cornerBase,
+          { top: 0, right: 0, borderTopWidth: CORNER_STROKE, borderRightWidth: CORNER_STROKE, borderTopRightRadius: 10 },
+        ]}
+      />
+      <View
+        style={[
+          cornerBase,
+          { bottom: 0, left: 0, borderBottomWidth: CORNER_STROKE, borderLeftWidth: CORNER_STROKE, borderBottomLeftRadius: 10 },
+        ]}
+      />
+      <View
+        style={[
+          cornerBase,
+          {
+            bottom: 0,
+            right: 0,
+            borderBottomWidth: CORNER_STROKE,
+            borderRightWidth: CORNER_STROKE,
+            borderBottomRightRadius: 10,
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
 function PlateScanOverlay({ accentColor }: { accentColor: string }) {
   const scanY = useSharedValue(0);
-  const { marginX, marginY, width, height } = PLATE_VIEWFINDER;
+  const { marginX, width, height } = PLATE_VIEWFINDER;
+  const marginTop = getPlateViewfinderMarginTop();
+  const frameBottom = getPlateViewfinderFrameBottom();
+  const scanBandBottom = getPlateViewfinderScanBandBottom();
 
   useEffect(() => {
     scanY.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.ease) }),
       -1,
       true,
     );
   }, [scanY]);
 
   const scanLineStyle = useAnimatedStyle(() => ({
-    top: `${marginY * 100 + scanY.value * height * 100}%` as `${number}%`,
+    top: `${marginTop * 100 + scanY.value * height * 100}%` as `${number}%`,
+    opacity: 0.35 + scanY.value * 0.25,
   }));
+
+  const gapBandHeight = Math.max(scanBandBottom - frameBottom, 0);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: `${marginY * 100}%` }]} />
-      <View
-        style={[overlayStyles.dim, { bottom: 0, left: 0, right: 0, height: `${marginY * 100}%` }]}
-      />
+      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: `${marginTop * 100}%` }]} />
+      {gapBandHeight > 0 ? (
+        <View
+          style={[
+            overlayStyles.dimSoft,
+            {
+              top: `${frameBottom * 100}%`,
+              left: 0,
+              right: 0,
+              height: `${gapBandHeight * 100}%`,
+            },
+          ]}
+        />
+      ) : null}
       <View
         style={[
           overlayStyles.dim,
-          { top: `${marginY * 100}%`, bottom: `${marginY * 100}%`, left: 0, width: `${marginX * 100}%` },
-        ]}
-      />
-      <View
-        style={[
-          overlayStyles.dim,
-          { top: `${marginY * 100}%`, bottom: `${marginY * 100}%`, right: 0, width: `${marginX * 100}%` },
-        ]}
-      />
-      <View
-        style={[
-          overlayStyles.frame,
           {
-            left: `${marginX * 100}%`,
-            width: `${width * 100}%`,
-            top: `${marginY * 100}%`,
-            height: `${height * 100}%`,
-            borderColor: accentColor,
+            top: `${marginTop * 100}%`,
+            bottom: `${(1 - scanBandBottom) * 100}%`,
+            left: 0,
+            width: `${marginX * 100}%`,
           },
         ]}
+      />
+      <View
+        style={[
+          overlayStyles.dim,
+          {
+            top: `${marginTop * 100}%`,
+            bottom: `${(1 - scanBandBottom) * 100}%`,
+            right: 0,
+            width: `${marginX * 100}%`,
+          },
+        ]}
+      />
+      <ViewfinderCorners
+        accentColor={accentColor}
+        height={height}
+        marginX={marginX}
+        marginY={marginTop}
+        width={width}
       />
       <Animated.View
         style={[
@@ -106,17 +200,19 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 const overlayStyles = StyleSheet.create({
   dim: {
     position: 'absolute',
-    backgroundColor: 'rgba(11,15,25,0.55)',
+    backgroundColor: OVERLAY_DIM,
   },
-  frame: {
+  dimSoft: {
     position: 'absolute',
-    borderRadius: Radius.lg,
-    borderWidth: 2,
+    backgroundColor: 'rgba(8,12,20,0.18)',
+  },
+  frameHost: {
+    position: 'absolute',
   },
   scanLine: {
     position: 'absolute',
-    height: 2,
-    opacity: 0.9,
+    height: 1.5,
+    borderRadius: 1,
   },
 });
 
@@ -359,7 +455,7 @@ export function StaffPlateScannerModal({
           facing="back"
           flash="off"
           mode="picture"
-          style={StyleSheet.absoluteFill}
+          style={styles.cameraFeed}
           onCameraReady={() => {
             setCameraError(null);
             setCameraReady(true);
@@ -370,50 +466,59 @@ export function StaffPlateScannerModal({
             setCameraError(message);
           }}
         />
-        <PlateScanOverlay accentColor={DesignColors.accentViolet} />
+        <PlateScanOverlay accentColor={DesignColors.primaryFocus} />
+
+        <ThemedText
+          pointerEvents="none"
+          style={[
+            styles.frameHint,
+            {
+              top: `${(getPlateViewfinderFrameBottom() + 0.012) * 100}%` as `${number}%`,
+            },
+          ]}>
+          {t('Đặt biển số vào khung', 'Align plate inside frame')}
+        </ThemedText>
 
         <View style={[styles.hud, { paddingBottom: insets.bottom + Spacing.md }]}>
-          <View style={styles.liveBadge}>
-            {!scanEnabled || isProcessing ? (
-              <ActivityIndicator color={DesignColors.accentEmerald} size="small" />
-            ) : (
-              <View style={styles.liveDot} />
-            )}
-            <ThemedText style={styles.liveBadgeText}>
+          <View style={styles.hudCard}>
+            <View style={styles.brandRow}>
+              <View style={styles.brandMark}>
+                <Ionicons color={DesignColors.primaryFocus} name="car-sport-outline" size={18} />
+              </View>
+              <View style={styles.brandCopy}>
+                <ThemedText style={styles.brandName}>{APP_BRAND_NAME}</ThemedText>
+                <ThemedText style={styles.brandTagline}>
+                  {t('Hệ thống quản lý bãi xe', 'Parking management system')}
+                </ThemedText>
+              </View>
+              {!scanEnabled || isProcessing ? (
+                <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
+              ) : null}
+            </View>
+            <ThemedText style={styles.hudHint}>
               {!scanEnabled
                 ? t('Đang khởi động camera…', 'Starting camera…')
                 : manualCloudScan
-                  ? t('Expo Go · chạm để quét', 'Expo Go · tap to scan')
-                  : t('Đang quét liên tục', 'Live scanning')}
+                  ? t('Căn biển số vào khung, rồi chạm Quét ngay', 'Align the plate in the frame, then tap Scan now')
+                  : t('Giữ ổn định — tự nhận diện khi thấy biển số', 'Hold steady — auto-detects when a plate is found')}
             </ThemedText>
+            {statusMessage ? <ThemedText style={styles.hudStatus}>{statusMessage}</ThemedText> : null}
+            <Pressable
+              disabled={!scanEnabled || isProcessing || scanBlockedByCooldown}
+              onPress={() => void runScanTick()}
+              style={({ pressed }) => [
+                styles.captureButton,
+                pressed && styles.captureButtonPressed,
+                (!scanEnabled || isProcessing || scanBlockedByCooldown) && styles.captureButtonDisabled,
+              ]}>
+              <Ionicons color={DesignColors.onPrimary} name="scan" size={20} />
+              <ThemedText style={styles.captureButtonLabel}>
+                {scanBlockedByCooldown
+                  ? t(`Đợi ${cooldownSeconds}s`, `Wait ${cooldownSeconds}s`)
+                  : t('Quét ngay', 'Scan now')}
+              </ThemedText>
+            </Pressable>
           </View>
-          <ThemedText style={styles.hudHint}>
-            {manualCloudScan
-              ? t(
-                  'OCR miễn phí giới hạn tốc độ — căn biển số rồi chạm Quét ngay',
-                  'Free OCR is rate-limited — align the plate then tap Scan now',
-                )
-              : t(
-                  'Căn biển số vào khung giữa — tự nhận diện khi thấy',
-                  'Center the plate in the frame — auto-detects when found',
-                )}
-          </ThemedText>
-          {statusMessage ? <ThemedText style={styles.hudStatus}>{statusMessage}</ThemedText> : null}
-          <Pressable
-            disabled={!scanEnabled || isProcessing || scanBlockedByCooldown}
-            onPress={() => void runScanTick()}
-            style={({ pressed }) => [
-              styles.captureButton,
-              pressed && styles.captureButtonPressed,
-              (!scanEnabled || isProcessing || scanBlockedByCooldown) && styles.captureButtonDisabled,
-            ]}>
-            <Ionicons color={DesignColors.onPrimary} name="scan" size={22} />
-            <ThemedText style={styles.captureButtonLabel}>
-              {scanBlockedByCooldown
-                ? t(`Đợi ${cooldownSeconds}s`, `Wait ${cooldownSeconds}s`)
-                : t('Quét ngay', 'Scan now')}
-            </ThemedText>
-          </Pressable>
         </View>
       </>
     );
@@ -424,20 +529,28 @@ export function StaffPlateScannerModal({
   }
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} visible>
+    <Modal
+      animationType="fade"
+      navigationBarTranslucent
+      onRequestClose={onClose}
+      statusBarTranslucent
+      visible>
       <View style={styles.root}>
-        <View style={[styles.topBar, { paddingTop: insets.top + Spacing.xs }]}>
+        <View style={styles.cameraHost}>{renderBody()}</View>
+
+        <View style={[styles.floatingTopBar, { paddingTop: insets.top + Spacing.sm }]}>
           <Pressable
             accessibilityLabel={t('Đóng', 'Close')}
             hitSlop={12}
             onPress={onClose}
             style={styles.closeButton}>
-            <Ionicons color={DesignColors.ink} name="close" size={24} />
+            <Ionicons color="#F8FAFC" name="close" size={22} />
           </Pressable>
-          <ThemedText style={styles.topTitle}>{t('Quét biển số', 'Scan license plate')}</ThemedText>
+          <View style={styles.titlePill}>
+            <ThemedText style={styles.topTitle}>{t('Quét biển số', 'Scan license plate')}</ThemedText>
+          </View>
           <View style={styles.topSpacer} />
         </View>
-        <View style={styles.cameraHost}>{renderBody()}</View>
       </View>
     </Modal>
   );
@@ -447,33 +560,42 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: DesignColors.canvas,
+      backgroundColor: '#000',
     },
-    topBar: {
+    floatingTopBar: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: Spacing.md,
       paddingBottom: Spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface1,
+      zIndex: 20,
     },
     closeButton: {
       width: 40,
       height: 40,
-      borderRadius: Radius.lg,
+      borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: DesignColors.surface2,
+      backgroundColor: 'rgba(0,0,0,0.45)',
       borderWidth: 1,
-      borderColor: DesignColors.hairline,
+      borderColor: 'rgba(255,255,255,0.14)',
+    },
+    titlePill: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: Spacing.sm,
     },
     topTitle: {
-      flex: 1,
-      textAlign: 'center',
       ...Typography.bodySm,
-      color: DesignColors.ink,
+      color: '#F1F5F9',
       fontWeight: '600',
+      fontSize: 15,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
     topSpacer: {
       width: 40,
@@ -481,6 +603,22 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     cameraHost: {
       flex: 1,
       backgroundColor: '#000',
+      overflow: 'hidden',
+    },
+    cameraFeed: {
+      ...StyleSheet.absoluteFillObject,
+      transform: [{ scale: 1.06 }],
+    },
+    frameHint: {
+      position: 'absolute',
+      left: Spacing.lg,
+      right: Spacing.lg,
+      ...Typography.caption,
+      color: 'rgba(241,245,249,0.82)',
+      textAlign: 'center',
+      fontSize: 12,
+      fontWeight: '500',
+      letterSpacing: 0.2,
     },
     centered: {
       flex: 1,
@@ -505,7 +643,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderRadius: Radius.lg,
       paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.sm,
-      backgroundColor: DesignColors.accentViolet,
+      backgroundColor: DesignColors.primaryFocus,
     },
     permissionButtonText: {
       ...Typography.button,
@@ -517,73 +655,91 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       left: 0,
       right: 0,
       bottom: 0,
-      alignItems: 'center',
-      gap: Spacing.sm,
-      paddingHorizontal: Spacing.lg,
-      paddingTop: Spacing.md,
-      backgroundColor: 'rgba(11,15,25,0.88)',
-      borderTopWidth: 1,
-      borderTopColor: DesignColors.hairline,
+      paddingHorizontal: Spacing.md,
+      paddingTop: Spacing.sm,
     },
-    liveBadge: {
+    hudCard: {
+      alignItems: 'stretch',
+      gap: Spacing.xs,
+      borderRadius: Radius.xl,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      backgroundColor: 'rgba(12,16,26,0.82)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.08)',
+    },
+    brandRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: Spacing.xs,
-      borderRadius: Radius.pill,
+      gap: Spacing.sm,
+    },
+    brandMark: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(99,102,241,0.18)',
       borderWidth: 1,
-      borderColor: 'rgba(16,185,129,0.35)',
-      backgroundColor: 'rgba(16,185,129,0.12)',
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 4,
+      borderColor: 'rgba(99,102,241,0.35)',
     },
-    liveDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: DesignColors.accentEmerald,
+    brandCopy: {
+      flex: 1,
+      gap: 2,
     },
-    liveBadgeText: {
+    brandName: {
+      ...Typography.bodySm,
+      color: '#F8FAFC',
+      fontWeight: '800',
+      fontSize: 16,
+      letterSpacing: 1.4,
+    },
+    brandTagline: {
       ...Typography.caption,
-      color: DesignColors.accentEmerald,
-      fontWeight: '600',
+      color: 'rgba(226,232,240,0.62)',
       fontSize: 11,
     },
     hudHint: {
       ...Typography.caption,
-      color: DesignColors.inkMuted,
+      color: 'rgba(226,232,240,0.72)',
       textAlign: 'center',
       lineHeight: 18,
+      fontSize: 12,
     },
     hudStatus: {
       ...Typography.caption,
-      color: DesignColors.accentSky,
+      color: '#93C5FD',
       textAlign: 'center',
       lineHeight: 18,
+      fontSize: 12,
     },
     captureButton: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.xs,
-      borderRadius: Radius.lg,
-      paddingHorizontal: Spacing.lg,
-      paddingVertical: Spacing.sm,
-      minHeight: 44,
-      backgroundColor: DesignColors.accentViolet,
+      borderRadius: Radius.pill,
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: 12,
+      minHeight: 48,
+      alignSelf: 'center',
+      minWidth: '72%',
+      backgroundColor: DesignColors.primaryFocus,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderColor: 'rgba(255,255,255,0.16)',
     },
     captureButtonLabel: {
       ...Typography.button,
       color: DesignColors.onPrimary,
-      fontWeight: '600',
+      fontWeight: '700',
+      fontSize: 15,
     },
     captureButtonPressed: {
-      opacity: 0.9,
+      opacity: 0.92,
       transform: [{ scale: 0.98 }],
     },
     captureButtonDisabled: {
-      opacity: 0.45,
+      opacity: 0.42,
     },
   });
 }
