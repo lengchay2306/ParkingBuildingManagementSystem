@@ -27,10 +27,12 @@ import {
 } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 import {
+  checkoutParkingSession,
   createParkingSession,
   createGuestParkingSession,
   enrichParkingSessionsWithPlates,
   fetchActiveParkingSessions,
+  getCheckoutPhoneForSession,
   getFloorForParkingSlotId,
   getParkingFloors,
   getParkingSessionSlotId,
@@ -323,6 +325,65 @@ function StaffPage() {
     },
   });
 
+  const checkoutSessionMutation = useMutation({
+    mutationFn: checkoutParkingSession,
+    onSuccess: async (session) => {
+      const slotId = getParkingSessionSlotId(session);
+      setViewingSessionSlotId(null);
+
+      if (slotId) {
+        setGuestPlatesBySlotId((current) => {
+          const next = { ...current };
+          delete next[slotId];
+          return next;
+        });
+      }
+
+      queryClient.setQueryData(
+        staffParkingSessionsQueryKey,
+        (current: ParkingSession[] | undefined) => {
+          const list = current ?? [];
+          if (!slotId) {
+            return list.filter((item) => item._id !== session._id);
+          }
+          return list.filter((item) => getParkingSessionSlotId(item) !== slotId);
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey });
+
+      const plate = getSessionLicensePlate(session) ?? "—";
+      toast.success("Kết thúc phiên thành công", {
+        description: `Xe ${plate} đã checkout. Slot trở về Available.`,
+      });
+    },
+    onError: (error) => {
+      toast.error("Không thể kết thúc phiên", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    },
+  });
+
+  const handleCheckoutSession = () => {
+    const session = viewingSessionDetail?.session;
+    if (!session?._id || session.status !== "ACTIVE") {
+      return;
+    }
+
+    const phone = getCheckoutPhoneForSession(session);
+    if (!phone) {
+      toast.error("Không thể checkout", {
+        description: "Phiên này không có SĐT khách — API checkout hiện yêu cầu SĐT tài khoản.",
+      });
+      return;
+    }
+
+    checkoutSessionMutation.mutate({
+      parkingSessionId: session._id,
+      phone,
+    });
+  };
+
   const openCreateSessionDialog = (
     slot: ParkingSlot,
     defaults: { phone?: string; licensePlate?: string } = {},
@@ -551,6 +612,9 @@ function StaffPage() {
         floorName={viewingSessionDetail?.floorName}
         vehicleTypeLabel={viewingSessionDetail?.vehicleTypeLabel}
         licensePlateLabel={viewingSessionDetail?.licensePlateLabel}
+        showCheckoutAction
+        onCheckout={handleCheckoutSession}
+        isCheckingOut={checkoutSessionMutation.isPending}
         open={viewingSessionSlotId !== null}
         onOpenChange={(open) => {
           if (!open) {

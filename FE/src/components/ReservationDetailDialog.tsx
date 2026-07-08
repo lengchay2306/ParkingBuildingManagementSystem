@@ -11,10 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import type { ParkingSession } from "@/services/parking.service";
 import type { Reservation } from "@/services/reservation.service";
 
 type ReservationDetailDialogProps = {
   reservation: Reservation | null;
+  parkingSession?: ParkingSession | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   showCreateSessionAction?: boolean;
@@ -27,6 +29,7 @@ type ReservationDetailDialogProps = {
 
 export function ReservationDetailDialog({
   reservation,
+  parkingSession = null,
   open,
   onOpenChange,
   showCreateSessionAction = false,
@@ -95,6 +98,12 @@ export function ReservationDetailDialog({
               <DetailRow label="Dự kiến đến" value={formatDateTime(reservation.expectedArrival)} />
               {showExpiryAt ? (
                 <DetailRow label="Hết hạn giữ chỗ" value={formatDateTime(reservation.expiryAt)} />
+              ) : null}
+              {parkingSession?.checkInTime ? (
+                <DetailRow label="Check-in lúc" value={formatDateTime(parkingSession.checkInTime)} />
+              ) : null}
+              {parkingSession?.checkOutTime ? (
+                <DetailRow label="Check-out lúc" value={formatDateTime(parkingSession.checkOutTime)} />
               ) : null}
             </DetailGrid>
           </section>
