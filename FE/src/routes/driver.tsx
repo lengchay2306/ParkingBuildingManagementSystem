@@ -1801,7 +1801,7 @@ function getSlotStatusFromFloors(slotId: string, parkingFloors: ParkingFloor[]) 
   return null;
 }
 
-/** PENDING + slot đang IN-USED → hiển thị như đã check-in. */
+/** PENDING + slot đang IN-USED → hiển thị như đã check-in (FE-only). */
 function getEffectiveReservationStatus(
   reservation: Reservation,
   parkingFloors: ParkingFloor[],

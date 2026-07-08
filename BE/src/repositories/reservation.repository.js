@@ -27,6 +27,32 @@ class ReservationRepository {
         }).lean();
     }
 
+    findPendingReservationByVehicleAndDriver = async ({ vehicleId, driverId }) => {
+        const now = new Date();
+
+        return Reservation.findOne({
+            vehicleId,
+            driverId,
+            status: 'PENDING',
+            expiryAt: { $gt: now },
+        }).lean();
+    }
+
+    claimReservationByVehicleAndSlot = async ({ vehicleId, parkingSlotId }) => {
+        const now = new Date();
+
+        return Reservation.findOneAndUpdate(
+            {
+                vehicleId,
+                parkingSlotId,
+                status: 'PENDING',
+                expiryAt: { $gt: now },
+            },
+            { status: 'CLAIMED' },
+            { returnDocument: 'after' },
+        ).lean();
+    }
+
     createReservation = async ({
         driverId,
         vehicleId,

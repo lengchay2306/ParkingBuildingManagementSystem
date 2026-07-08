@@ -36,7 +36,7 @@ class ParkingController {
             const { 
                 phone, 
                 licensePlate,
-                parkingSlotId,
+                // parkingSlotId,
             } = req.body
 
             const { userId } = req.user
@@ -45,7 +45,7 @@ class ParkingController {
                 phone,
                 licensePlate,
                 staffId: userId,
-                parkingSlotId,
+                // parkingSlotId,
             })
 
             res.status(201).json({

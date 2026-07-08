@@ -362,6 +362,47 @@ export const createGuestParkingSession = async (payload: CreateGuestParkingSessi
   return parkingSession;
 };
 
+export type CheckoutParkingSessionPayload = {
+  parkingSessionId: string;
+  phone: string;
+};
+
+export const getCheckoutPhoneForSession = (session: ParkingSession) => {
+  if (typeof session.checkInUserId === "object") {
+    return session.checkInUserId.phone?.trim() ?? "";
+  }
+  return session.phone?.trim() ?? "";
+};
+
+export const checkoutParkingSession = async (payload: CheckoutParkingSessionPayload) => {
+  const response = await fetch(
+    `${API_BASE}/api/v1/parking/checkout-parking-session/${encodeURIComponent(payload.parkingSessionId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ phone: payload.phone.trim() }),
+    },
+  );
+  const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (response.status !== 201) {
+    throw new ParkingApiError(
+      response.status,
+      apiPayload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  const parkingSession = apiPayload.data?.parkingSession;
+  if (!parkingSession) {
+    throw new ParkingApiError(response.status, "Checkout response data is missing.");
+  }
+
+  return parkingSession;
+};
+
 export const mapActiveParkingSessionsBySlotId = (sessions: ParkingSession[]) => {
   const bySlotId = new Map<string, ParkingSession>();
   for (const session of sessions) {

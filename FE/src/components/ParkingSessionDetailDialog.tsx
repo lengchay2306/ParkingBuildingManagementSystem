@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import { LoaderCircle } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +24,9 @@ type ParkingSessionDetailDialogProps = {
   floorName?: string;
   vehicleTypeLabel?: string;
   licensePlateLabel?: string;
+  showCheckoutAction?: boolean;
+  onCheckout?: () => void;
+  isCheckingOut?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -31,6 +37,9 @@ export function ParkingSessionDetailDialog({
   floorName,
   vehicleTypeLabel,
   licensePlateLabel,
+  showCheckoutAction = false,
+  onCheckout,
+  isCheckingOut = false,
   open,
   onOpenChange,
 }: ParkingSessionDetailDialogProps) {
@@ -106,6 +115,27 @@ export function ParkingSessionDetailDialog({
               <DetailRow label="Nhân viên check-in" value={getUserName(session.checkInStaffId)} />
             </DetailGrid>
           </section>
+
+          {showCheckoutAction && session.status === "ACTIVE" ? (
+            <section className="space-y-3 border-t border-border pt-4">
+              <SectionHeading>Ra cổng</SectionHeading>
+              <Button
+                type="button"
+                className="w-full rounded-xl"
+                disabled={isCheckingOut || !onCheckout}
+                onClick={onCheckout}
+              >
+                {isCheckingOut ? (
+                  <>
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Đang kết thúc phiên...
+                  </>
+                ) : (
+                  "Kết thúc phiên"
+                )}
+              </Button>
+            </section>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
