@@ -29,10 +29,13 @@ import ParkingRepository from "./src/repositories/parking.repository.js";
 import ReservationRepository from "./src/repositories/reservation.repository.js";
 import VehicleRepository from "./src/repositories/vehicle.repository.js";
 import PricePolicyRepository from "./src/repositories/pricePolicy.repository.js";
+import PaymentRepository from "./src/repositories/payment.repository.js";
+import MonthlyCardRepository from "./src/repositories/monthlyCard.repository.js";
 import ChatSessionRepository from "./src/repositories/chatSession.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
+import payosGateway from "./src/utils/payosGateway.js";
 
 const container = createContainer();
 
@@ -44,6 +47,9 @@ export function setupContainer({ io, notificationNamespace }) {
         }),
         //3rd party
         redis: asValue(redisClient, {
+            lifetime: Lifetime.SINGLETON,
+        }),
+        payosGateway: asValue(payosGateway, {
             lifetime: Lifetime.SINGLETON,
         }),
         
@@ -123,6 +129,12 @@ export function setupContainer({ io, notificationNamespace }) {
         }),
         pricePolicyRepository: asClass(PricePolicyRepository, {
             lifetime: Lifetime.SCOPED
+        }),
+        paymentRepository: asClass(PaymentRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        monthlyCardRepository: asClass(MonthlyCardRepository, {
+            lifetime: Lifetime.SCOPED,
         }),
         chatSessionRepository: asClass(ChatSessionRepository, {
             lifetime: Lifetime.SCOPED,
