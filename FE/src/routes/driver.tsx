@@ -49,10 +49,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
 import { requireRole } from "@/lib/auth";
 import {
+  fetchParkingSessionsForVehicleIds,
   getParkingFloors,
+  getParkingSessionSlotId,
+  getReservationVehicleId,
   type ParkingFloor,
+  type ParkingSession,
   type ParkingSlot,
   type ParkingSlotStatus,
 } from "@/services/parking.service";
@@ -152,6 +157,7 @@ const myVehiclesQueryKey = ["my-vehicles"] as const;
 const myProfileQueryKey = ["my-profile"] as const;
 const parkingFloorsQueryKey = ["parking-floors"] as const;
 const myReservationsQueryKey = ["my-reservations"] as const;
+const myVehicleParkingSessionsQueryKey = ["my-vehicle-parking-sessions"] as const;
 const emptyVehicleTypes: VehicleType[] = [];
 const emptyVehicles: Vehicle[] = [];
 const emptyParkingFloors: ParkingFloor[] = [];
@@ -244,6 +250,20 @@ function DriverPage() {
     enabled: hasMounted,
   });
 
+  const activeVehicleIds = useMemo(
+    () =>
+      (vehiclesQuery.data ?? [])
+        .filter((vehicle) => vehicle.status !== "INACTIVE")
+        .map((vehicle) => vehicle._id),
+    [vehiclesQuery.data],
+  );
+
+  const vehicleParkingSessionsQuery = useQuery({
+    queryKey: [...myVehicleParkingSessionsQueryKey, activeVehicleIds] as const,
+    queryFn: () => fetchParkingSessionsForVehicleIds(activeVehicleIds),
+    enabled: hasMounted && activeVehicleIds.length > 0,
+  });
+
   const createVehicleMutation = useMutation({
     mutationFn: createVehicle,
     onSuccess: async (vehicle) => {
@@ -326,6 +346,7 @@ function DriverPage() {
       toast.success("Reservation created", {
         description: `${reservedSlotLabel ?? "The selected slot"} has been reserved successfully.`,
       });
+      setSelectedSpotId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: myReservationsQueryKey }),
         queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
@@ -375,6 +396,11 @@ function DriverPage() {
     [vehicles],
   );
   const reservations = myReservationsQuery.data ?? emptyReservations;
+  const sessionsByVehicleId = vehicleParkingSessionsQuery.data ?? new Map<string, ParkingSession>();
+  const vehicleParkingSessions = useMemo(
+    () => Array.from(sessionsByVehicleId.values()),
+    [sessionsByVehicleId],
+  );
   const filteredHistoryReservations = useMemo(
     () =>
       reservations.filter((reservation) =>
@@ -418,13 +444,37 @@ function DriverPage() {
   const selectedReservationVehicle = compatibleVehicles.find(
     (vehicle) => vehicle._id === selectedReservationVehicleId,
   );
+  const selectedVehicleReserveBlockReason = useMemo(() => {
+    if (!selectedReservationVehicle) {
+      return null;
+    }
+    return getVehicleReserveBlockReason(
+      selectedReservationVehicle._id,
+      selectedReservationVehicle.licensePlate,
+      reservations,
+      vehicleParkingSessions,
+    );
+  }, [selectedReservationVehicle, reservations, vehicleParkingSessions]);
   const profile = profileQuery.data ?? null;
   const viewingHistoryReservationDetail = useMemo(() => {
     if (!viewingHistoryReservation) {
       return null;
     }
-    return enrichReservationForDetail(viewingHistoryReservation, parkingFloors, profile);
-  }, [viewingHistoryReservation, parkingFloors, profile]);
+    const session = findSessionForReservation(viewingHistoryReservation, sessionsByVehicleId);
+    return enrichReservationForDetail(
+      viewingHistoryReservation,
+      parkingFloors,
+      profile,
+      session,
+    );
+  }, [viewingHistoryReservation, parkingFloors, profile, sessionsByVehicleId]);
+
+  const viewingHistoryParkingSession = useMemo(() => {
+    if (!viewingHistoryReservation) {
+      return null;
+    }
+    return findSessionForReservation(viewingHistoryReservation, sessionsByVehicleId);
+  }, [viewingHistoryReservation, sessionsByVehicleId]);
 
   const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
   const reservedCount = floorSlots.filter((slot) => slot.status === "RESERVED").length;
@@ -658,6 +708,17 @@ function DriverPage() {
     }
     if (!selectedReservationVehicle) {
       toast.error("Select a compatible vehicle first.");
+      return;
+    }
+
+    const blockReason = getVehicleReserveBlockReason(
+      selectedReservationVehicle._id,
+      selectedReservationVehicle.licensePlate,
+      reservations,
+      vehicleParkingSessions,
+    );
+    if (blockReason) {
+      toast.error("Không thể đặt chỗ", { description: blockReason });
       return;
     }
 
@@ -1249,9 +1310,12 @@ function DriverPage() {
                     void Promise.all([
                       myReservationsQuery.refetch(),
                       parkingFloorsQuery.refetch(),
+                      vehicleParkingSessionsQuery.refetch(),
                     ])
                   }
-                  disabled={myReservationsQuery.isFetching}
+                  disabled={
+                    myReservationsQuery.isFetching || vehicleParkingSessionsQuery.isFetching
+                  }
                   className="h-10 rounded-xl"
                 >
                   <RefreshCw
@@ -1298,11 +1362,12 @@ function DriverPage() {
               <div className="mt-4 space-y-3">
                 {filteredHistoryReservations.map((reservation) => {
                   const reservationSlotId = getReservationSlotId(reservation);
-                  const effectiveStatus = getEffectiveReservationStatus(
+                  const parkingSession = findSessionForReservation(
                     reservation,
-                    parkingFloors,
+                    sessionsByVehicleId,
                   );
-                  const isPending = effectiveStatus === "PENDING";
+                  const displayStatus = getReservationDisplayStatus(reservation, parkingSession);
+                  const isPending = displayStatus === "PENDING";
                   return (
                     <div
                       key={reservation._id}
@@ -1327,9 +1392,9 @@ function DriverPage() {
                           </p>
                         </div>
                         <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReservationStatusBadge(effectiveStatus)}`}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReservationStatusBadge(displayStatus)}`}
                         >
-                          {getReservationStatusLabel(effectiveStatus)}
+                          {getReservationStatusLabel(displayStatus)}
                         </span>
                       </div>
 
@@ -1344,6 +1409,12 @@ function DriverPage() {
                           Expiry:{" "}
                           {reservation.expiryAt ? formatDateTime(reservation.expiryAt) : "N/A"}
                         </p>
+                        {parkingSession?.checkInTime ? (
+                          <p>Check-in: {formatDateTime(parkingSession.checkInTime)}</p>
+                        ) : null}
+                        {parkingSession?.checkOutTime ? (
+                          <p>Check-out: {formatDateTime(parkingSession.checkOutTime)}</p>
+                        ) : null}
                       </div>
 
                       {isPending ? (
@@ -1388,7 +1459,7 @@ function DriverPage() {
         ) : null}
 
         {activeQuickAction === "reserve" ? (
-          <div ref={reserveSectionRef} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div ref={reserveSectionRef}>
             <DashboardSection>
               <DashboardSectionHeader
                 kicker="View parking information"
@@ -1493,168 +1564,155 @@ function DriverPage() {
                 </DashboardEmptyState>
               )}
             </DashboardSection>
-
-            <DashboardSection compact>
-              {selectedSpot ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-border bg-secondary p-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-semibold tracking-tight">
-                        {selectedSpot.slotNumber}
-                      </h4>
-                      <span
-                        className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                          selectedReservation
-                            ? reservedByYouBadgeStyle
-                            : slotStatusBadge[selectedSpot.status]
-                        }`}
-                      >
-                        {selectedReservation
-                          ? "Reserved by you"
-                          : slotStatusText[selectedSpot.status]}
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                      <p className="inline-flex items-center gap-2">
-                        <CircleDashed className="size-4" />
-                        {selectedFloor?.floorName ?? "Floor"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border bg-secondary p-4">
-                    <p className="dashboard-kicker">Reserve parking slot</p>
-                    {myReservationsError ? (
-                      <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        {myReservationsError}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-3 space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="driver-reserve-vehicle">Vehicle</Label>
-                        <Select
-                          value={selectedReservationVehicleId}
-                          onValueChange={setSelectedReservationVehicleId}
-                          disabled={compatibleVehicles.length === 0 || Boolean(selectedReservation)}
-                        >
-                          <SelectTrigger id="driver-reserve-vehicle" className="h-10 rounded-xl">
-                            <SelectValue placeholder="Select your vehicle" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {compatibleVehicles.map((vehicle) => (
-                              <SelectItem key={vehicle._id} value={vehicle._id}>
-                                {vehicle.licensePlate} · {getVehicleTypeName(vehicle, vehicleTypes)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="driver-expected-arrival-date">Ngày đến</Label>
-                          <Input
-                            id="driver-expected-arrival-date"
-                            type="date"
-                            value={expectedArrivalDate}
-                            onChange={(event) => setExpectedArrivalDate(event.target.value)}
-                            min={getLocalDateInputValue()}
-                            disabled={Boolean(selectedReservation)}
-                            className="h-10 rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="driver-expected-arrival-time">Giờ đến</Label>
-                          <Input
-                            id="driver-expected-arrival-time"
-                            type="time"
-                            value={expectedArrivalTime}
-                            onChange={(event) => setExpectedArrivalTime(event.target.value)}
-                            min={minExpectedArrivalTime}
-                            disabled={Boolean(selectedReservation)}
-                            className="h-10 rounded-xl"
-                          />
-                        </div>
-                      </div>
-
-                      {selectedReservation ? (
-                        <div className="rounded-xl border border-status-yours/45 bg-status-yours/10 px-3 py-2 text-sm">
-                          <p className="font-medium text-status-yours">Current reservation</p>
-                          <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                            <p>
-                              Vehicle: {getReservationVehicleLabel(selectedReservation) ?? "N/A"}
-                            </p>
-                            <p>
-                              Arrival:{" "}
-                              {selectedReservation.expectedArrival
-                                ? formatDateTime(selectedReservation.expectedArrival)
-                                : "N/A"}
-                            </p>
-                            <p>
-                              Expiry:{" "}
-                              {selectedReservation.expiryAt
-                                ? formatDateTime(selectedReservation.expiryAt)
-                                : "N/A"}
-                            </p>
-                            <p className="text-status-yours/80">
-                              To cancel, go to My reservation.
-                            </p>
-                          </div>
-                        </div>
-                      ) : selectedSpot.status === "CURRENTLY-IN-USED" ? (
-                        <div className="rounded-xl border border-status-full/45 bg-status-full/10 px-3 py-2 text-sm">
-                          <p className="font-medium text-status-full">Xe đang gửi tại slot này</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Parking session đã được tạo. Slot không còn ở trạng thái đặt chỗ PENDING.
-                          </p>
-                        </div>
-                      ) : null}
-
-                      <div className="grid gap-2">
-                        <Button
-                          type="button"
-                          onClick={handleReserveSelectedSlot}
-                          disabled={
-                            isReservationActionPending ||
-                            selectedSpot.status !== "AVAILABLE" ||
-                            Boolean(selectedReservation) ||
-                            !selectedReservationVehicle
-                          }
-                          className="h-10 rounded-xl text-sm font-semibold"
-                        >
-                          {reserveSlotMutation.isPending ? (
-                            <>
-                              <LoaderCircle className="size-4 animate-spin" />
-                              Reserving...
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="size-4" />
-                              Reserve this slot
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <DashboardEmptyState>
-                  <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full border border-border bg-card">
-                    <MapPin className="size-6 text-muted-foreground" />
-                  </div>
-                  <h4 className="text-lg font-semibold text-foreground">No spot selected</h4>
-                  <p className="mt-2">Click an available slot to create a reservation.</p>
-                </DashboardEmptyState>
-              )}
-            </DashboardSection>
           </div>
         ) : null}
       </DashboardMain>
 
+      <Dialog
+        open={selectedSpot !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedSpotId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl border-border bg-card">
+          {selectedSpot ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Reserve parking slot</DialogTitle>
+                <DialogDescription>
+                  Slot {selectedSpot.slotNumber}
+                  {selectedFloor ? ` · ${selectedFloor.floorName}` : ""}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex items-center justify-between rounded-xl border border-border bg-secondary px-4 py-3">
+                <span className="font-mono text-sm font-semibold">{selectedSpot.slotNumber}</span>
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
+                    selectedReservation
+                      ? reservedByYouBadgeStyle
+                      : slotStatusBadge[selectedSpot.status]
+                  }`}
+                >
+                  {selectedReservation ? "Reserved by you" : slotStatusText[selectedSpot.status]}
+                </span>
+              </div>
+
+              {myReservationsError ? (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {myReservationsError}
+                </div>
+              ) : null}
+
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="driver-reserve-vehicle">Vehicle</Label>
+                  <Select
+                    value={selectedReservationVehicleId}
+                    onValueChange={setSelectedReservationVehicleId}
+                    disabled={compatibleVehicles.length === 0 || Boolean(selectedReservation)}
+                  >
+                    <SelectTrigger id="driver-reserve-vehicle" className="h-10 rounded-xl">
+                      <SelectValue placeholder="Select your vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {compatibleVehicles.map((vehicle) => (
+                        <SelectItem key={vehicle._id} value={vehicle._id}>
+                          {vehicle.licensePlate} · {getVehicleTypeName(vehicle, vehicleTypes)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="driver-expected-arrival-date">Ngày đến</Label>
+                    <Input
+                      id="driver-expected-arrival-date"
+                      type="date"
+                      value={expectedArrivalDate}
+                      onChange={(event) => setExpectedArrivalDate(event.target.value)}
+                      min={getLocalDateInputValue()}
+                      disabled={Boolean(selectedReservation)}
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="driver-expected-arrival-time">Giờ đến</Label>
+                    <Input
+                      id="driver-expected-arrival-time"
+                      type="time"
+                      value={expectedArrivalTime}
+                      onChange={(event) => setExpectedArrivalTime(event.target.value)}
+                      min={minExpectedArrivalTime}
+                      disabled={Boolean(selectedReservation)}
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {selectedReservation ? (
+                  <div className="rounded-xl border border-status-yours/45 bg-status-yours/10 px-3 py-2 text-sm">
+                    <p className="font-medium text-status-yours">Current reservation</p>
+                    <div className="mt-1 space-y-1 text-xs text-muted-foreground">
+                      <p>Vehicle: {getReservationVehicleLabel(selectedReservation) ?? "N/A"}</p>
+                      <p>
+                        Arrival:{" "}
+                        {selectedReservation.expectedArrival
+                          ? formatDateTime(selectedReservation.expectedArrival)
+                          : "N/A"}
+                      </p>
+                      <p>
+                        Expiry:{" "}
+                        {selectedReservation.expiryAt
+                          ? formatDateTime(selectedReservation.expiryAt)
+                          : "N/A"}
+                      </p>
+                      <p className="text-status-yours/80">To cancel, go to My reservation.</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {selectedVehicleReserveBlockReason ? (
+                  <p className="text-sm text-destructive">{selectedVehicleReserveBlockReason}</p>
+                ) : null}
+
+                <Button
+                  type="button"
+                  onClick={handleReserveSelectedSlot}
+                  disabled={
+                    isReservationActionPending ||
+                    selectedSpot.status !== "AVAILABLE" ||
+                    Boolean(selectedReservation) ||
+                    !selectedReservationVehicle ||
+                    Boolean(selectedVehicleReserveBlockReason)
+                  }
+                  className="h-10 w-full rounded-xl text-sm font-semibold"
+                >
+                  {reserveSlotMutation.isPending ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Reserving...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="size-4" />
+                      Reserve this slot
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       <ReservationDetailDialog
         reservation={viewingHistoryReservationDetail}
+        parkingSession={viewingHistoryParkingSession}
         open={viewingHistoryReservation !== null}
         onOpenChange={(open) => {
           if (!open) {
@@ -1663,7 +1721,12 @@ function DriverPage() {
         }}
         statusLabel={
           viewingHistoryReservationDetail
-            ? getReservationStatusLabel(viewingHistoryReservationDetail.status)
+            ? getReservationStatusLabel(
+                getReservationDisplayStatus(
+                  viewingHistoryReservation,
+                  viewingHistoryParkingSession,
+                ),
+              )
             : undefined
         }
       />
@@ -1756,14 +1819,15 @@ function enrichReservationForDetail(
   reservation: Reservation,
   parkingFloors: ParkingFloor[],
   profile: UserProfile | null,
+  parkingSession: ParkingSession | null = null,
 ): Reservation {
   const slotId = getReservationSlotId(reservation);
   const liveSlotStatus = slotId ? getSlotStatusFromFloors(slotId, parkingFloors) : null;
-  const effectiveStatus = getEffectiveReservationStatus(reservation, parkingFloors);
+  const displayStatus = getReservationDisplayStatus(reservation, parkingSession);
 
   let nextReservation: Reservation = {
     ...reservation,
-    status: effectiveStatus,
+    status: displayStatus === "CHECKED IN" || displayStatus === "CHECKED OUT" ? "CLAIMED" : displayStatus,
   };
 
   if (profile && typeof nextReservation.driverId === "string") {
@@ -1801,33 +1865,59 @@ function getSlotStatusFromFloors(slotId: string, parkingFloors: ParkingFloor[]) 
   return null;
 }
 
-/** PENDING + slot đang IN-USED → hiển thị như đã check-in (FE-only). */
-function getEffectiveReservationStatus(
+type ReservationDisplayStatus = Reservation["status"] | "CHECKED IN" | "CHECKED OUT";
+
+function findSessionForReservation(
   reservation: Reservation,
-  parkingFloors: ParkingFloor[],
-): Reservation["status"] {
-  if (reservation.status !== "PENDING") {
-    return reservation.status as Reservation["status"];
+  sessionsByVehicleId: Map<string, ParkingSession>,
+) {
+  const vehicleId = getReservationVehicleId(reservation);
+  if (!vehicleId) {
+    return null;
   }
 
-  const slotId = getReservationSlotId(reservation);
-  if (!slotId) {
-    return reservation.status as Reservation["status"];
+  const session = sessionsByVehicleId.get(vehicleId);
+  if (!session) {
+    return null;
   }
 
-  if (getSlotStatusFromFloors(slotId, parkingFloors) === "CURRENTLY-IN-USED") {
-    return "CLAIMED";
+  const reservationSlotId = getReservationSlotId(reservation);
+  const sessionSlotId = getParkingSessionSlotId(session);
+  if (reservationSlotId && sessionSlotId && reservationSlotId !== sessionSlotId) {
+    return null;
+  }
+
+  return session;
+}
+
+function getReservationDisplayStatus(
+  reservation: Reservation,
+  parkingSession: ParkingSession | null,
+): ReservationDisplayStatus {
+  if (parkingSession?.status === "COMPLETED" && parkingSession.checkOutTime) {
+    return "CHECKED OUT";
+  }
+
+  if (parkingSession?.status === "ACTIVE") {
+    return "CHECKED IN";
+  }
+
+  if (reservation.status === "CLAIMED") {
+    return "CHECKED IN";
   }
 
   return reservation.status as Reservation["status"];
 }
 
-function getReservationStatusBadge(status: Reservation["status"]) {
+function getReservationStatusBadge(status: ReservationDisplayStatus) {
   switch (status) {
     case "PENDING":
       return reservedByYouBadgeStyle;
     case "CLAIMED":
+    case "CHECKED IN":
       return "border-status-empty/45 bg-status-empty/15 text-status-empty";
+    case "CHECKED OUT":
+      return "border-primary/45 bg-primary/15 text-primary";
     case "CANCELLED":
       return "border-border bg-muted text-muted-foreground";
     case "EXPIRED":
@@ -1837,12 +1927,15 @@ function getReservationStatusBadge(status: Reservation["status"]) {
   }
 }
 
-function getReservationStatusLabel(status: Reservation["status"]) {
+function getReservationStatusLabel(status: ReservationDisplayStatus) {
   switch (status) {
     case "PENDING":
       return "PENDING";
     case "CLAIMED":
+    case "CHECKED IN":
       return "CHECKED IN";
+    case "CHECKED OUT":
+      return "CHECKED OUT";
     case "CANCELLED":
       return "CANCELLED";
     case "EXPIRED":

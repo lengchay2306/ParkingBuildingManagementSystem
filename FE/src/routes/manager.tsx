@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { ParkingSessionListPanel } from "@/components/ParkingSessionListPanel";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { DashboardHeader, DashboardMain, DashboardTabs } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 
-type ManagerTab = "overview" | "reservations";
+type ManagerTab = "overview" | "reservations" | "sessions";
 
 export const Route = createFileRoute("/manager")({
   beforeLoad: async () => {
@@ -40,6 +41,7 @@ function ManagerPage() {
           tabs={[
             { id: "overview", label: "Người dùng" },
             { id: "reservations", label: "Reservations" },
+            { id: "sessions", label: "Sessions" },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}
@@ -47,8 +49,10 @@ function ManagerPage() {
 
         {activeTab === "overview" ? (
           <UserDirectoryPanel compact />
-        ) : (
+        ) : activeTab === "reservations" ? (
           <ReservationListPanel tableOnly className="min-h-[640px]" />
+        ) : (
+          <ParkingSessionListPanel tableOnly className="min-h-[640px]" />
         )}
       </DashboardMain>
     </div>
