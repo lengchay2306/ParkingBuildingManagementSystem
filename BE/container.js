@@ -8,6 +8,7 @@ import UserController from "./src/api/controllers/user.controller.js";
 import VehicleController from "./src/api/controllers/vehicle.controller.js";
 import PaymentController from "./src/api/controllers/payment.controller.js";
 import ChatbotController from "./src/api/controllers/chatbot.controller.js";
+import PricePolicyController from "./src/api/controllers/pricePolicy.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -20,6 +21,7 @@ import UserService from "./src/services/user.service.js";
 import VehicleService from "./src/services/vehicle.service.js";
 import PaymentService from "./src/services/payment.service.js";
 import ChatbotService from "./src/services/chatbot.service.js";
+import PricePolicyService from "./src/services/pricePolicy.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -75,6 +77,9 @@ export function setupContainer({ io, notificationNamespace }) {
         chatbotController: asClass(ChatbotController, {
             lifetime: Lifetime.SCOPED,
         }),
+        pricePolicyController: asClass(PricePolicyController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -105,6 +110,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         chatbotService: asClass(ChatbotService, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        pricePolicyService: asClass(PricePolicyService, {
             lifetime: Lifetime.SCOPED,
         }),
 
