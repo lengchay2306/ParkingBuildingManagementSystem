@@ -122,11 +122,89 @@ export const updateMyProfile = async (payload: UpdateMyProfileRequest) => {
   return user;
 };
 
+export type ChangePasswordRequest = {
+  oldPassword: string;
+  newPassword: string;
+};
+
+export const changePassword = async (payload: ChangePasswordRequest) => {
+  const response = await fetch(`${API_BASE}/api/v1/users/my-profile/change-password`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await parseJson<{ user?: UserProfile }>(response);
+
+  if (!response.ok) {
+    const message = result.message ?? "";
+    const translatedMessage = message.toLowerCase().includes("old password")
+      ? "Mật khẩu hiện tại không đúng."
+      : message;
+    const fallback =
+      response.status === 400
+        ? "Mật khẩu cũ không đúng hoặc dữ liệu không hợp lệ."
+        : userErrorMessage(response.status);
+    throw new UserApiError(response.status, translatedMessage || fallback);
+  }
+
+  const user = result.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "Change password response data is missing.");
+  }
+
+  return user;
+};
+
 export type UpdateUserByIdRequest = {
   email?: string;
   fullName?: string;
   phone?: string;
   status?: "ACTIVE" | "LOCKED";
+};
+
+export type CreateUserVehicleItem = {
+  licensePlate: string;
+  vehicleTypeId: string;
+  monthlyCardId?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type CreateUserRequest = {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
+  roleId: string;
+  status?: "ACTIVE" | "LOCKED";
+  vehicles?: CreateUserVehicleItem[];
+};
+
+export const createUser = async (payload: CreateUserRequest) => {
+  const response = await fetch(`${API_BASE}/api/v1/users`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const result = await parseJson<{ user?: UserProfile }>(response);
+
+  if (response.status !== 201) {
+    const fallback =
+      response.status === 400
+        ? "Dữ liệu không hợp lệ."
+        : response.status === 409
+          ? "Email hoặc số điện thoại đã được sử dụng."
+          : userErrorMessage(response.status);
+    throw new UserApiError(response.status, result.message || fallback);
+  }
+
+  const user = result.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "Create response data is missing.");
+  }
+
+  return user;
 };
 
 export const updateUserById = async (userId: string, payload: UpdateUserByIdRequest) => {
@@ -204,4 +282,27 @@ export const getAllUsers = async ({
         totalPages: 1,
       } satisfies UsersPagination),
   };
+};
+
+export const deleteUserById = async (userId: string) => {
+  const response = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const result = await parseJson<{ user?: UserProfile }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 403
+        ? "Bạn không có quyền xóa người dùng."
+        : userErrorMessage(response.status);
+    throw new UserApiError(response.status, result.message || fallback);
+  }
+
+  const user = result.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "Delete response data is missing.");
+  }
+
+  return user;
 };

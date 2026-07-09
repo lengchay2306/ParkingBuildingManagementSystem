@@ -44,7 +44,7 @@ function AdminPage() {
         />
 
         {activeTab === "users" ? (
-          <UserDirectoryPanel tableOnly className="min-h-[calc(100vh-12rem)]" />
+          <UserDirectoryPanel tableOnly allowDelete allowCreate className="min-h-[calc(100vh-12rem)]" />
         ) : activeTab === "reservations" ? (
           <ReservationListPanel tableOnly className="min-h-[calc(100vh-12rem)]" />
         ) : (
