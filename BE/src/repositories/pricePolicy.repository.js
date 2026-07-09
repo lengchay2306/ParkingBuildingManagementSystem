@@ -59,6 +59,16 @@ class PricePolicyRepository {
         return existingPricePolicy;
     };
 
+    findHourlyPricePoliciesByVehicleType = async ({
+        vehicleTypeId,
+    }) => {
+        const existingPricePolicies = await PricePolicy.find({
+            vehicleTypeId,
+        }).lean();
+
+        return existingPricePolicies;
+    };
+
     createPricePolicy = async (pricePolicyData) => {
         try {
             const newPricePolicy = await PricePolicy.create(pricePolicyData);
