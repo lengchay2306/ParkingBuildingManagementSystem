@@ -12,6 +12,7 @@ import PricePolicyController from "./src/api/controllers/pricePolicy.controller.
 import FloorController from "./src/api/controllers/floor.controller.js";
 import ParkingSlotController from "./src/api/controllers/parkingSlot.controller.js";
 import ParkingSessionController from "./src/api/controllers/parkingSession.controller.js";
+import DashboardController from "./src/api/controllers/dashboard.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -28,6 +29,7 @@ import PricePolicyService from "./src/services/pricePolicy.service.js";
 import FloorService from "./src/services/floor.service.js";
 import ParkingSlotService from "./src/services/parkingSlot.service.js";
 import ParkingSessionService from "./src/services/parkingSession.service.js";
+import DashboardService from "./src/services/dashboard.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -43,6 +45,7 @@ import ChatSessionRepository from "./src/repositories/chatSession.repository.js"
 import FloorRepository from "./src/repositories/floor.repository.js";
 import ParkingSlotRepository from "./src/repositories/parkingSlot.repository.js";
 import ParkingSessionRepository from "./src/repositories/parkingSession.repository.js";
+import DashboardRepository from "./src/repositories/dashboard.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
@@ -98,6 +101,9 @@ export function setupContainer({ io, notificationNamespace }) {
         parkingSessionController: asClass(ParkingSessionController, {
             lifetime: Lifetime.SCOPED,
         }),
+        dashboardController: asClass(DashboardController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -142,6 +148,9 @@ export function setupContainer({ io, notificationNamespace }) {
         parkingSessionService: asClass(ParkingSessionService, {
             lifetime: Lifetime.SCOPED,
         }),
+        dashboardService: asClass(DashboardService, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //repositories
         userRepository: asClass(UserRepository, {
@@ -181,6 +190,9 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         parkingSessionRepository: asClass(ParkingSessionRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        dashboardRepository: asClass(DashboardRepository, {
             lifetime: Lifetime.SCOPED,
         }),
     })

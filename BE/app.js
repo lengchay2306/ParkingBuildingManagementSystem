@@ -51,6 +51,7 @@ import PricePolicyRouter from './src/api/routers/pricePolicy.router.js'
 import FloorRouter from './src/api/routers/floor.router.js'
 import ParkingSlotRouter from './src/api/routers/parkingSlot.router.js'
 import ParkingSessionRouter from './src/api/routers/parkingSession.router.js'
+import DashboardRouter from './src/api/routers/dashboard.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -69,6 +70,7 @@ app.use(`${url}/price-policies`, PricePolicyRouter)
 app.use(`${url}/floors`, FloorRouter)
 app.use(`${url}/parking-slots`, ParkingSlotRouter)
 app.use(`${url}/parking-sessions`, ParkingSessionRouter)
+app.use(`${url}/dashboard`, DashboardRouter)
 app.use(`${url}/chatbot`, ChatbotRouter)
 
 //handle error
