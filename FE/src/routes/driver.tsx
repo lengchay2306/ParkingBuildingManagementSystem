@@ -33,6 +33,16 @@ import {
 } from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -77,7 +87,7 @@ import {
   type Vehicle,
   type VehicleType,
 } from "@/services/vehicle.service";
-import { getMyProfile, updateMyProfile, type UserProfile } from "@/services/user.service";
+import { changePassword, getMyProfile, updateMyProfile, UserApiError, type UserProfile } from "@/services/user.service";
 
 export const Route = createFileRoute("/driver")({
   beforeLoad: async () => {
@@ -180,6 +190,12 @@ function DriverPage() {
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editProfileError, setEditProfileError] = useState<string | null>(null);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isChangePasswordSuccessOpen, setIsChangePasswordSuccessOpen] = useState(false);
   const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [editVehicleLicensePlate, setEditVehicleLicensePlate] = useState("");
@@ -333,6 +349,24 @@ function DriverPage() {
       const message = getErrorMessage(error, "Không thể cập nhật hồ sơ.");
       setEditProfileError(message);
       toast.error("Cập nhật thất bại", { description: message });
+    },
+  });
+  const changePasswordMutation = useMutation({
+    mutationFn: changePassword,
+    onSuccess: async (updatedUser) => {
+      setChangePasswordError(null);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setChangePasswordError(null);
+      setIsChangePasswordOpen(false);
+      queryClient.setQueryData(myProfileQueryKey, updatedUser);
+      await queryClient.invalidateQueries({ queryKey: myProfileQueryKey });
+      setIsChangePasswordSuccessOpen(true);
+    },
+    onError: (error) => {
+      const message = getChangePasswordErrorMessage(error);
+      setChangePasswordError(message);
     },
   });
   const reserveSlotMutation = useMutation({
@@ -638,12 +672,72 @@ function DriverPage() {
     }
   };
 
+  const resetChangePasswordForm = () => {
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setChangePasswordError(null);
+  };
+
   const handleProfileOpenChange = (open: boolean) => {
     setIsProfileOpen(open);
     if (open) {
       void profileQuery.refetch();
+    } else {
+      resetChangePasswordForm();
+      setIsChangePasswordOpen(false);
     }
   };
+
+  const handleChangePasswordOpenChange = (open: boolean) => {
+    setIsChangePasswordOpen(open);
+    if (!open) {
+      resetChangePasswordForm();
+    }
+  };
+
+  const handleChangePasswordSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setChangePasswordError(null);
+
+    if (!oldPassword.trim()) {
+      setChangePasswordError("Vui lòng nhập mật khẩu hiện tại.");
+      return;
+    }
+    if (oldPassword.length < 8) {
+      setChangePasswordError("Mật khẩu hiện tại phải có ít nhất 8 kí tự.");
+      return;
+    }
+    if (!newPassword.trim()) {
+      setChangePasswordError("Vui lòng nhập mật khẩu mới.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setChangePasswordError("Mật khẩu mới phải có ít nhất 8 kí tự.");
+      return;
+    }
+    if (!confirmPassword.trim()) {
+      setChangePasswordError("Vui lòng xác nhận mật khẩu mới.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      return;
+    }
+    if (newPassword === oldPassword) {
+      setChangePasswordError("Mật khẩu mới phải khác mật khẩu hiện tại.");
+      return;
+    }
+
+    changePasswordMutation.mutate({ oldPassword, newPassword });
+  };
+
+  const canSubmitChangePassword =
+    oldPassword.trim().length >= 8 &&
+    newPassword.length >= 8 &&
+    confirmPassword.length >= 8 &&
+    newPassword === confirmPassword &&
+    newPassword !== oldPassword;
 
   const handleEditProfileOpenChange = (open: boolean) => {
     setIsEditProfileOpen(open);
@@ -771,8 +865,13 @@ function DriverPage() {
       <SiteHeader />
       <DashboardMain wide>
         <DashboardSection>
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="flex min-w-0 items-center gap-4">
+          <div className="flex flex-wrap items-stretch justify-between gap-5">
+            <button
+              type="button"
+              onClick={() => handleProfileOpenChange(true)}
+              className="flex min-h-[5.5rem] min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-2xl border border-transparent p-4 text-left transition-colors hover:border-border hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-w-[280px]"
+              aria-label="Xem hồ sơ"
+            >
               <div className="relative">
                 <div className="grid size-20 place-items-center rounded-full border border-border bg-secondary">
                   <UserRound className="size-10 text-muted-foreground" />
@@ -781,122 +880,213 @@ function DriverPage() {
               </div>
 
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-semibold tracking-tight md:text-3xl">
-                    {profile?.fullName ??
-                      (profileQuery.isLoading ? "Đang tải hồ sơ..." : "Tài xế")}
-                  </h1>
-                  <span className="rounded-md border border-primary/40 bg-primary/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                    {profile
-                      ? `${getProfileRoleName(profile)} · ${profile.status ?? "ACTIVE"}`
-                      : "Đang hoạt động"}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {profile?.email ?? "Email hồ sơ không khả dụng"}
+                <h1 className="truncate text-lg font-semibold tracking-tight md:text-xl">
+                  {profile?.fullName ??
+                    (profileQuery.isLoading ? "Đang tải hồ sơ..." : "Tài xế")}
+                </h1>
+                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.14em] text-status-empty">
+                  {profile?.status ?? "ACTIVE"}
                 </p>
               </div>
-            </div>
+            </button>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 self-center">
               <Dialog open={isProfileOpen} onOpenChange={handleProfileOpenChange}>
-                <DialogTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
-                  >
-                    <UserRound className="size-4" />
-                    Xem hồ sơ
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="rounded-2xl border-border bg-card sm:max-w-lg">
+                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-lg">
+                  <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+                    <DialogHeader>
+                      <DialogTitle>Hồ sơ của tôi</DialogTitle>
+                      <DialogDescription>Thông tin tài khoản của tài xế hiện tại.</DialogDescription>
+                    </DialogHeader>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                    {profileQuery.isLoading ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-border bg-background/45 px-3 py-3 text-sm text-muted-foreground">
+                        <LoaderCircle className="size-4 animate-spin" />
+                        Đang tải hồ sơ...
+                      </div>
+                    ) : profileError ? (
+                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {profileError}
+                      </div>
+                    ) : profile ? (
+                      <div className="space-y-6">
+                        <div className="grid gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="profile-full-name">Họ tên</Label>
+                            <Input
+                              id="profile-full-name"
+                              value={profile.fullName}
+                              className="h-11 rounded-xl"
+                              readOnly
+                            />
+                          </div>
+
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                              <Label htmlFor="profile-email">Email</Label>
+                              <div className="relative">
+                                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  id="profile-email"
+                                  value={profile.email}
+                                  className="h-11 rounded-xl pl-9"
+                                  readOnly
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                              <Label htmlFor="profile-phone">Số điện thoại</Label>
+                              <div className="relative">
+                                <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                  id="profile-phone"
+                                  value={profile.phone}
+                                  className="h-11 rounded-xl pl-9"
+                                  readOnly
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                              <Label htmlFor="profile-role">Vai trò</Label>
+                              <Input
+                                id="profile-role"
+                                value={getProfileRoleName(profile)}
+                                className="h-11 rounded-xl"
+                                readOnly
+                              />
+                            </div>
+
+                            <div className="grid gap-2">
+                              <Label htmlFor="profile-status">Trạng thái</Label>
+                              <Input
+                                id="profile-status"
+                                value={profile.status}
+                                className="h-11 rounded-xl"
+                                readOnly
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label htmlFor="profile-created-at">Ngày tạo</Label>
+                            <Input
+                              id="profile-created-at"
+                              value={formatProfileDate(profile.createdAt)}
+                              className="h-11 rounded-xl"
+                              readOnly
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t border-border pt-4">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setIsChangePasswordOpen(true)}
+                            className="h-11 rounded-xl px-4 text-[13px] font-semibold"
+                          >
+                            Đổi mật khẩu
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isChangePasswordOpen} onOpenChange={handleChangePasswordOpenChange}>
+                <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Hồ sơ của tôi</DialogTitle>
-                    <DialogDescription>Thông tin tài khoản của tài xế hiện tại.</DialogDescription>
+                    <DialogTitle>Đổi mật khẩu</DialogTitle>
+                    <DialogDescription>
+                      Nhập mật khẩu hiện tại và mật khẩu mới để cập nhật.
+                    </DialogDescription>
                   </DialogHeader>
 
-                  {profileQuery.isLoading ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-background/45 px-3 py-3 text-sm text-muted-foreground">
-                      <LoaderCircle className="size-4 animate-spin" />
-                      Đang tải hồ sơ...
+                  <form onSubmit={handleChangePasswordSubmit} className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="profile-old-password">Mật khẩu hiện tại</Label>
+                      <Input
+                        id="profile-old-password"
+                        type="password"
+                        value={oldPassword}
+                        onChange={(event) => setOldPassword(event.target.value)}
+                        className="h-11 rounded-xl"
+                        autoComplete="current-password"
+                        required
+                        minLength={8}
+                      />
                     </div>
-                  ) : profileError ? (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {profileError}
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="profile-new-password">Mật khẩu mới</Label>
+                      <Input
+                        id="profile-new-password"
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        className="h-11 rounded-xl"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                      />
                     </div>
-                  ) : profile ? (
-                    <form className="grid gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="profile-full-name">Họ tên</Label>
-                        <Input
-                          id="profile-full-name"
-                          value={profile.fullName}
-                          className="h-11 rounded-xl"
-                          readOnly
-                        />
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="profile-confirm-password">Xác nhận mật khẩu mới</Label>
+                      <Input
+                        id="profile-confirm-password"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        className="h-11 rounded-xl"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                      />
+                      {confirmPassword && newPassword !== confirmPassword ? (
+                        <p className="text-xs text-destructive">Mật khẩu xác nhận chưa khớp.</p>
+                      ) : null}
+                    </div>
+
+                    {changePasswordError ? (
+                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                        {changePasswordError}
                       </div>
+                    ) : null}
 
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="grid gap-2">
-                          <Label htmlFor="profile-email">Email</Label>
-                          <div className="relative">
-                            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              id="profile-email"
-                              value={profile.email}
-                              className="h-11 rounded-xl pl-9"
-                              readOnly
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor="profile-phone">Số điện thoại</Label>
-                          <div className="relative">
-                            <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              id="profile-phone"
-                              value={profile.phone}
-                              className="h-11 rounded-xl pl-9"
-                              readOnly
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <div className="grid gap-2">
-                          <Label htmlFor="profile-role">Vai trò</Label>
-                          <Input
-                            id="profile-role"
-                            value={getProfileRoleName(profile)}
-                            className="h-11 rounded-xl"
-                            readOnly
-                          />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label htmlFor="profile-status">Trạng thái</Label>
-                          <Input
-                            id="profile-status"
-                            value={profile.status}
-                            className="h-11 rounded-xl"
-                            readOnly
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="profile-created-at">Ngày tạo</Label>
-                        <Input
-                          id="profile-created-at"
-                          value={formatProfileDate(profile.createdAt)}
-                          className="h-11 rounded-xl"
-                          readOnly
-                        />
-                      </div>
-                    </form>
-                  ) : null}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => handleChangePasswordOpenChange(false)}
+                        disabled={changePasswordMutation.isPending}
+                        className="h-11 rounded-xl px-4"
+                      >
+                        Hủy
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={changePasswordMutation.isPending || !canSubmitChangePassword}
+                        className="h-11 rounded-xl px-4 text-[13px] font-semibold"
+                      >
+                        {changePasswordMutation.isPending ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Đang đổi...
+                          </>
+                        ) : (
+                          "Lưu mật khẩu"
+                        )}
+                      </Button>
+                    </div>
+                  </form>
                 </DialogContent>
               </Dialog>
 
@@ -1730,6 +1920,19 @@ function DriverPage() {
             : undefined
         }
       />
+      <AlertDialog open={isChangePasswordSuccessOpen} onOpenChange={setIsChangePasswordSuccessOpen}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Đổi mật khẩu thành công</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mật khẩu của bạn đã được cập nhật. Hãy dùng mật khẩu mới cho lần đăng nhập sau.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="rounded-xl">Đã hiểu</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <DriverChatbotWidget />
     </div>
   );
@@ -1995,6 +2198,16 @@ function formatRegisteredDate(value?: string) {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function getChangePasswordErrorMessage(error: unknown) {
+  if (error instanceof UserApiError) {
+    if (error.message.toLowerCase().includes("old password")) {
+      return "Mật khẩu hiện tại không đúng.";
+    }
+    return error.message || "Không thể đổi mật khẩu.";
+  }
+  return getErrorMessage(error, "Không thể đổi mật khẩu.");
 }
 
 function ToggleExpandedButton({
