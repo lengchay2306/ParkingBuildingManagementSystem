@@ -5,6 +5,7 @@ import {
     createUserSchema,
     updateUserByIdSchema,
     userIdParamSchema,
+    changePasswordSchema,
 } from '../../validators/user.validator.js';
 
 const router = express.Router();
@@ -271,6 +272,10 @@ router.post(
  *           schema:
  *             type: object
  *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "newemail@example.com"
  *               fullName:
  *                 type: string
  *                 minLength: 2
@@ -303,7 +308,7 @@ router.post(
  *       400:
  *         description: Validation error - invalid data or no fields provided
  *       409:
- *         description: Phone number already in use
+ *         description: Email or phone number already in use
  *       401:
  *         description: Unauthorized
  *       404:
@@ -318,6 +323,73 @@ router.put(
         await userController.updateMyProfile(req, res, next);
     }
 )
+
+/**
+ * @swagger
+ * /api/v1/users/my-profile/change-password:
+ *   put:
+ *     summary: Change my password
+ *     description: Change the password of the currently authenticated user.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Current password
+ *                 example: "oldpassword123"
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: New password
+ *                 example: "newpassword456"
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 user:
+ *                   _id: "665a1b2c3d4e5f6a7b8c9d0e"
+ *                   email: "user@example.com"
+ *                   fullName: "Nguyen Van A"
+ *                   phone: "0901234567"
+ *                   roleId:
+ *                     _id: "665a1b2c3d4e5f6a7b8c9d0f"
+ *                     roleName: "CUSTOMER"
+ *                   status: "ACTIVE"
+ *                   vehicles: []
+ *                   createdAt: "2026-05-20T10:00:00.000Z"
+ *                   updatedAt: "2026-06-15T19:00:00.000Z"
+ *               message: "Password changed successfully"
+ *       400:
+ *         description: Validation error or old password is incorrect
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.put(
+    "/my-profile/change-password",
+    authentication,
+    validateData(changePasswordSchema),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.changePassword(req, res, next);
+    }
+);
 
 /**
  * @swagger

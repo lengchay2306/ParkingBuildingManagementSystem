@@ -39,12 +39,13 @@ const updateUserVehicleItemSchema = Joi.object({
 })
 
 const updateMyProfileSchema = Joi.object({
+    email: Joi.string().email().optional(),
     fullName: Joi.string().min(2).max(30).optional(),
     phone: Joi.string().pattern(/^[0-9]{10}$/).optional().messages({
         'string.pattern.base': 'Phone number must be exactly 10 digits',
     }),
 }).min(1).messages({
-    'object.min': 'At least one field (fullName or phone) must be provided',
+    'object.min': 'At least one field (email, fullName or phone) must be provided',
 })
 
 const createUserSchema = Joi.object({
@@ -93,9 +94,15 @@ const userIdParamSchema = Joi.object({
     }),
 })
 
+const changePasswordSchema = Joi.object({
+    oldPassword: Joi.string().min(8).required(),
+    newPassword: Joi.string().min(8).required(),
+})
+
 export {
     updateMyProfileSchema,
     createUserSchema,
     updateUserByIdSchema,
     userIdParamSchema,
+    changePasswordSchema,
 }

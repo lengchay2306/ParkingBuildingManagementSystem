@@ -125,6 +125,25 @@ class UserController {
             next(error);
         }
     }
+
+    changePassword = async (req, res, next) => {
+        try {
+            const { userId } = req.user;
+            const { oldPassword, newPassword } = req.body;
+            const updatedUser = await this.#userService.changePassword({
+                userId,
+                oldPassword,
+                newPassword,
+            });
+            res.status(200).json({
+                status: 'success',
+                data: { user: updatedUser },
+                message: 'Password changed successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export default UserController;
