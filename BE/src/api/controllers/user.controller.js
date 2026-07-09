@@ -31,6 +31,42 @@ class UserController {
         }
     };
 
+    getUserById = async (req, res, next) => {
+        try {
+            const { userId } = req.params;
+            const user = await this.#userService.getUserById({ userId });
+            res.status(200).json({
+                status: 'success',
+                data: { user },
+                message: 'User fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    createUser = async (req, res, next) => {
+        try {
+            const { email, password, fullName, phone, roleId, status, vehicles } = req.body;
+            const user = await this.#userService.createUser({
+                email,
+                password,
+                fullName,
+                phone,
+                roleId,
+                status,
+                vehicles,
+            });
+            res.status(201).json({
+                status: 'success',
+                data: { user },
+                message: 'User created successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
     getMyProfile = async (req, res, next) => {
         try {
             const { userId } = req.user;
@@ -70,6 +106,20 @@ class UserController {
                 status: 'success',
                 data: { user: updatedUser },
                 message: 'User updated successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    deleteUserById = async (req, res, next) => {
+        try {
+            const { userId } = req.params;
+            const deletedUser = await this.#userService.deleteUserById({ userId });
+            res.status(200).json({
+                status: 'success',
+                data: { user: deletedUser },
+                message: 'User deleted successfully',
             });
         } catch (error) {
             next(error);

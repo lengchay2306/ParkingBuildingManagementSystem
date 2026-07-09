@@ -9,6 +9,41 @@ class VehicleService {
         this.#vehicleRepository = vehicleRepository;
     }
 
+    adminCreateVehicleForUser = async ({
+        userId,
+        licensePlate,
+        vehicleTypeId,
+        monthlyCardId,
+        status = "ACTIVE",
+    }) => {
+        const checkVehicleType = await this.#vehicleRepository.getVehicleTypeById({
+            vehicleTypeId,
+        });
+        if (!checkVehicleType) {
+            throw new NotFoundError("Vehicle type not found");
+        }
+
+        const existingVehicle = await this.#vehicleRepository.getVehicleByLicensePlate({
+            licensePlate,
+        });
+        if (existingVehicle) {
+            throw new ConflictError("Vehicle already exists");
+        }
+
+        const newVehicle = await this.#vehicleRepository.createVehicle({
+            userId,
+            licensePlate: licensePlate.toUpperCase(),
+            vehicleTypeId,
+            monthlyCardId,
+            status,
+        });
+        if (!newVehicle) {
+            throw new Error("Failed to create vehicle");
+        }
+
+        return this.#vehicleRepository.getVehicleById({ vehicleId: newVehicle._id });
+    }
+
     createVehicle = async ({
         userId,
         licensePlate,
@@ -132,6 +167,24 @@ class VehicleService {
             updateData
         });
         return updatedVehicle;
+    }
+
+    adminDeleteVehicle = async ({ vehicleId, userId }) => {
+        const existingVehicle = await this.#vehicleRepository.getVehicleById({ vehicleId });
+        if (!existingVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        if (userId && existingVehicle.userId.toString() !== userId.toString()) {
+            throw new BadRequestError("Vehicle does not belong to this user");
+        }
+
+        const deletedVehicle = await this.#vehicleRepository.deleteVehicleById({ vehicleId });
+        if (!deletedVehicle) {
+            throw new NotFoundError("Vehicle not found");
+        }
+
+        return deletedVehicle;
     }
 
     softDeleteVehicle = async ({ userId, vehicleId }) => {
