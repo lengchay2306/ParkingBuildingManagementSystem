@@ -1,5 +1,6 @@
 import express from 'express';
-import { authentication, authorizationByRole } from '../middleware/middleware.js';
+import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
+import { getRevenueQuerySchema } from '../../validators/dashboard.validator.js';
 
 const router = express.Router();
 
@@ -9,6 +10,62 @@ const router = express.Router();
  *   name: Dashboard
  *   description: Dashboard statistics API endpoints
  */
+
+/**
+ * @swagger
+ * /api/v1/dashboard/revenue:
+ *   get:
+ *     summary: Get revenue statistics
+ *     description: |
+ *       Calculate total revenue from Payment.amount with filters by year, month, and day.
+ *       Uses createdAt for date filtering. Default status is PAID.
+ *       Accessible by ADMIN and MANAGER.
+ *
+ *       Examples:
+ *       - Specific day: ?year=2026&month=7&day=9
+ *       - Specific month: ?year=2026&month=7
+ *       - Specific year: ?year=2026
+ *       - Daily breakdown in month: ?year=2026&month=7&groupBy=day
+ *       - Monthly breakdown in year: ?year=2026&groupBy=month
+ *     tags: [Dashboard]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema: { type: integer, example: 2026 }
+ *       - in: query
+ *         name: month
+ *         schema: { type: integer, minimum: 1, maximum: 12, example: 7 }
+ *       - in: query
+ *         name: day
+ *         schema: { type: integer, minimum: 1, maximum: 31, example: 9 }
+ *       - in: query
+ *         name: groupBy
+ *         schema: { type: string, enum: [day, month] }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [PENDING, PAID, CANCELLED], default: PAID }
+ *     responses:
+ *       200:
+ *         description: Revenue fetched successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get(
+    '/revenue',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER']),
+    validateData(getRevenueQuerySchema, 'query'),
+    async (req, res, next) => {
+        const dashboardController = req.container.resolve('dashboardController');
+        await dashboardController.getRevenue(req, res, next);
+    },
+);
 
 /**
  * @swagger
@@ -24,96 +81,6 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Dashboard fetched successfully
- *         content:
- *           application/json:
- *             example:
- *               status: success
- *               data:
- *                 summary:
- *                   totalRecords: 1250
- *                   totalRevenue: 5500000
- *                   activeParkingSessions: 12
- *                   availableParkingSlots: 85
- *                   activeMonthlyCards: 30
- *                   pendingTickets: 2
- *                 models:
- *                   users:
- *                     total: 120
- *                     byStatus:
- *                       ACTIVE: 115
- *                       LOCKED: 5
- *                     byRole:
- *                       - roleName: CUSTOMER
- *                         count: 100
- *                       - roleName: STAFF
- *                         count: 15
- *                   roles:
- *                     total: 4
- *                   vehicles:
- *                     total: 95
- *                     byStatus:
- *                       ACTIVE: 90
- *                       INACTIVE: 5
- *                   vehicleTypes:
- *                     total: 10
- *                     byType:
- *                       SEDAN: 1
- *                       SUV: 1
- *                   floors:
- *                     total: 5
- *                     totalSlotCapacity: 200
- *                   parkingSlots:
- *                     total: 200
- *                     byStatus:
- *                       AVAILABLE: 85
- *                       RESERVED: 10
- *                       UNAVAILABLE: 5
- *                       CURRENTLY-IN-USED: 100
- *                   parkingSessions:
- *                     total: 500
- *                     byStatus:
- *                       ACTIVE: 12
- *                       COMPLETED: 488
- *                     bySessionType:
- *                       DAILY: 400
- *                       MONTH: 100
- *                   reservations:
- *                     total: 50
- *                     byStatus:
- *                       PENDING: 5
- *                       CLAIMED: 40
- *                       EXPIRED: 3
- *                       CANCELLED: 2
- *                   payments:
- *                     total: 80
- *                     byStatus:
- *                       PENDING: 5
- *                       PAID: 70
- *                       CANCELLED: 5
- *                     totalRevenue: 5500000
- *                   monthlyCards:
- *                     total: 35
- *                     byStatus:
- *                       ACTIVE: 30
- *                       EXPIRED: 5
- *                   pricePolicies:
- *                     total: 20
- *                   tickets:
- *                     total: 10
- *                     byStatus:
- *                       PENDING: 2
- *                       RESOLVED: 8
- *                     byType:
- *                       FEEDBACK: 6
- *                       INCIDENT: 4
- *                   chatSessions:
- *                     total: 25
- *                   chatMessages:
- *                     total: 150
- *                     byRole:
- *                       user: 75
- *                       assistant: 75
- *               message: Dashboard fetched successfully
  *       401:
  *         description: Unauthorized
  *       403:
