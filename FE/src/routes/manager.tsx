@@ -15,10 +15,10 @@ export const Route = createFileRoute("/manager")({
   },
   head: () => ({
     meta: [
-      { title: "Manager Dashboard — PARKOS" },
+      { title: "Quản lý — PARKOS" },
       {
         name: "description",
-        content: "Manager dashboard for users and reservations.",
+        content: "Bảng điều khiển quản lý người dùng và đặt chỗ.",
       },
     ],
   }),
@@ -33,15 +33,15 @@ function ManagerPage() {
       <SiteHeader />
       <DashboardMain>
         <DashboardHeader
-          title="Manager dashboard"
-          description="Theo dõi người dùng và quản lý reservation theo ngày."
+          title="Bảng điều khiển quản lý"
+          description="Theo dõi người dùng và quản lý đặt chỗ theo ngày."
         />
 
         <DashboardTabs
           tabs={[
             { id: "overview", label: "Người dùng" },
-            { id: "reservations", label: "Reservations" },
-            { id: "sessions", label: "Sessions" },
+            { id: "reservations", label: "Đặt chỗ" },
+            { id: "sessions", label: "Phiên đỗ xe" },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}

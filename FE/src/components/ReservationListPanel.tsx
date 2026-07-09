@@ -48,13 +48,14 @@ type ReservationListPanelProps = {
 };
 
 const pageSize = 12;
-const statusFilterOptions: Array<ReservationStatus | "ALL"> = [
-  "ALL",
-  "PENDING",
-  "CLAIMED",
-  "EXPIRED",
-  "CANCELLED",
-];
+const statusFilterLabels: Record<ReservationStatus | "ALL", string> = {
+  ALL: "Tất cả",
+  PENDING: "Chờ xử lý",
+  CLAIMED: "Đã nhận",
+  EXPIRED: "Hết hạn",
+  CANCELLED: "Đã hủy",
+};
+const statusFilterOptions = Object.keys(statusFilterLabels) as Array<ReservationStatus | "ALL">;
 
 export function ReservationListPanel({
   className,
@@ -130,7 +131,7 @@ export function ReservationListPanel({
         queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage"] }),
       ]);
       toast.success("Đã xóa đặt chỗ", {
-        description: "Bản ghi reservation đã được xóa thành công.",
+        description: "Bản ghi đặt chỗ đã được xóa thành công.",
       });
     },
     onError: (error) => {
@@ -142,7 +143,7 @@ export function ReservationListPanel({
   });
 
   const headerMeta = useMemo(() => {
-    const countLabel = `${filteredReservations.length} reservations`;
+    const countLabel = `${filteredReservations.length} đặt chỗ`;
     if (!isDateFilterActive) {
       return countLabel;
     }
@@ -250,7 +251,7 @@ export function ReservationListPanel({
               : "border-border bg-background text-muted-foreground hover:bg-secondary",
           )}
         >
-          {option}
+          {statusFilterLabels[option]}
         </button>
       ))}
       <Button
@@ -261,7 +262,7 @@ export function ReservationListPanel({
           void Promise.all([reservationsQuery.refetch(), parkingSessionsQuery.refetch()])
         }
         disabled={reservationsQuery.isFetching || parkingSessionsQuery.isFetching}
-        aria-label="Refresh reservations"
+        aria-label="Làm mới danh sách đặt chỗ"
       >
         <RefreshCw
           className={cn(
@@ -290,7 +291,7 @@ export function ReservationListPanel({
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-6 py-5">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Reservation List</h3>
+            <h3 className="text-lg font-semibold text-foreground">Danh sách đặt chỗ</h3>
             <p className="mt-1 text-sm text-muted-foreground">{headerMeta}</p>
           </div>
           {filterToolbar}
@@ -308,24 +309,24 @@ export function ReservationListPanel({
             tableOnly ? "px-1" : "px-6",
           )}
         >
-          <span>Driver</span>
-          <span>Vehicle · Slot</span>
-          <span>Expected Arrival</span>
-          <span>Status</span>
-          <span className="text-right">Action</span>
+          <span>Tài xế</span>
+          <span>Xe · Chỗ</span>
+          <span>Thời gian đến</span>
+          <span>Trạng thái</span>
+          <span className="text-right">Thao tác</span>
         </div>
 
         <div className={cn("space-y-2 pb-4", tableOnly ? "px-0" : "px-4")}>
           {reservationsQuery.isLoading ? (
             <div className="flex items-center gap-2 rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
-              Loading reservations...
+              Đang tải đặt chỗ...
             </div>
           ) : reservationsQuery.error ? (
             <div className="rounded-xl bg-destructive/10 px-4 py-6 text-sm text-destructive">
               {reservationsQuery.error instanceof Error
                 ? reservationsQuery.error.message
-                : "Unable to load reservations."}
+                : "Không thể tải danh sách đặt chỗ."}
             </div>
           ) : reservations.length > 0 ? (
             reservations.map((reservation) => {
@@ -361,12 +362,12 @@ export function ReservationListPanel({
                     <p>{formatDateTime(reservation.expectedArrival)}</p>
                     {parkingSession?.checkInTime ? (
                       <p className="mt-0.5 text-[11px] text-emerald-500">
-                        In: {formatDateTime(parkingSession.checkInTime)}
+                        Vào: {formatDateTime(parkingSession.checkInTime)}
                       </p>
                     ) : null}
                     {parkingSession?.checkOutTime ? (
                       <p className="mt-0.5 text-[11px] text-primary">
-                        Out: {formatDateTime(parkingSession.checkOutTime)}
+                        Ra: {formatDateTime(parkingSession.checkOutTime)}
                       </p>
                     ) : null}
                   </div>
@@ -376,7 +377,7 @@ export function ReservationListPanel({
                       className={cn("border", getStatusBadgeClass(displayStatus))}
                       variant="outline"
                     >
-                      {displayStatus}
+                      {getManageStatusLabel(displayStatus)}
                     </Badge>
                   </div>
                 </button>
@@ -386,10 +387,10 @@ export function ReservationListPanel({
                     type="button"
                     onClick={() => setDeletingReservation(reservation)}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-500"
-                    aria-label={`Delete reservation ${getSlotLabel(reservation)}`}
+                    aria-label={`Xóa đặt chỗ ${getSlotLabel(reservation)}`}
                   >
                     <Trash2 className="size-3.5" />
-                    Delete
+                    Xóa
                   </button>
                 </div>
               </article>
@@ -398,10 +399,10 @@ export function ReservationListPanel({
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               {isDateFilterActive
-                ? `Không có reservation nào vào ngày ${formatReservationDateLabel(reservationDate)}.`
+                ? `Không có đặt chỗ nào vào ngày ${formatReservationDateLabel(reservationDate)}.`
                 : statusFilter === "ALL"
-                  ? "Không có reservation nào."
-                  : `Không có reservation với trạng thái ${statusFilter}.`}
+                  ? "Không có đặt chỗ nào."
+                  : `Không có đặt chỗ với trạng thái ${statusFilterLabels[statusFilter]}.`}
             </div>
           )}
         </div>
@@ -414,7 +415,7 @@ export function ReservationListPanel({
         )}
       >
         <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-          Page {page} / {totalPages}
+          Trang {page} / {totalPages}
         </span>
         <div className="flex items-center gap-1.5">
           <Button
@@ -426,7 +427,7 @@ export function ReservationListPanel({
             className="h-8 rounded-xl px-3"
           >
             <ChevronLeft className="size-3.5" />
-            Prev
+            Trước
           </Button>
           <Button
             type="button"
@@ -436,7 +437,7 @@ export function ReservationListPanel({
             onClick={() => setPage((current) => current + 1)}
             className="h-8 rounded-xl px-3"
           >
-            Next
+            Sau
             <ChevronRight className="size-3.5" />
           </Button>
         </div>
@@ -451,7 +452,7 @@ export function ReservationListPanel({
             setViewingReservation(null);
           }
         }}
-        statusLabel={viewingDisplayStatus ?? undefined}
+        statusLabel={viewingDisplayStatus ? getManageStatusLabel(viewingDisplayStatus) : undefined}
       />
 
       <AlertDialog
@@ -466,7 +467,7 @@ export function ReservationListPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Reservation này sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+              Đặt chỗ này sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -547,16 +548,16 @@ function formatReservationDateLabel(dateKey: string) {
 
 function getDriverLabel(reservation: Reservation) {
   if (typeof reservation.driverId === "object") {
-    return reservation.driverId.fullName ?? "Unknown";
+    return reservation.driverId.fullName ?? "Không xác định";
   }
   return reservation.driverId;
 }
 
 function getDriverSubLabel(reservation: Reservation) {
   if (typeof reservation.driverId === "object") {
-    return reservation.driverId.email ?? reservation.driverId.phone ?? "N/A";
+    return reservation.driverId.email ?? reservation.driverId.phone ?? "Không có";
   }
-  return "N/A";
+  return "Không có";
 }
 
 function getVehicleLabel(reservation: Reservation) {
@@ -590,6 +591,25 @@ function formatDateTime(value?: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function getManageStatusLabel(status: ManageReservationDisplayStatus) {
+  switch (status) {
+    case "PENDING":
+      return "Chờ xử lý";
+    case "CLAIMED":
+      return "Đã nhận";
+    case "CHECKED IN":
+      return "Đã check-in";
+    case "CHECKED OUT":
+      return "Đã check-out";
+    case "EXPIRED":
+      return "Hết hạn";
+    case "CANCELLED":
+      return "Đã hủy";
+    default:
+      return status;
+  }
 }
 
 function getStatusBadgeClass(status: ManageReservationDisplayStatus) {

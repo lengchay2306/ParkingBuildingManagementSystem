@@ -57,10 +57,10 @@ export function StaffCreateParkingSessionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Tạo parking session</DialogTitle>
+          <DialogTitle>Tạo phiên đỗ xe</DialogTitle>
           <DialogDescription>
-            Slot {slotNumber ?? "—"}
-            {floorName ? ` · ${floorName}` : ""} · Chỉ áp dụng cho slot Available hoặc Reserved.
+            Chỗ {slotNumber ?? "—"}
+            {floorName ? ` · ${floorName}` : ""} · Chỉ áp dụng cho chỗ Trống hoặc Đã đặt.
           </DialogDescription>
         </DialogHeader>
 
@@ -68,7 +68,7 @@ export function StaffCreateParkingSessionDialog({
           <p className="rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
             Thông tin điền sẵn từ đặt chỗ
             {reservationDriverName ? ` của ${reservationDriverName}` : ""}. Kiểm tra trước khi tạo
-            session.
+            phiên đỗ xe.
           </p>
         ) : null}
 
@@ -122,7 +122,7 @@ export function StaffCreateParkingSessionDialog({
                 Đang tạo...
               </>
             ) : (
-              "Tạo parking session"
+              "Tạo phiên đỗ xe"
             )}
           </Button>
         </form>

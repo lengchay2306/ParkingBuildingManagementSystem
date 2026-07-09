@@ -15,10 +15,10 @@ export const Route = createFileRoute("/admin")({
   },
   head: () => ({
     meta: [
-      { title: "Admin — PARKOS" },
+      { title: "Quản trị — PARKOS" },
       {
         name: "description",
-        content: "Admin dashboard for user and reservation management.",
+        content: "Bảng điều khiển quản trị viên để quản lý người dùng và đặt chỗ.",
       },
     ],
   }),
@@ -35,8 +35,8 @@ function AdminPage() {
         <DashboardTabs
           tabs={[
             { id: "users", label: "Người dùng" },
-            { id: "reservations", label: "Reservations" },
-            { id: "sessions", label: "Sessions" },
+            { id: "reservations", label: "Đặt chỗ" },
+            { id: "sessions", label: "Phiên đỗ xe" },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}

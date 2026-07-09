@@ -52,7 +52,7 @@ export function ReservationDetailDialog({
         <DialogHeader>
           <DialogTitle>Thông tin đặt chỗ</DialogTitle>
           <DialogDescription>
-            Slot {slotLabel}
+            Chỗ {slotLabel}
             {floorName ? ` · ${floorName}` : ""}
           </DialogDescription>
         </DialogHeader>
@@ -83,7 +83,7 @@ export function ReservationDetailDialog({
           </section>
 
           <section className="space-y-3">
-            <SectionHeading>Slot</SectionHeading>
+            <SectionHeading>Chỗ đỗ</SectionHeading>
             <DetailGrid>
               <DetailRow label="Mã slot" value={slotLabel} mono />
               <DetailRow label="Tầng" value={floorName} />
@@ -123,10 +123,10 @@ export function ReservationDetailDialog({
                 {isCreatingSession ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    Đang tạo parking session...
+                    Đang tạo phiên đỗ xe...
                   </>
                 ) : (
-                  "Tạo parking session (điền sẵn thông tin)"
+                  "Tạo phiên đỗ xe (điền sẵn thông tin)"
                 )}
               </Button>
             </section>
@@ -146,7 +146,11 @@ function SectionHeading({ children }: { children: ReactNode }) {
 }
 
 function DetailGrid({ children }: { children: ReactNode }) {
-  return <dl className="grid gap-2.5 rounded-xl border border-border bg-secondary/50 p-4">{children}</dl>;
+  return (
+    <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 rounded-xl border border-border bg-secondary/50 p-4 sm:grid-cols-[120px_1fr]">
+      {children}
+    </dl>
+  );
 }
 
 function DetailRow({
@@ -159,12 +163,12 @@ function DetailRow({
   mono?: boolean;
 }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[120px_1fr] sm:items-start sm:gap-3">
+    <>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={cn("break-all text-sm font-medium", mono && "font-mono text-[12px]")}>
         {value || "—"}
       </dd>
-    </div>
+    </>
   );
 }
 

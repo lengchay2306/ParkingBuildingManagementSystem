@@ -1,5 +1,5 @@
-import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { getRoleHome, getSessionRole } from "@/lib/auth";
@@ -13,21 +13,16 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Overview - PARKOS" },
+      { title: "Tổng quan - PARKOS" },
       {
         name: "description",
         content:
-          "PARKOS overview for occupancy, operations health, and real-time parking activity.",
+          "Tổng quan PARKOS về tình trạng lấp đầy, vận hành và hoạt động đỗ xe theo thời gian thực.",
       },
     ],
   }),
   component: Index,
 });
-
-const heroImage =
-  "https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=1400&q=65";
-const sectionImage =
-  "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1200&q=65";
 
 const features = [
   { icon: Zap, title: "Nhanh chóng", detail: "Vào ra dưới 5 giây" },
@@ -42,41 +37,22 @@ function Index() {
       <main>
         <section className="relative border-b border-border/80">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-30"
-            style={{ backgroundImage: `url(${heroImage})` }}
+            className="index-hero-image absolute inset-0 bg-cover bg-center opacity-30"
             aria-hidden
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, color-mix(in oklab, var(--background) 42%, transparent), var(--background) 92%)",
-            }}
-            aria-hidden
-          />
+          <div className="index-hero-overlay absolute inset-0" aria-hidden />
           <div className="relative mx-auto flex min-h-[74vh] w-full max-w-7xl items-center px-6 py-20">
             <div className="max-w-2xl">
               <span className="inline-flex rounded-full border border-hairline-strong bg-surface-2/90 px-4 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
-                Smart Parking · 24/7
+                Đỗ xe thông minh · 24/7
               </span>
               <h1 className="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.04em] md:text-6xl">
-                Đỗ xe thông minh,
-                <br />
-                <span className="text-primary">không lo chỗ trống</span>
+                Đỗ xe thông minh
               </h1>
               <p className="mt-5 max-w-xl text-[16px] text-muted-foreground">
                 Hệ thống tòa nhà đỗ xe hiện đại với AI nhận diện biển số, đặt chỗ trực tuyến và
                 thanh toán không tiền mặt.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to="/login"
-                  preload="intent"
-                  className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Đăng nhập <ArrowRight className="size-3.5" />
-                </Link>
-              </div>
             </div>
           </div>
         </section>
@@ -106,37 +82,10 @@ function Index() {
           </article>
           <article className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-pop">
             <div
-              className="h-full min-h-[360px] w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${sectionImage})` }}
+              className="index-section-image h-full min-h-[360px] w-full bg-cover bg-center"
               aria-hidden
             />
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(180deg, transparent 58%, color-mix(in oklab, var(--background) 76%, transparent))",
-              }}
-              aria-hidden
-            />
-          </article>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-6 pb-24">
-          <article className="rounded-2xl border border-hairline-strong bg-[linear-gradient(100deg,oklch(0.54_0.16_275),oklch(0.5_0.14_255))] px-8 py-14 text-center shadow-pop">
-            <h2 className="text-4xl font-semibold tracking-[-0.03em] md:text-5xl">
-              Sẵn sàng đặt chỗ đỗ xe?
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-[15px] text-primary-foreground/90">
-              Đặt chỗ trước chỉ với vài thao tác. Đảm bảo có chỗ ngay khi bạn đến.
-            </p>
-            <div className="mt-8">
-              <Link
-                to="/driver"
-                className="inline-flex h-10 items-center rounded-md bg-primary-foreground px-6 text-[13px] font-semibold text-background transition-opacity hover:opacity-90"
-              >
-                Đặt chỗ ngay
-              </Link>
-            </div>
+            <div className="index-section-overlay pointer-events-none absolute inset-0" aria-hidden />
           </article>
         </section>
       </main>
@@ -171,7 +120,7 @@ function Index() {
         </div>
         <div className="border-t border-border">
           <p className="mx-auto max-w-7xl px-6 py-5 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            © 2026 Parking Building System. All rights reserved.
+            © 2026 Hệ thống đỗ xe tòa nhà. Bảo lưu mọi quyền.
           </p>
         </div>
       </footer>

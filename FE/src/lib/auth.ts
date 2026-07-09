@@ -104,7 +104,7 @@ export const login = async (email: string, password: string): Promise<RoleName> 
   });
   const payload = await parseAuthResponse(response);
   if (!response.ok) {
-    throw new Error(payload.data?.message || payload.message || "Login failed");
+    throw new Error(payload.data?.message || payload.message || "Đăng nhập thất bại");
   }
   let role =
     normalizeRole(payload.data?.user?.roleName) ??
@@ -183,7 +183,7 @@ export const logout = async () => {
   const payload = await parseAuthResponse(response);
   setStoredRole(null);
   if (!response.ok && response.status !== 401) {
-    throw new Error(payload.data?.message || payload.message || "Logout failed");
+    throw new Error(payload.data?.message || payload.message || "Đăng xuất thất bại");
   }
 };
 

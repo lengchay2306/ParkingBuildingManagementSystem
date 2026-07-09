@@ -61,10 +61,10 @@ export const Route = createFileRoute("/staff")({
   },
   head: () => ({
     meta: [
-      { title: "Staff Console — PARKOS" },
+      { title: "Bàn làm việc nhân viên — PARKOS" },
       {
         name: "description",
-        content: "Staff console to view parking slots by floor in real time.",
+        content: "Bàn làm việc nhân viên để xem chỗ đỗ theo tầng theo thời gian thực.",
       },
     ],
   }),
@@ -78,10 +78,10 @@ const emptyParkingFloors: ParkingFloor[] = [];
 const emptyParkingSlots: ParkingSlot[] = [];
 
 const slotStatusText: Record<ParkingSlotStatus, string> = {
-  AVAILABLE: "Available",
-  RESERVED: "Reserved",
-  UNAVAILABLE: "Unavailable",
-  "CURRENTLY-IN-USED": "Currently in used",
+  AVAILABLE: "Trống",
+  RESERVED: "Đã đặt",
+  UNAVAILABLE: "Không khả dụng",
+  "CURRENTLY-IN-USED": "Đang sử dụng",
 };
 
 const slotButtonStyles: Record<ParkingSlotStatus, string> = {
@@ -211,13 +211,13 @@ function StaffPage() {
   const reservedCount = floorSlots.filter((slot) => slot.status === "RESERVED").length;
 
   const parkingFloorsError = parkingFloorsQuery.error
-    ? getErrorMessage(parkingFloorsQuery.error, "Unable to load parking slots.")
+    ? getErrorMessage(parkingFloorsQuery.error, "Không thể tải danh sách chỗ đỗ.")
     : null;
   const occupancyDataError =
     reservationsQuery.error || parkingSessionsQuery.error
       ? getErrorMessage(
           reservationsQuery.error ?? parkingSessionsQuery.error,
-          "Unable to load slot occupancy data.",
+          "Không thể tải dữ liệu lấp đầy chỗ đỗ.",
         )
       : null;
   const isRefreshing =
@@ -277,8 +277,8 @@ function StaffPage() {
         queryClient.invalidateQueries({ queryKey: staffParkingSessionsQueryKey }),
       ]);
 
-      toast.success("Tạo parking session thành công", {
-        description: `Xe ${getSessionVehiclePlate(session)} đã check-in slot ${
+      toast.success("Tạo phiên đỗ xe thành công", {
+        description: `Xe ${getSessionVehiclePlate(session)} đã check-in chỗ ${
           typeof session.parkingSlotId === "object"
             ? (session.parkingSlotId.slotNumber ?? "—")
             : "—"
@@ -286,7 +286,7 @@ function StaffPage() {
       });
     },
     onError: (error) => {
-      toast.error("Không thể tạo parking session", {
+      toast.error("Không thể tạo phiên đỗ xe", {
         description: error instanceof Error ? error.message : "Vui lòng thử lại.",
       });
     },
@@ -323,8 +323,8 @@ function StaffPage() {
       ]);
 
       const plate = getSessionLicensePlate(session) ?? "—";
-      toast.success("Tạo parking session thành công", {
-        description: `Khách vãng lai ${plate} đã check-in slot ${
+      toast.success("Tạo phiên đỗ xe thành công", {
+        description: `Khách vãng lai ${plate} đã check-in chỗ ${
           typeof session.parkingSlotId === "object"
             ? (session.parkingSlotId.slotNumber ?? "—")
             : "—"
@@ -332,7 +332,7 @@ function StaffPage() {
       });
     },
     onError: (error) => {
-      toast.error("Không thể tạo parking session", {
+      toast.error("Không thể tạo phiên đỗ xe", {
         description: error instanceof Error ? error.message : "Vui lòng thử lại.",
       });
     },
@@ -351,7 +351,7 @@ function StaffPage() {
 
       const plate = getSessionLicensePlate(session) ?? "—";
       toast.success("Kết thúc phiên thành công", {
-        description: `Xe ${plate} đã checkout. Slot trở về Available.`,
+        description: `Xe ${plate} đã checkout. Chỗ trở về Trống.`,
       });
     },
     onError: (error) => {
@@ -410,7 +410,7 @@ function StaffPage() {
       floorSlots.find((item) => item._id === slotId) ??
       (selectedSlot && selectedSlot._id === slotId ? selectedSlot : null);
     if (!slot) {
-      toast.error("Không tìm thấy slot của reservation này.");
+      toast.error("Không tìm thấy chỗ của đặt chỗ này.");
       return;
     }
 
@@ -448,13 +448,13 @@ function StaffPage() {
       if (session) {
         setViewingSessionSlotId(slot._id);
         if (session.status === "COMPLETED") {
-          toast.info("Phiên gửi xe đã checkout nhưng slot chưa về Available.", {
-            description: "Liên hệ quản trị để đồng bộ lại slot nếu cần.",
+          toast.info("Phiên gửi xe đã checkout nhưng chỗ chưa về Trống.", {
+            description: "Liên hệ quản trị để đồng bộ lại chỗ nếu cần.",
           });
         }
       } else {
-        toast.info("Slot đang IN-USED nhưng không tìm thấy parking session.", {
-          description: "Có thể dữ liệu slot/session lệch — thử Refresh hoặc liên hệ quản trị.",
+        toast.info("Chỗ đang sử dụng nhưng không tìm thấy phiên đỗ xe.", {
+          description: "Có thể dữ liệu chỗ/phiên lệch — thử Làm mới hoặc liên hệ quản trị.",
         });
       }
       return;
@@ -475,7 +475,7 @@ function StaffPage() {
 
     if (slot.status === "RESERVED") {
       toast.info("Slot đang Reserved nhưng chưa có thông tin đặt chỗ.", {
-        description: "Có thể dữ liệu chưa đồng bộ — thử Refresh.",
+        description: "Có thể dữ liệu chưa đồng bộ — thử Làm mới.",
       });
     }
   };
@@ -489,7 +489,7 @@ function StaffPage() {
 
     const blockReason = validateLicensePlateForNewActivity(licensePlate);
     if (blockReason) {
-      toast.error("Không thể tạo session", { description: blockReason });
+      toast.error("Không thể tạo phiên đỗ xe", { description: blockReason });
       return;
     }
 
@@ -518,7 +518,7 @@ function StaffPage() {
       createSessionAllowReservationId,
     );
     if (blockReason) {
-      toast.error("Không thể tạo session", { description: blockReason });
+      toast.error("Không thể tạo phiên đỗ xe", { description: blockReason });
       return;
     }
 
@@ -536,18 +536,18 @@ function StaffPage() {
       <DashboardMain wide>
         <DashboardSection>
           <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
-            <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
-            <DashboardLegend label={`Reserved ${reservedCount}`} tone="bg-status-reserved" />
-            <DashboardLegend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
-            <DashboardLegend label={`In used ${inUsedCount}`} tone="bg-status-full" />
+            <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
+            <DashboardLegend label={`Đã đặt ${reservedCount}`} tone="bg-status-reserved" />
+            <DashboardLegend label={`Không khả dụng ${unavailableCount}`} tone="bg-status-maintenance" />
+            <DashboardLegend label={`Đang dùng ${inUsedCount}`} tone="bg-status-full" />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[240px_auto]">
             <div className="space-y-2">
-              <Label htmlFor="staff-floor-filter">Floor</Label>
+              <Label htmlFor="staff-floor-filter">Tầng</Label>
               <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
                 <SelectTrigger id="staff-floor-filter" className="h-11 rounded-xl bg-secondary">
-                  <SelectValue placeholder="Select floor" />
+                  <SelectValue placeholder="Chọn tầng" />
                 </SelectTrigger>
                 <SelectContent>
                   {parkingFloors.map((floor) => (
@@ -567,7 +567,7 @@ function StaffPage() {
                 className="h-11 rounded-xl"
               >
                 <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh
+                Làm mới
               </Button>
             </div>
           </div>
@@ -580,7 +580,7 @@ function StaffPage() {
 
           {parkingFloorsQuery.isLoading ? (
             <div className="mt-5">
-              <DashboardLoadingState label="Loading floor slots..." />
+              <DashboardLoadingState label="Đang tải chỗ đỗ theo tầng..." />
             </div>
           ) : parkingFloorsError ? (
             <div className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -613,7 +613,7 @@ function StaffPage() {
             </div>
           ) : (
             <div className="mt-5">
-              <DashboardEmptyState>No slots found for this floor.</DashboardEmptyState>
+              <DashboardEmptyState>Không có chỗ đỗ nào trên tầng này.</DashboardEmptyState>
             </div>
           )}
         </DashboardSection>

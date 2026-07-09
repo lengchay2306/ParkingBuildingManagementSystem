@@ -59,7 +59,7 @@ const parkingErrorMessage = (status: number) => {
     case 404:
       return "Parking floor or vehicle type not found.";
     default:
-      return "Unable to load parking slots.";
+      return "Không thể tải danh sách chỗ đỗ.";
   }
 };
 

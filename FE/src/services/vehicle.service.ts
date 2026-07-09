@@ -79,7 +79,7 @@ const vehicleErrorMessage = (status: number) => {
     case 409:
       return "Vehicle with this license plate already exists.";
     default:
-      return "Unable to complete vehicle request.";
+      return "Không thể hoàn tất yêu cầu xe.";
   }
 };
 

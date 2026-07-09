@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 
@@ -168,8 +168,8 @@
 @layer utilities {
   .glass {
     background: color-mix(in oklab, var(--background) 70%, transparent);
-    backdrop-filter: blur(20px) saturate(140%);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
     border-bottom: 1px solid var(--color-hairline);
   }
   .device-frame {
@@ -280,5 +280,26 @@
     padding: 1rem 1.125rem;
     font-size: 0.9375rem;
     color: var(--color-muted-foreground);
+  }
+
+  .index-hero-image {
+    background-image: url("https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=1400&q=65");
+  }
+  .index-hero-overlay {
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 42%, transparent),
+      var(--background) 92%
+    );
+  }
+  .index-section-image {
+    background-image: url("https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1200&q=65");
+  }
+  .index-section-overlay {
+    background: linear-gradient(
+      180deg,
+      transparent 58%,
+      color-mix(in oklab, var(--background) 76%, transparent)
+    );
   }
 }

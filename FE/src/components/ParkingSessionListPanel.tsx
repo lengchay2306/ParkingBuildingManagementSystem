@@ -23,8 +23,13 @@ type ParkingSessionListPanelProps = {
 };
 
 const pageSize = 12;
-const statusFilterOptions = ["ALL", "ACTIVE", "COMPLETED"] as const;
-type SessionStatusFilter = (typeof statusFilterOptions)[number];
+const statusFilterLabels = {
+  ALL: "Tất cả",
+  ACTIVE: "Đang hoạt động",
+  COMPLETED: "Hoàn tất",
+} as const;
+type SessionStatusFilter = keyof typeof statusFilterLabels;
+const statusFilterOptions = Object.keys(statusFilterLabels) as SessionStatusFilter[];
 
 export function ParkingSessionListPanel({
   className,
@@ -60,7 +65,7 @@ export function ParkingSessionListPanel({
   const canGoNext = page < totalPages;
 
   const headerMeta = useMemo(() => {
-    const countLabel = `${totalItems} sessions`;
+    const countLabel = `${totalItems} phiên đỗ xe`;
     if (!isDateFilterActive) {
       return countLabel;
     }
@@ -160,7 +165,7 @@ export function ParkingSessionListPanel({
               : "border-border bg-background text-muted-foreground hover:bg-secondary",
           )}
         >
-          {option}
+          {statusFilterLabels[option]}
         </button>
       ))}
       <Button
@@ -169,7 +174,7 @@ export function ParkingSessionListPanel({
         variant="ghost"
         onClick={() => void sessionsQuery.refetch()}
         disabled={sessionsQuery.isFetching}
-        aria-label="Refresh parking sessions"
+        aria-label="Làm mới danh sách phiên đỗ xe"
       >
         <RefreshCw className={cn("size-4", sessionsQuery.isFetching && "animate-spin")} />
       </Button>
@@ -193,7 +198,7 @@ export function ParkingSessionListPanel({
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-6 py-5">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Parking Sessions</h3>
+            <h3 className="text-lg font-semibold text-foreground">Phiên đỗ xe</h3>
             <p className="mt-1 text-sm text-muted-foreground">{headerMeta}</p>
           </div>
           {filterToolbar}
@@ -215,20 +220,20 @@ export function ParkingSessionListPanel({
           <span>Slot · Tầng</span>
           <span>Check-in</span>
           <span>Check-out</span>
-          <span>Status</span>
+          <span>Trạng thái</span>
         </div>
 
         <div className={cn("space-y-2 pb-4", tableOnly ? "px-0" : "px-4")}>
           {sessionsQuery.isLoading ? (
             <div className="flex items-center gap-2 rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
-              Loading parking sessions...
+              Đang tải phiên đỗ xe...
             </div>
           ) : sessionsQuery.error ? (
             <div className="rounded-xl bg-destructive/10 px-4 py-6 text-sm text-destructive">
               {sessionsQuery.error instanceof Error
                 ? sessionsQuery.error.message
-                : "Unable to load parking sessions."}
+                : "Không thể tải danh sách phiên đỗ xe."}
             </div>
           ) : sessions.length > 0 ? (
             sessions.map((session) => (
@@ -264,7 +269,7 @@ export function ParkingSessionListPanel({
                     className={cn("border", getSessionStatusBadgeClass(session.status))}
                     variant="outline"
                   >
-                    {session.status}
+                    {getSessionStatusLabel(session.status)}
                   </Badge>
                 </div>
               </button>
@@ -272,10 +277,10 @@ export function ParkingSessionListPanel({
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               {isDateFilterActive
-                ? `Không có session nào check-in ngày ${formatSessionDateLabel(sessionDate)}.`
+                ? `Không có phiên đỗ xe nào check-in ngày ${formatSessionDateLabel(sessionDate)}.`
                 : statusFilter === "ALL"
-                  ? "Không có parking session nào."
-                  : `Không có session với trạng thái ${statusFilter}.`}
+                  ? "Không có phiên đỗ xe nào."
+                  : `Không có phiên với trạng thái ${statusFilterLabels[statusFilter]}.`}
             </div>
           )}
         </div>
@@ -288,7 +293,7 @@ export function ParkingSessionListPanel({
         )}
       >
         <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-          Page {page} / {totalPages}
+          Trang {page} / {totalPages}
         </span>
         <div className="flex items-center gap-1.5">
           <Button
@@ -300,7 +305,7 @@ export function ParkingSessionListPanel({
             className="h-8 rounded-xl px-3"
           >
             <ChevronLeft className="size-3.5" />
-            Prev
+            Trước
           </Button>
           <Button
             type="button"
@@ -310,7 +315,7 @@ export function ParkingSessionListPanel({
             onClick={() => setPage((current) => current + 1)}
             className="h-8 rounded-xl px-3"
           >
-            Next
+            Sau
             <ChevronRight className="size-3.5" />
           </Button>
         </div>
@@ -395,6 +400,17 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function getSessionStatusLabel(status: string) {
+  switch (status) {
+    case "ACTIVE":
+      return "Đang hoạt động";
+    case "COMPLETED":
+      return "Hoàn tất";
+    default:
+      return status;
+  }
 }
 
 function getSessionStatusBadgeClass(status: string) {
