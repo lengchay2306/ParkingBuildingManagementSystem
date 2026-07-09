@@ -13,21 +13,16 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Overview - PARKOS" },
+      { title: "Tổng quan - PARKOS" },
       {
         name: "description",
         content:
-          "PARKOS overview for occupancy, operations health, and real-time parking activity.",
+          "Tổng quan PARKOS về tình trạng lấp đầy, vận hành và hoạt động đỗ xe theo thời gian thực.",
       },
     ],
   }),
   component: Index,
 });
-
-const heroImage =
-  "https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=1400&q=65";
-const sectionImage =
-  "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=1200&q=65";
 
 const features = [
   { icon: Zap, title: "Nhanh chóng", detail: "Vào ra dưới 5 giây" },
@@ -42,22 +37,14 @@ function Index() {
       <main>
         <section className="relative border-b border-border/80">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-30"
-            style={{ backgroundImage: `url(${heroImage})` }}
+            className="index-hero-image absolute inset-0 bg-cover bg-center opacity-30"
             aria-hidden
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, color-mix(in oklab, var(--background) 42%, transparent), var(--background) 92%)",
-            }}
-            aria-hidden
-          />
+          <div className="index-hero-overlay absolute inset-0" aria-hidden />
           <div className="relative mx-auto flex min-h-[74vh] w-full max-w-7xl items-center px-6 py-20">
             <div className="max-w-2xl">
               <span className="inline-flex rounded-full border border-hairline-strong bg-surface-2/90 px-4 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
-                Smart Parking · 24/7
+                Đỗ xe thông minh · 24/7
               </span>
               <h1 className="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.04em] md:text-6xl">
                 Đỗ xe thông minh
@@ -95,18 +82,10 @@ function Index() {
           </article>
           <article className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-pop">
             <div
-              className="h-full min-h-[360px] w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${sectionImage})` }}
+              className="index-section-image h-full min-h-[360px] w-full bg-cover bg-center"
               aria-hidden
             />
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(180deg, transparent 58%, color-mix(in oklab, var(--background) 76%, transparent))",
-              }}
-              aria-hidden
-            />
+            <div className="index-section-overlay pointer-events-none absolute inset-0" aria-hidden />
           </article>
         </section>
       </main>
@@ -141,7 +120,7 @@ function Index() {
         </div>
         <div className="border-t border-border">
           <p className="mx-auto max-w-7xl px-6 py-5 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            © 2026 Parking Building System. All rights reserved.
+            © 2026 Hệ thống đỗ xe tòa nhà. Bảo lưu mọi quyền.
           </p>
         </div>
       </footer>

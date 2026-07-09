@@ -41,7 +41,7 @@ function LoginPage() {
       const role = await login(email, password);
       await router.navigate({ to: getRoleHome(role) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +116,7 @@ function LoginPage() {
           <div className="relative h-full min-h-[280px] overflow-hidden rounded-3xl border border-border bg-card lg:min-h-[420px]">
             <img
               src="/assets/login-building.png"
-              alt="Parking building"
+              alt="Tòa nhà đỗ xe"
               className="absolute inset-0 size-full object-cover"
               fetchPriority="high"
               decoding="async"
@@ -127,10 +127,10 @@ function LoginPage() {
             />
             <div className="relative flex h-full min-h-[280px] flex-col justify-end p-6 lg:min-h-[420px]">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Smart Parking Access
+                Truy cập đỗ xe thông minh
               </p>
               <h2 className="mt-1.5 max-w-md text-lg font-semibold tracking-tight md:text-xl">
-                Fast entry with plate recognition and live slot availability.
+                Vào nhanh với nhận diện biển số và cập nhật chỗ trống theo thời gian thực.
               </h2>
             </div>
           </div>
@@ -140,11 +140,11 @@ function LoginPage() {
           <Card className="w-full rounded-3xl border-border bg-card shadow-sm">
             <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl tracking-tight">
-              {mode === "login" ? "Account login" : "Đăng kí tài khoản"}
+              {mode === "login" ? "Đăng nhập tài khoản" : "Đăng kí tài khoản"}
             </CardTitle>
             <CardDescription>
               {mode === "login"
-                ? "Sign in to manage parking sessions and reservations."
+                ? "Đăng nhập để quản lý phiên đỗ xe và đặt chỗ."
                 : "Tạo tài khoản Customer để sử dụng cổng tài xế."}
             </CardDescription>
             </CardHeader>
@@ -165,7 +165,7 @@ function LoginPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Mật khẩu</Label>
                   <Input
                     id="password"
                     type="password"
@@ -188,7 +188,7 @@ function LoginPage() {
                   disabled={isSubmitting}
                   className="h-11 rounded-xl text-[13px] font-semibold"
                 >
-                  {isSubmitting ? "Signing in..." : "Sign in"}
+                  {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
                   {!isSubmitting ? <ArrowRight className="size-4" /> : null}
                 </Button>
 

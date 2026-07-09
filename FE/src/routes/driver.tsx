@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
@@ -85,17 +85,17 @@ export const Route = createFileRoute("/driver")({
   },
   head: () => ({
     meta: [
-      { title: "Driver Portal - PARKOS" },
+      { title: "Cổng tài xế - PARKOS" },
       {
         name: "description",
         content:
-          "Driver portal to view parking information, reserve slots, track active sessions, make payments, and submit feedback or incident reports.",
+          "Cổng tài xế để xem thông tin đỗ xe, đặt chỗ, theo dõi phiên đỗ xe, thanh toán và gửi phản hồi.",
       },
-      { property: "og:title", content: "Driver Portal - PARKOS" },
+      { property: "og:title", content: "Cổng tài xế - PARKOS" },
       {
         property: "og:description",
         content:
-          "View parking status in real time, reserve supported slots, track active parking sessions, pay, and report issues.",
+          "Xem tình trạng đỗ xe theo thời gian thực, đặt chỗ, theo dõi phiên đỗ xe và báo cáo sự cố.",
       },
     ],
   }),
@@ -112,13 +112,13 @@ type QuickAction = {
 const quickActions: QuickAction[] = [
   {
     id: "reserve",
-    title: "Reserve Parking Slot",
+    title: "Đặt chỗ đỗ xe",
     icon: MapPin,
     highlighted: true,
   },
   {
     id: "my-reservations",
-    title: "My Reservations",
+    title: "Đặt chỗ của tôi",
     icon: Clock3,
   },
 ];
@@ -129,10 +129,10 @@ const reservedByYouBadgeStyle =
   "border-status-yours/45 bg-status-yours/15 text-status-yours";
 
 const slotStatusText: Record<ParkingSlotStatus, string> = {
-  AVAILABLE: "Available",
-  RESERVED: "Reserved",
-  UNAVAILABLE: "Unavailable",
-  "CURRENTLY-IN-USED": "Currently in used",
+  AVAILABLE: "Trống",
+  RESERVED: "Đã đặt",
+  UNAVAILABLE: "Không khả dụng",
+  "CURRENTLY-IN-USED": "Đang sử dụng",
 };
 
 const slotStatusBadge: Record<ParkingSlotStatus, string> = {
@@ -270,13 +270,13 @@ function DriverPage() {
       setLicensePlate("");
       setVehicleFormError(null);
       setIsVehicleFormOpen(false);
-      toast.success("Vehicle registered", {
-        description: `${vehicle.licensePlate} has been added to your account.`,
+      toast.success("Đăng ký xe thành công", {
+        description: `${vehicle.licensePlate} đã được thêm vào tài khoản của bạn.`,
       });
       await queryClient.invalidateQueries({ queryKey: myVehiclesQueryKey });
     },
     onError: (error) => {
-      setVehicleFormError(getErrorMessage(error, "Unable to register vehicle."));
+      setVehicleFormError(getErrorMessage(error, "Không thể đăng ký xe."));
     },
   });
   const updateVehicleMutation = useMutation({
@@ -293,13 +293,13 @@ function DriverPage() {
       setEditingVehicle(null);
       setEditVehicleLicensePlate("");
       setEditVehicleTypeId("");
-      toast.success("Vehicle updated", {
-        description: `${updatedVehicle.licensePlate} has been updated.`,
+      toast.success("Cập nhật xe thành công", {
+        description: `${updatedVehicle.licensePlate} đã được cập nhật.`,
       });
       await queryClient.invalidateQueries({ queryKey: myVehiclesQueryKey });
     },
     onError: (error) => {
-      setEditVehicleError(getErrorMessage(error, "Unable to update vehicle."));
+      setEditVehicleError(getErrorMessage(error, "Không thể cập nhật xe."));
     },
   });
   const deleteVehicleMutation = useMutation({
@@ -343,8 +343,8 @@ function DriverPage() {
         reservationSlotId && floorSlots.some((slot) => slot._id === reservationSlotId)
           ? floorSlots.find((slot) => slot._id === reservationSlotId)?.slotNumber
           : selectedSpot?.slotNumber;
-      toast.success("Reservation created", {
-        description: `${reservedSlotLabel ?? "The selected slot"} has been reserved successfully.`,
+      toast.success("Đặt chỗ thành công", {
+        description: `${reservedSlotLabel ?? "Chỗ đã chọn"} đã được đặt thành công.`,
       });
       setSelectedSpotId(null);
       await Promise.all([
@@ -353,16 +353,16 @@ function DriverPage() {
       ]);
     },
     onError: (error) => {
-      toast.error("Unable to reserve slot", {
-        description: getErrorMessage(error, "Please check reservation data and try again."),
+      toast.error("Không thể đặt chỗ", {
+        description: getErrorMessage(error, "Vui lòng kiểm tra dữ liệu và thử lại."),
       });
     },
   });
   const cancelReservationMutation = useMutation({
     mutationFn: cancelReservation,
     onSuccess: async () => {
-      toast.success("Reservation cancelled", {
-        description: "The selected reservation has been cancelled.",
+      toast.success("Đã hủy đặt chỗ", {
+        description: "Đặt chỗ đã chọn đã được hủy.",
       });
       setSelectedSpotId(null);
       await Promise.all([
@@ -371,8 +371,8 @@ function DriverPage() {
       ]);
     },
     onError: (error) => {
-      toast.error("Unable to cancel reservation", {
-        description: getErrorMessage(error, "Please try again."),
+      toast.error("Không thể hủy đặt chỗ", {
+        description: getErrorMessage(error, "Vui lòng thử lại."),
       });
     },
   });
@@ -524,14 +524,14 @@ function DriverPage() {
 
     const normalizedPlate = licensePlate.trim().replace(/\s+/g, " ").toUpperCase();
     if (normalizedPlate.length < 4) {
-      setVehicleFormError("Enter a valid license plate.");
+      setVehicleFormError("Nhập biển số hợp lệ.");
       return;
     }
     if (!vehicleTypeId || vehicleTypes.length === 0) {
       setVehicleFormError(
         vehicleTypes.length === 0
-          ? "Vehicle types are not available from backend yet. Refresh vehicle types and try again."
-          : "Choose a vehicle type.",
+          ? "Loại xe chưa sẵn sàng từ hệ thống. Làm mới danh sách loại xe và thử lại."
+          : "Chọn loại xe.",
       );
       return;
     }
@@ -584,11 +584,11 @@ function DriverPage() {
 
     const normalizedPlate = editVehicleLicensePlate.trim().replace(/\s+/g, " ").toUpperCase();
     if (normalizedPlate.length < 4) {
-      setEditVehicleError("Enter a valid license plate.");
+      setEditVehicleError("Nhập biển số hợp lệ.");
       return;
     }
     if (!editVehicleTypeId) {
-      setEditVehicleError("Choose a vehicle type.");
+      setEditVehicleError("Chọn loại xe.");
       return;
     }
 
@@ -603,7 +603,7 @@ function DriverPage() {
     }
 
     if (Object.keys(payload).length === 0) {
-      setEditVehicleError("You have not changed any vehicle data.");
+      setEditVehicleError("Bạn chưa thay đổi thông tin xe nào.");
       return;
     }
 
@@ -615,17 +615,17 @@ function DriverPage() {
 
   const vehicleListError =
     vehiclesQuery.isError && !vehiclesQuery.data
-      ? getErrorMessage(vehiclesQuery.error, "Unable to load registered vehicles.")
+      ? getErrorMessage(vehiclesQuery.error, "Không thể tải danh sách xe.")
       : null;
   const vehicleTypeError = vehicleTypesQuery.error
-    ? getErrorMessage(vehicleTypesQuery.error, "Unable to load vehicle types.")
+    ? getErrorMessage(vehicleTypesQuery.error, "Không thể tải loại xe.")
     : null;
   const profileError = profileQuery.error
-    ? getErrorMessage(profileQuery.error, "Unable to load profile.")
+    ? getErrorMessage(profileQuery.error, "Không thể tải hồ sơ.")
     : null;
   const parkingFloorsError =
     parkingFloorsQuery.isError && !parkingFloorsQuery.data
-      ? getErrorMessage(parkingFloorsQuery.error, "Unable to load parking slots.")
+      ? getErrorMessage(parkingFloorsQuery.error, "Không thể tải danh sách chỗ đỗ.")
       : null;
 
   const handleVehicleFormOpenChange = (open: boolean) => {
@@ -688,26 +688,26 @@ function DriverPage() {
 
   const myReservationsError =
     myReservationsQuery.isError && !myReservationsQuery.data
-      ? getErrorMessage(myReservationsQuery.error, "Unable to load your reservations.")
+      ? getErrorMessage(myReservationsQuery.error, "Không thể tải đặt chỗ của bạn.")
       : null;
   const isReservationActionPending =
     reserveSlotMutation.isPending || cancelReservationMutation.isPending;
 
   const handleReserveSelectedSlot = () => {
     if (!selectedSpot) {
-      toast.error("Select a slot first.");
+      toast.error("Hãy chọn một chỗ trước.");
       return;
     }
     if (selectedReservation) {
-      toast.error("This slot is already reserved by you.");
+      toast.error("Chỗ này đã được bạn đặt rồi.");
       return;
     }
     if (selectedSpot.status !== "AVAILABLE") {
-      toast.error("This slot is not available.");
+      toast.error("Chỗ này không khả dụng.");
       return;
     }
     if (!selectedReservationVehicle) {
-      toast.error("Select a compatible vehicle first.");
+      toast.error("Hãy chọn xe phù hợp trước.");
       return;
     }
 
@@ -724,11 +724,11 @@ function DriverPage() {
 
     const expectedArrival = parseExpectedArrival(expectedArrivalDate, expectedArrivalTime);
     if (!expectedArrival) {
-      toast.error("Choose a valid expected arrival time.");
+      toast.error("Chọn thời gian đến hợp lệ.");
       return;
     }
     if (expectedArrival.getTime() <= Date.now()) {
-      toast.error("Expected arrival must be in the future.");
+      toast.error("Thời gian đến phải ở tương lai.");
       return;
     }
 
@@ -784,16 +784,16 @@ function DriverPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-2xl font-semibold tracking-tight md:text-3xl">
                     {profile?.fullName ??
-                      (profileQuery.isLoading ? "Loading profile..." : "Driver")}
+                      (profileQuery.isLoading ? "Đang tải hồ sơ..." : "Tài xế")}
                   </h1>
                   <span className="rounded-md border border-primary/40 bg-primary/15 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                     {profile
                       ? `${getProfileRoleName(profile)} · ${profile.status ?? "ACTIVE"}`
-                      : "Driver active"}
+                      : "Đang hoạt động"}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {profile?.email ?? "Profile email unavailable"}
+                  {profile?.email ?? "Email hồ sơ không khả dụng"}
                 </p>
               </div>
             </div>
@@ -806,19 +806,19 @@ function DriverPage() {
                     className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
                   >
                     <UserRound className="size-4" />
-                    View profile
+                    Xem hồ sơ
                   </button>
                 </DialogTrigger>
                 <DialogContent className="rounded-2xl border-border bg-card sm:max-w-lg">
                   <DialogHeader>
-                    <DialogTitle>My profile</DialogTitle>
-                    <DialogDescription>Account details for the current driver.</DialogDescription>
+                    <DialogTitle>Hồ sơ của tôi</DialogTitle>
+                    <DialogDescription>Thông tin tài khoản của tài xế hiện tại.</DialogDescription>
                   </DialogHeader>
 
                   {profileQuery.isLoading ? (
                     <div className="flex items-center gap-2 rounded-xl border border-border bg-background/45 px-3 py-3 text-sm text-muted-foreground">
                       <LoaderCircle className="size-4 animate-spin" />
-                      Loading profile...
+                      Đang tải hồ sơ...
                     </div>
                   ) : profileError ? (
                     <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -827,7 +827,7 @@ function DriverPage() {
                   ) : profile ? (
                     <form className="grid gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="profile-full-name">Full name</Label>
+                        <Label htmlFor="profile-full-name">Họ tên</Label>
                         <Input
                           id="profile-full-name"
                           value={profile.fullName}
@@ -851,7 +851,7 @@ function DriverPage() {
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="profile-phone">Phone</Label>
+                          <Label htmlFor="profile-phone">Số điện thoại</Label>
                           <div className="relative">
                             <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -866,7 +866,7 @@ function DriverPage() {
 
                       <div className="grid gap-2 sm:grid-cols-2">
                         <div className="grid gap-2">
-                          <Label htmlFor="profile-role">Role</Label>
+                          <Label htmlFor="profile-role">Vai trò</Label>
                           <Input
                             id="profile-role"
                             value={getProfileRoleName(profile)}
@@ -876,7 +876,7 @@ function DriverPage() {
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="profile-status">Status</Label>
+                          <Label htmlFor="profile-status">Trạng thái</Label>
                           <Input
                             id="profile-status"
                             value={profile.status}
@@ -887,7 +887,7 @@ function DriverPage() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="profile-created-at">Created at</Label>
+                        <Label htmlFor="profile-created-at">Ngày tạo</Label>
                         <Input
                           id="profile-created-at"
                           value={formatProfileDate(profile.createdAt)}
@@ -908,12 +908,12 @@ function DriverPage() {
                     className="h-[42px] rounded-xl px-4 text-sm font-semibold"
                   >
                     <Pencil className="size-4" />
-                    Edit profile
+                    Sửa hồ sơ
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Edit profile</DialogTitle>
+                    <DialogTitle>Sửa hồ sơ</DialogTitle>
                     <DialogDescription>Cập nhật họ tên và số điện thoại của bạn.</DialogDescription>
                   </DialogHeader>
 
@@ -981,11 +981,11 @@ function DriverPage() {
 
         <DashboardSection ref={vehiclesSectionRef} compact>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <button
+            <ToggleExpandedButton
               type="button"
+              expanded={isVehiclesExpanded}
               onClick={() => setIsVehiclesExpanded((expanded) => !expanded)}
               className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left transition hover:opacity-90"
-              aria-expanded={isVehiclesExpanded}
             >
               <div className="min-w-0 space-y-1">
                 <h2 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
@@ -1002,7 +1002,7 @@ function DriverPage() {
                   isVehiclesExpanded ? "rotate-180" : ""
                 }`}
               />
-            </button>
+            </ToggleExpandedButton>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -1032,7 +1032,7 @@ function DriverPage() {
 
                   <form onSubmit={handleVehicleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="vehicle-license-plate">License plate</Label>
+                      <Label htmlFor="vehicle-license-plate">Biển số</Label>
                       <Input
                         id="vehicle-license-plate"
                         value={licensePlate}
@@ -1046,7 +1046,7 @@ function DriverPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="vehicle-type">Vehicle type</Label>
+                      <Label htmlFor="vehicle-type">Loại xe</Label>
                       <Select
                         value={vehicleTypeId}
                         onValueChange={setVehicleTypeId}
@@ -1054,7 +1054,7 @@ function DriverPage() {
                       >
                         <SelectTrigger id="vehicle-type" className="h-11 rounded-xl">
                           <SelectValue
-                            placeholder={isVehicleTypeLoading ? "Loading types..." : "Select type"}
+                            placeholder={isVehicleTypeLoading ? "Đang tải loại xe..." : "Chọn loại xe"}
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -1083,7 +1083,7 @@ function DriverPage() {
                         <RefreshCw
                           className={`size-4 ${vehicleTypesQuery.isFetching ? "animate-spin" : ""}`}
                         />
-                        Refresh vehicle types
+                        Làm mới loại xe
                       </Button>
                     ) : null}
 
@@ -1095,7 +1095,7 @@ function DriverPage() {
                       {createVehicleMutation.isPending ? (
                         <>
                           <LoaderCircle className="size-4 animate-spin" />
-                          Registering...
+                          Đang đăng ký...
                         </>
                       ) : (
                         <>
@@ -1113,13 +1113,13 @@ function DriverPage() {
           <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
             <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Edit vehicle</DialogTitle>
-                <DialogDescription>Update the license plate or vehicle type.</DialogDescription>
+                <DialogTitle>Sửa xe</DialogTitle>
+                <DialogDescription>Cập nhật biển số hoặc loại xe.</DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleEditVehicleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-vehicle-license-plate">License plate</Label>
+                  <Label htmlFor="edit-vehicle-license-plate">Biển số</Label>
                   <Input
                     id="edit-vehicle-license-plate"
                     value={editVehicleLicensePlate}
@@ -1135,14 +1135,14 @@ function DriverPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-vehicle-type">Vehicle type</Label>
+                  <Label htmlFor="edit-vehicle-type">Loại xe</Label>
                   <Select
                     value={editVehicleTypeId}
                     onValueChange={setEditVehicleTypeId}
                     disabled={vehicleTypesQuery.isLoading && vehicleTypes.length === 0}
                   >
                     <SelectTrigger id="edit-vehicle-type" className="h-11 rounded-xl">
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Chọn loại xe" />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicleTypes.map((type) => (
@@ -1168,12 +1168,12 @@ function DriverPage() {
                   {updateVehicleMutation.isPending ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
-                      Updating...
+                          Đang cập nhật...
                     </>
                   ) : (
                     <>
                       <Save className="size-4" />
-                      Save changes
+                          Lưu thay đổi
                     </>
                   )}
                 </Button>
@@ -1218,7 +1218,7 @@ function DriverPage() {
                     {isInactive ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
                         <CircleDashed className="size-3.5" />
-                        INACTIVE
+                        Ngừng hoạt động
                       </span>
                     ) : (
                       <>
@@ -1272,10 +1272,10 @@ function DriverPage() {
               const Icon = action.icon;
               const isActionHighlighted = action.id === activeQuickAction;
               return (
-                <button
+                <TogglePressedButton
                   key={action.title}
                   type="button"
-                  aria-pressed={isActionHighlighted}
+                  pressed={isActionHighlighted}
                   onClick={() => handleQuickActionClick(action.id)}
                   className={`rounded-xl border px-4 py-4 text-left transition ${
                     isActionHighlighted
@@ -1287,7 +1287,7 @@ function DriverPage() {
                     <Icon className="size-4 text-primary" />
                   </div>
                   <h2 className="text-base font-semibold tracking-tight">{action.title}</h2>
-                </button>
+                </TogglePressedButton>
               );
             })}
           </div>
@@ -1296,8 +1296,8 @@ function DriverPage() {
         {activeQuickAction === "my-reservations" ? (
           <DashboardSection ref={reservationSectionRef}>
             <DashboardSectionHeader
-              kicker="My reservation"
-              title="Reservation history"
+              kicker="Đặt chỗ của tôi"
+              title="Lịch sử đặt chỗ"
               actions={
                 <Button
                   type="button"
@@ -1317,7 +1317,7 @@ function DriverPage() {
                   <RefreshCw
                     className={`size-4 ${myReservationsQuery.isFetching ? "animate-spin" : ""}`}
                   />
-                  Refresh
+                  Làm mới
                 </Button>
               }
             />
@@ -1348,7 +1348,7 @@ function DriverPage() {
             {myReservationsQuery.isLoading ? (
               <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-background/40 px-4 py-3 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
-                Loading reservations...
+                Đang tải đặt chỗ...
               </div>
             ) : myReservationsError ? (
               <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -1384,7 +1384,7 @@ function DriverPage() {
                             {getReservationSlotLabel(reservation)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Vehicle: {getReservationVehicleLabel(reservation) ?? "N/A"}
+                            Xe: {getReservationVehicleLabel(reservation) ?? "Không có"}
                           </p>
                         </div>
                         <span
@@ -1396,14 +1396,14 @@ function DriverPage() {
 
                       <div className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                         <p>
-                          Arrival:{" "}
+                          Thời gian đến:{" "}
                           {reservation.expectedArrival
                             ? formatDateTime(reservation.expectedArrival)
-                            : "N/A"}
+                            : "Không có"}
                         </p>
                         <p>
-                          Expiry:{" "}
-                          {reservation.expiryAt ? formatDateTime(reservation.expiryAt) : "N/A"}
+                          Hết hạn:{" "}
+                          {reservation.expiryAt ? formatDateTime(reservation.expiryAt) : "Không có"}
                         </p>
                         {parkingSession?.checkInTime ? (
                           <p>Check-in: {formatDateTime(parkingSession.checkInTime)}</p>
@@ -1428,10 +1428,10 @@ function DriverPage() {
                             {cancelReservationMutation.isPending ? (
                               <>
                                 <LoaderCircle className="size-4 animate-spin" />
-                                Deleting...
+                                Đang xóa...
                               </>
                             ) : (
-                              "Delete reservation"
+                              "Xóa đặt chỗ"
                             )}
                           </Button>
                         </div>
@@ -1439,7 +1439,7 @@ function DriverPage() {
 
                       {reservationSlotId && reservationBySlotId.has(reservationSlotId) ? (
                         <p className="mt-2 text-xs text-status-yours">
-                          This slot is currently locked for you.
+                          Chỗ này hiện đang được giữ cho bạn.
                         </p>
                       ) : null}
                     </div>
@@ -1448,7 +1448,7 @@ function DriverPage() {
               </div>
             ) : (
               <DashboardEmptyState className="mt-4 text-left">
-                No reservations on {formatReservationHistoryDateLabel(reservationHistoryDate)}.
+                Không có đặt chỗ nào vào {formatReservationHistoryDateLabel(reservationHistoryDate)}.
               </DashboardEmptyState>
             )}
           </DashboardSection>
@@ -1458,24 +1458,24 @@ function DriverPage() {
           <div ref={reserveSectionRef}>
             <DashboardSection>
               <DashboardSectionHeader
-                kicker="View parking information"
-                title={selectedFloor?.floorName ?? "Floor layout"}
+                kicker="Xem thông tin đỗ xe"
+                title={selectedFloor?.floorName ?? "Sơ đồ tầng"}
                 actions={
                   <>
-                    <DashboardLegend label={`Available ${availableCount}`} tone="bg-status-empty" />
-                    <DashboardLegend label={`Reserved ${reservedCount}`} tone="bg-status-reserved" />
-                    <DashboardLegend label={`Unavailable ${unavailableCount}`} tone="bg-status-maintenance" />
-                    <DashboardLegend label={`In used ${inUsedCount}`} tone="bg-status-full" />
+                    <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
+                    <DashboardLegend label={`Đã đặt ${reservedCount}`} tone="bg-status-reserved" />
+                    <DashboardLegend label={`Không khả dụng ${unavailableCount}`} tone="bg-status-maintenance" />
+                    <DashboardLegend label={`Đang dùng ${inUsedCount}`} tone="bg-status-full" />
                   </>
                 }
               />
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[240px_auto]">
                 <div className="space-y-2">
-                  <Label htmlFor="driver-floor-filter">Floor</Label>
+                  <Label htmlFor="driver-floor-filter">Tầng</Label>
                   <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
                     <SelectTrigger id="driver-floor-filter" className="h-10 rounded-xl">
-                      <SelectValue placeholder="Select floor" />
+                      <SelectValue placeholder="Chọn tầng" />
                     </SelectTrigger>
                     <SelectContent>
                       {parkingFloors.map((floor) => (
@@ -1497,7 +1497,7 @@ function DriverPage() {
                     <RefreshCw
                       className={`size-4 ${parkingFloorsQuery.isFetching ? "animate-spin" : ""}`}
                     />
-                    Refresh slots
+                    Làm mới chỗ đỗ
                   </Button>
                 </div>
               </div>
@@ -1505,7 +1505,7 @@ function DriverPage() {
               {parkingFloorsQuery.isLoading ? (
                 <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-background/40 px-4 py-3 text-sm text-muted-foreground">
                   <LoaderCircle className="size-4 animate-spin" />
-                  Loading floor slots...
+                  Đang tải chỗ đỗ theo tầng...
                 </div>
               ) : parkingFloorsError ? (
                 <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -1520,15 +1520,15 @@ function DriverPage() {
                     const isSelectable = isAvailable || isReservedByMe;
                     const isSelected = selectedSpotId === slot._id;
                     const slotLabel = isReservedByMe
-                      ? "Reserved by you"
+                      ? "Bạn đã đặt"
                       : slotStatusText[slot.status];
                     const slotStyle = isReservedByMe
                       ? reservedByYouButtonStyle
                       : slotButtonStyles[slot.status];
                     const statusLabel = isReservedByMe
-                      ? "Yours"
+                      ? "Của bạn"
                       : isReserved
-                        ? "Reserved"
+                        ? "Đã đặt"
                         : null;
                     return (
                       <button
@@ -1542,21 +1542,25 @@ function DriverPage() {
                         aria-label={`${slot.slotNumber} (${slotLabel})`}
                       >
                         <span className="font-mono text-[11px] leading-none">{slot.slotNumber}</span>
-                        <span
-                          className={`min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] ${
-                            statusLabel ? "opacity-100" : "opacity-0"
-                          }`}
-                          aria-hidden={!statusLabel}
-                        >
-                          {statusLabel ?? "—"}
-                        </span>
+                        {statusLabel ? (
+                          <span className="min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] opacity-100">
+                            {statusLabel}
+                          </span>
+                        ) : (
+                          <span
+                            className="min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] opacity-0"
+                            aria-hidden="true"
+                          >
+                            —
+                          </span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
               ) : (
                 <DashboardEmptyState className="mt-4 text-left">
-                  No slots found for this floor.
+                  Không có chỗ đỗ nào trên tầng này.
                 </DashboardEmptyState>
               )}
             </DashboardSection>
@@ -1576,7 +1580,7 @@ function DriverPage() {
           {selectedSpot ? (
             <>
               <DialogHeader>
-                <DialogTitle>Reserve parking slot</DialogTitle>
+                <DialogTitle>Đặt chỗ đỗ xe</DialogTitle>
                 <DialogDescription>
                   Slot {selectedSpot.slotNumber}
                   {selectedFloor ? ` · ${selectedFloor.floorName}` : ""}
@@ -1592,7 +1596,7 @@ function DriverPage() {
                       : slotStatusBadge[selectedSpot.status]
                   }`}
                 >
-                  {selectedReservation ? "Reserved by you" : slotStatusText[selectedSpot.status]}
+                  {selectedReservation ? "Bạn đã đặt" : slotStatusText[selectedSpot.status]}
                 </span>
               </div>
 
@@ -1604,14 +1608,14 @@ function DriverPage() {
 
               <div className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor="driver-reserve-vehicle">Vehicle</Label>
+                  <Label htmlFor="driver-reserve-vehicle">Xe</Label>
                   <Select
                     value={selectedReservationVehicleId}
                     onValueChange={setSelectedReservationVehicleId}
                     disabled={compatibleVehicles.length === 0 || Boolean(selectedReservation)}
                   >
                     <SelectTrigger id="driver-reserve-vehicle" className="h-10 rounded-xl">
-                      <SelectValue placeholder="Select your vehicle" />
+                      <SelectValue placeholder="Chọn xe của bạn" />
                     </SelectTrigger>
                     <SelectContent>
                       {compatibleVehicles.map((vehicle) => (
@@ -1652,22 +1656,22 @@ function DriverPage() {
 
                 {selectedReservation ? (
                   <div className="rounded-xl border border-status-yours/45 bg-status-yours/10 px-3 py-2 text-sm">
-                    <p className="font-medium text-status-yours">Current reservation</p>
+                    <p className="font-medium text-status-yours">Đặt chỗ hiện tại</p>
                     <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                      <p>Vehicle: {getReservationVehicleLabel(selectedReservation) ?? "N/A"}</p>
+                      <p>Xe: {getReservationVehicleLabel(selectedReservation) ?? "Không có"}</p>
                       <p>
-                        Arrival:{" "}
+                        Thời gian đến:{" "}
                         {selectedReservation.expectedArrival
                           ? formatDateTime(selectedReservation.expectedArrival)
-                          : "N/A"}
+                          : "Không có"}
                       </p>
                       <p>
-                        Expiry:{" "}
+                        Hết hạn:{" "}
                         {selectedReservation.expiryAt
                           ? formatDateTime(selectedReservation.expiryAt)
-                          : "N/A"}
+                          : "Không có"}
                       </p>
-                      <p className="text-status-yours/80">To cancel, go to My reservation.</p>
+                      <p className="text-status-yours/80">Để hủy, vào mục Đặt chỗ của tôi.</p>
                     </div>
                   </div>
                 ) : null}
@@ -1691,12 +1695,12 @@ function DriverPage() {
                   {reserveSlotMutation.isPending ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
-                      Reserving...
+                      Đang đặt chỗ...
                     </>
                   ) : (
                     <>
                       <MapPin className="size-4" />
-                      Reserve this slot
+                      Đặt chỗ này
                     </>
                   )}
                 </Button>
@@ -1716,7 +1720,7 @@ function DriverPage() {
           }
         }}
         statusLabel={
-          viewingHistoryReservationDetail
+          viewingHistoryReservation && viewingHistoryReservationDetail
             ? getReservationStatusLabel(
                 getReservationDisplayStatus(
                   viewingHistoryReservation,
@@ -1786,7 +1790,7 @@ function toLocalTimeInputValue(timestamp: number) {
 function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "N/A";
+    return "Không có";
   }
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -1926,16 +1930,16 @@ function getReservationStatusBadge(status: ReservationDisplayStatus) {
 function getReservationStatusLabel(status: ReservationDisplayStatus) {
   switch (status) {
     case "PENDING":
-      return "PENDING";
+      return "Chờ xử lý";
     case "CLAIMED":
     case "CHECKED IN":
-      return "CHECKED IN";
+      return "Đã check-in";
     case "CHECKED OUT":
-      return "CHECKED OUT";
+      return "Đã check-out";
     case "CANCELLED":
-      return "CANCELLED";
+      return "Đã hủy";
     case "EXPIRED":
-      return "EXPIRED";
+      return "Hết hạn";
     default:
       return status;
   }
@@ -1947,7 +1951,7 @@ function getVehicleTypeName(vehicle: Vehicle, vehicleTypes: VehicleType[]) {
   }
 
   const matchedType = vehicleTypes.find((type) => type._id === vehicle.vehicleTypeId);
-  return matchedType?.type ?? "Vehicle";
+  return matchedType?.type ?? "Xe";
 }
 
 function getVehicleTypeId(vehicle: Vehicle): string | null {
@@ -1974,12 +1978,12 @@ function formatProfileDate(value?: string) {
 
 function formatRegisteredDate(value?: string) {
   if (!value) {
-    return "Registered";
+    return "Đã đăng ký";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Registered";
+    return "Đã đăng ký";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -1991,4 +1995,36 @@ function formatRegisteredDate(value?: string) {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function ToggleExpandedButton({
+  expanded,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"button"> & { expanded: boolean }) {
+  return expanded ? (
+    <button {...props} aria-expanded="true">
+      {children}
+    </button>
+  ) : (
+    <button {...props} aria-expanded="false">
+      {children}
+    </button>
+  );
+}
+
+function TogglePressedButton({
+  pressed,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"button"> & { pressed: boolean }) {
+  return pressed ? (
+    <button {...props} aria-pressed="true">
+      {children}
+    </button>
+  ) : (
+    <button {...props} aria-pressed="false">
+      {children}
+    </button>
+  );
 }

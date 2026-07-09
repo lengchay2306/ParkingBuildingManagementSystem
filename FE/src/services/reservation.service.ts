@@ -131,7 +131,7 @@ const reservationErrorMessage = (status: number) => {
     case 409:
       return "This slot already has an active reservation.";
     default:
-      return "Unable to complete reservation request.";
+      return "Không thể hoàn tất yêu cầu đặt chỗ.";
   }
 };
 
@@ -300,7 +300,9 @@ export const deleteReservationByManage = async (reservationId: string) => {
 /** @deprecated Use deleteReservationByManage */
 export const cancelReservationByStaff = deleteReservationByManage;
 
-export const getReservationSlotId = (reservation: Reservation) => {
+export const getReservationSlotId = (reservation: {
+  parkingSlotId: string | { _id: string };
+}) => {
   if (typeof reservation.parkingSlotId === "string") {
     return reservation.parkingSlotId;
   }

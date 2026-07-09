@@ -69,7 +69,7 @@ const userErrorMessage = (status: number) => {
     case 404:
       return "User not found.";
     default:
-      return "Unable to load profile.";
+      return "Không thể tải hồ sơ.";
   }
 };
 

@@ -336,7 +336,7 @@ export function UserDirectoryPanel({
       {tableOnly ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-            {totalCount} users
+            {totalCount} người dùng
           </p>
           <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
             <div className="relative w-48 sm:w-56">
@@ -344,7 +344,7 @@ export function UserDirectoryPanel({
               <Input
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search"
+                placeholder="Tìm kiếm"
                 className="h-9 rounded-xl pl-8 text-sm"
               />
             </div>
@@ -354,7 +354,7 @@ export function UserDirectoryPanel({
               variant="ghost"
               disabled={usersQuery.isFetching}
               onClick={() => void usersQuery.refetch()}
-              aria-label="Refresh users"
+              aria-label="Làm mới danh sách người dùng"
             >
               <RefreshCw className={cn("size-4", usersQuery.isFetching && "animate-spin")} />
             </Button>
@@ -365,9 +365,9 @@ export function UserDirectoryPanel({
           <div>
             <div className="flex items-center gap-2 text-base font-semibold text-foreground">
               <UsersRound className="size-4 text-primary" />
-              Registered users
+              Người dùng đã đăng ký
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">{totalCount} accounts</div>
+            <div className="mt-1 text-sm text-muted-foreground">{totalCount} tài khoản</div>
           </div>
 
           <form
@@ -379,7 +379,7 @@ export function UserDirectoryPanel({
               <Input
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search users"
+                placeholder="Tìm người dùng"
                 className="h-9 rounded-xl pl-8 text-sm"
               />
             </div>
@@ -393,7 +393,7 @@ export function UserDirectoryPanel({
               disabled={usersQuery.isFetching}
               onClick={() => void usersQuery.refetch()}
               className="h-9 rounded-xl px-3"
-              aria-label="Refresh users"
+              aria-label="Làm mới danh sách người dùng"
             >
               <RefreshCw className={`size-3.5 ${usersQuery.isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -407,12 +407,12 @@ export function UserDirectoryPanel({
           tableOnly ? "px-1" : "px-5",
         )}
       >
-        <span>User</span>
+        <span>Người dùng</span>
         <span>Email</span>
-        <span>Role</span>
-        <span>Status</span>
-        <span>Joined</span>
-        <span className="text-right">Edit</span>
+        <span>Vai trò</span>
+        <span>Trạng thái</span>
+        <span>Tham gia</span>
+        <span className="text-right">Sửa</span>
       </div>
 
       <div
@@ -425,11 +425,11 @@ export function UserDirectoryPanel({
         {usersQuery.isLoading ? (
           <div className="flex items-center gap-2 px-5 py-5 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />
-            Loading users...
+            Đang tải người dùng...
           </div>
         ) : usersQuery.error ? (
           <div className="px-5 py-5 text-sm text-destructive">
-            {usersQuery.error instanceof Error ? usersQuery.error.message : "Unable to load users."}
+            {usersQuery.error instanceof Error ? usersQuery.error.message : "Không thể tải danh sách người dùng."}
           </div>
         ) : users.length > 0 ? (
           users.map((user) => (
@@ -441,7 +441,7 @@ export function UserDirectoryPanel({
             />
           ))
         ) : (
-          <div className="px-5 py-5 text-sm text-muted-foreground">No users found.</div>
+          <div className="px-5 py-5 text-sm text-muted-foreground">Không tìm thấy người dùng.</div>
         )}
       </div>
 
@@ -452,7 +452,7 @@ export function UserDirectoryPanel({
         )}
       >
         <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
-          Page {page} / {totalPages}
+          Trang {page} / {totalPages}
         </span>
         <div className="flex items-center gap-1.5">
           <Button
@@ -464,7 +464,7 @@ export function UserDirectoryPanel({
             className="h-8 rounded-xl px-3"
           >
             <ChevronLeft className="size-3.5" />
-            Prev
+            Trước
           </Button>
           <Button
             type="button"
@@ -474,7 +474,7 @@ export function UserDirectoryPanel({
             onClick={() => setPage((current) => current + 1)}
             className="h-8 rounded-xl px-3"
           >
-            Next
+            Sau
             <ChevronRight className="size-3.5" />
           </Button>
         </div>
@@ -483,10 +483,10 @@ export function UserDirectoryPanel({
       <Dialog open={isDetailOpen} onOpenChange={handleDetailOpenChange}>
         <DialogContent className="rounded-2xl border-border bg-card sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit user" : "User details"}</DialogTitle>
+            <DialogTitle>{isEditing ? "Sửa người dùng" : "Chi tiết người dùng"}</DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Chỉnh sửa thông tin rồi bấm Save để lưu."
+                ? "Chỉnh sửa thông tin rồi bấm Lưu để lưu."
                 : "Thông tin chi tiết của người dùng."}
             </DialogDescription>
           </DialogHeader>
@@ -542,7 +542,7 @@ export function UserDirectoryPanel({
 
               <div className="grid gap-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="user-status">Status</Label>
+                  <Label htmlFor="user-status">Trạng thái</Label>
                   {isEditing ? (
                     <Select
                       value={editStatus}
@@ -552,8 +552,8 @@ export function UserDirectoryPanel({
                         <SelectValue placeholder="Chọn trạng thái" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                        <SelectItem value="LOCKED">LOCKED</SelectItem>
+                        <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                        <SelectItem value="LOCKED">Đã khóa</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -568,7 +568,7 @@ export function UserDirectoryPanel({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="user-joined">Joined</Label>
+                <Label htmlFor="user-joined">Ngày tham gia</Label>
                 <Input
                   id="user-joined"
                   value={formatDate(selectedUser.createdAt)}
@@ -593,7 +593,7 @@ export function UserDirectoryPanel({
                     className="h-11 rounded-xl px-4 text-[13px] font-semibold"
                   >
                     <X className="size-4" />
-                    Cancel
+                    Hủy
                   </Button>
                   <Button
                     type="submit"
@@ -608,7 +608,7 @@ export function UserDirectoryPanel({
                     ) : (
                       <>
                         <Save className="size-4" />
-                        Save
+                        Lưu
                       </>
                     )}
                   </Button>
@@ -622,7 +622,7 @@ export function UserDirectoryPanel({
                     className="h-11 rounded-xl px-4 text-[13px] font-semibold"
                   >
                     <Car className="size-4" />
-                    View vehicles
+                    Xem xe
                   </Button>
                   <Button
                     type="button"
@@ -630,7 +630,7 @@ export function UserDirectoryPanel({
                     className="h-11 rounded-xl px-4 text-[13px] font-semibold"
                   >
                     <Pencil className="size-4" />
-                    Edit profile
+                    Sửa hồ sơ
                   </Button>
                 </div>
               )}
@@ -642,7 +642,7 @@ export function UserDirectoryPanel({
       <Dialog open={isVehiclesOpen} onOpenChange={handleVehiclesOpenChange}>
         <DialogContent className="rounded-2xl border-border bg-card sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>User vehicles</DialogTitle>
+            <DialogTitle>Xe của người dùng</DialogTitle>
             <DialogDescription>
               {vehiclesUser
                 ? `Danh sách xe của ${vehiclesUser.fullName}`
@@ -677,7 +677,7 @@ export function UserDirectoryPanel({
                       onClick={() => startVehicleEditing(vehicle)}
                     >
                       <Pencil className="size-3.5" />
-                      Edit
+                      Sửa
                     </Button>
                   </div>
                 ))}
@@ -694,7 +694,7 @@ export function UserDirectoryPanel({
       <Dialog open={isVehicleEditOpen} onOpenChange={handleVehicleEditOpenChange}>
         <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit vehicle</DialogTitle>
+            <DialogTitle>Sửa xe</DialogTitle>
             <DialogDescription>
               Cập nhật biển số, loại xe hoặc trạng thái xe.
             </DialogDescription>
@@ -729,7 +729,7 @@ export function UserDirectoryPanel({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="admin-vehicle-status">Vehicle status</Label>
+              <Label htmlFor="admin-vehicle-status">Trạng thái xe</Label>
               <Select
                 value={editVehicleStatus}
                 onValueChange={(value) => setEditVehicleStatus(value as "ACTIVE" | "INACTIVE")}
@@ -738,14 +738,14 @@ export function UserDirectoryPanel({
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                  <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                  <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid gap-2 rounded-xl border border-border bg-background/40 p-3">
-              <Label>Monthly card</Label>
+              <Label>Thẻ tháng</Label>
               {editingVehicle ? <MonthlyCardDetails vehicle={editingVehicle} detailed /> : null}
             </div>
 
@@ -854,7 +854,7 @@ function getUserRoleName(user: UserProfile) {
   if (typeof user.roleId === "object" && user.roleId?.roleName) {
     return user.roleId.roleName;
   }
-  return "UNKNOWN";
+  return "Không xác định";
 }
 
 function getInitials(name: string) {
@@ -869,12 +869,12 @@ function getInitials(name: string) {
 
 function formatDate(value?: string) {
   if (!value) {
-    return "N/A";
+    return "Không có";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "N/A";
+    return "Không có";
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -888,7 +888,7 @@ function getVehicleTypeName(vehicle: Vehicle) {
   if (typeof vehicle.vehicleTypeId === "object" && vehicle.vehicleTypeId?.type) {
     return vehicle.vehicleTypeId.type;
   }
-  return "UNKNOWN";
+  return "Không xác định";
 }
 
 function getVehicleTypeId(vehicle: Vehicle): string | null {
@@ -910,7 +910,7 @@ function MonthlyCardDetails({
 }) {
   if (!vehicle.monthlyCardId) {
     return (
-      <div className="text-[11px] text-muted-foreground">Không có monthly card</div>
+      <div className="text-[11px] text-muted-foreground">Không có thẻ tháng</div>
     );
   }
 

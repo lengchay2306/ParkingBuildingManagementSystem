@@ -151,7 +151,11 @@ function SectionHeading({ children }: { children: ReactNode }) {
 }
 
 function DetailGrid({ children }: { children: ReactNode }) {
-  return <dl className="grid gap-2.5 rounded-xl border border-border bg-secondary/50 p-4">{children}</dl>;
+  return (
+    <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 rounded-xl border border-border bg-secondary/50 p-4 sm:grid-cols-[120px_1fr]">
+      {children}
+    </dl>
+  );
 }
 
 function DetailRow({
@@ -164,12 +168,12 @@ function DetailRow({
   mono?: boolean;
 }) {
   return (
-    <div className="grid gap-1 sm:grid-cols-[120px_1fr] sm:items-start sm:gap-3">
+    <>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={cn("break-all text-sm font-medium", mono && "font-mono text-[12px]")}>
         {value || "—"}
       </dd>
-    </div>
+    </>
   );
 }
 

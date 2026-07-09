@@ -82,7 +82,7 @@ export function SiteHeader() {
               disabled={isLoggingOut}
               className="h-8 rounded-full px-4 text-[12px] font-semibold"
             >
-              {isLoggingOut ? "Logging out..." : "Logout"}
+              {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
             </Button>
           ) : !isLoginPage ? (
             <Button
@@ -90,7 +90,7 @@ export function SiteHeader() {
               size="sm"
               className="h-8 rounded-full bg-primary px-4 text-[12px] font-semibold shadow-pop hover:bg-primary/90"
             >
-              <Link to="/login" preload="intent">Sign in</Link>
+              <Link to="/login" preload="intent">Đăng nhập</Link>
             </Button>
           ) : (
             <Button
@@ -99,7 +99,7 @@ export function SiteHeader() {
               size="sm"
               className="h-8 rounded-full px-4 text-[12px]"
             >
-              <Link to="/">Back to overview</Link>
+              <Link to="/">Về trang chủ</Link>
             </Button>
           )}
 
