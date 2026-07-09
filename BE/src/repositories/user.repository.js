@@ -173,6 +173,10 @@ class UserRepository {
 
         return deletedUser;
     };
+
+    changePassword = async ({ userId, newPassword }) => {
+        return this.#updateUserRecord({ userId, updateData: { password: newPassword } });
+    }
 }
 
 export default UserRepository

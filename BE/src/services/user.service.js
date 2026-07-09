@@ -244,6 +244,32 @@ class UserService {
             vehicles: deletedVehicles,
         };
     }
+
+    changePassword = async ({ userId, oldPassword, newPassword }) => {
+        const existingUser = await this.#userRepository.findUser({ _id: userId });
+        if (!existingUser) {
+            throw new NotFoundError("User not found");
+        }
+
+        const isPasswordCorrect = await this.#hashService.compare({
+            string: oldPassword,
+            hashed: existingUser.password,
+        });
+        if (!isPasswordCorrect) {
+            throw new BadRequestError("Old password is incorrect");
+        }
+
+        const hashedNewPassword = await this.#hashService.hash({ string: newPassword });
+        const updatedUser = await this.#userRepository.changePassword({
+            userId,
+            newPassword: hashedNewPassword,
+        });
+        if (!updatedUser) {
+            throw new NotFoundError("User not found");
+        }
+
+        return this.#userRepository.findByUserId({ userId });
+    }
 }
 
 export default UserService;
