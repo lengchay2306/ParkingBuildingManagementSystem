@@ -9,6 +9,9 @@ import VehicleController from "./src/api/controllers/vehicle.controller.js";
 import PaymentController from "./src/api/controllers/payment.controller.js";
 import ChatbotController from "./src/api/controllers/chatbot.controller.js";
 import PricePolicyController from "./src/api/controllers/pricePolicy.controller.js";
+import FloorController from "./src/api/controllers/floor.controller.js";
+import ParkingSlotController from "./src/api/controllers/parkingSlot.controller.js";
+import ParkingSessionController from "./src/api/controllers/parkingSession.controller.js";
 
 //import Services
 import AuthService from "./src/services/auth.service.js";
@@ -22,6 +25,9 @@ import VehicleService from "./src/services/vehicle.service.js";
 import PaymentService from "./src/services/payment.service.js";
 import ChatbotService from "./src/services/chatbot.service.js";
 import PricePolicyService from "./src/services/pricePolicy.service.js";
+import FloorService from "./src/services/floor.service.js";
+import ParkingSlotService from "./src/services/parkingSlot.service.js";
+import ParkingSessionService from "./src/services/parkingSession.service.js";
 
 //import Repositories
 import UserRepository from "./src/repositories/user.repository.js";
@@ -34,6 +40,9 @@ import PricePolicyRepository from "./src/repositories/pricePolicy.repository.js"
 import PaymentRepository from "./src/repositories/payment.repository.js";
 import MonthlyCardRepository from "./src/repositories/monthlyCard.repository.js";
 import ChatSessionRepository from "./src/repositories/chatSession.repository.js";
+import FloorRepository from "./src/repositories/floor.repository.js";
+import ParkingSlotRepository from "./src/repositories/parkingSlot.repository.js";
+import ParkingSessionRepository from "./src/repositories/parkingSession.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
@@ -80,6 +89,15 @@ export function setupContainer({ io, notificationNamespace }) {
         pricePolicyController: asClass(PricePolicyController, {
             lifetime: Lifetime.SCOPED,
         }),
+        floorController: asClass(FloorController, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSlotController: asClass(ParkingSlotController, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSessionController: asClass(ParkingSessionController, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //services
         authService: asClass(AuthService, {
@@ -115,6 +133,15 @@ export function setupContainer({ io, notificationNamespace }) {
         pricePolicyService: asClass(PricePolicyService, {
             lifetime: Lifetime.SCOPED,
         }),
+        floorService: asClass(FloorService, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSlotService: asClass(ParkingSlotService, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSessionService: asClass(ParkingSessionService, {
+            lifetime: Lifetime.SCOPED,
+        }),
 
         //repositories
         userRepository: asClass(UserRepository, {
@@ -145,6 +172,15 @@ export function setupContainer({ io, notificationNamespace }) {
             lifetime: Lifetime.SCOPED,
         }),
         chatSessionRepository: asClass(ChatSessionRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        floorRepository: asClass(FloorRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSlotRepository: asClass(ParkingSlotRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
+        parkingSessionRepository: asClass(ParkingSessionRepository, {
             lifetime: Lifetime.SCOPED,
         }),
     })
