@@ -1,5 +1,5 @@
-import { ArrowRight, CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { CarFront, Mail, MapPin, Phone, Shield, Zap } from "lucide-react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { getRoleHome, getSessionRole } from "@/lib/auth";
@@ -60,23 +60,12 @@ function Index() {
                 Smart Parking · 24/7
               </span>
               <h1 className="mt-6 text-4xl font-semibold leading-[1.04] tracking-[-0.04em] md:text-6xl">
-                Đỗ xe thông minh,
-                <br />
-                <span className="text-primary">không lo chỗ trống</span>
+                Đỗ xe thông minh
               </h1>
               <p className="mt-5 max-w-xl text-[16px] text-muted-foreground">
                 Hệ thống tòa nhà đỗ xe hiện đại với AI nhận diện biển số, đặt chỗ trực tuyến và
                 thanh toán không tiền mặt.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to="/login"
-                  preload="intent"
-                  className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Đăng nhập <ArrowRight className="size-3.5" />
-                </Link>
-              </div>
             </div>
           </div>
         </section>
@@ -118,25 +107,6 @@ function Index() {
               }}
               aria-hidden
             />
-          </article>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-6 pb-24">
-          <article className="rounded-2xl border border-hairline-strong bg-[linear-gradient(100deg,oklch(0.54_0.16_275),oklch(0.5_0.14_255))] px-8 py-14 text-center shadow-pop">
-            <h2 className="text-4xl font-semibold tracking-[-0.03em] md:text-5xl">
-              Sẵn sàng đặt chỗ đỗ xe?
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-[15px] text-primary-foreground/90">
-              Đặt chỗ trước chỉ với vài thao tác. Đảm bảo có chỗ ngay khi bạn đến.
-            </p>
-            <div className="mt-8">
-              <Link
-                to="/driver"
-                className="inline-flex h-10 items-center rounded-md bg-primary-foreground px-6 text-[13px] font-semibold text-background transition-opacity hover:opacity-90"
-              >
-                Đặt chỗ ngay
-              </Link>
-            </div>
           </article>
         </section>
       </main>

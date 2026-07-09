@@ -1263,11 +1263,7 @@ function DriverPage() {
               </div>
             )}
             </div>
-          ) : (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Cuộn xuống hoặc bấm tiêu đề để xem danh sách xe.
-            </p>
-          )}
+          ) : null}
         </DashboardSection>
 
         <DashboardSection compact className="p-3">
