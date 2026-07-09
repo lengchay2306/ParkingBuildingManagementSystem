@@ -96,7 +96,13 @@ const userIdParamSchema = Joi.object({
 
 const changePasswordSchema = Joi.object({
     oldPassword: Joi.string().min(8).required(),
-    newPassword: Joi.string().min(8).required(),
+    newPassword: Joi.string()
+        .min(8)
+        .invalid(Joi.ref('oldPassword'))
+        .required()
+        .messages({
+            'any.invalid': 'New password must be different from old password',
+        }),
 })
 
 export {
