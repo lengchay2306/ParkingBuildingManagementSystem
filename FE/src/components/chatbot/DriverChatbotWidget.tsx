@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DriverChatbotPanel } from "@/components/chatbot/DriverChatbotPanel";
 import { DriverChatbotToggle } from "@/components/chatbot/DriverChatbotToggle";
 import {
@@ -30,6 +41,8 @@ export function DriverChatbotWidget() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [hasInitializedSession, setHasInitializedSession] = useState(false);
   const [isPreparingContext, setIsPreparingContext] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleteSuccessOpen, setIsDeleteSuccessOpen] = useState(false);
 
   const sessionsQuery = useQuery({
     queryKey: driverChatSessionsQueryKey,
@@ -104,7 +117,7 @@ export function DriverChatbotWidget() {
       setActiveSessionId(null);
       setHasInitializedSession(false);
       await queryClient.invalidateQueries({ queryKey: driverChatSessionsQueryKey });
-      toast.success("Đã xóa hội thoại");
+      setIsDeleteSuccessOpen(true);
     },
     onError: (error) => {
       toast.error("Không thể xóa hội thoại", {
@@ -170,8 +183,11 @@ export function DriverChatbotWidget() {
     if (!activeSessionId) {
       return;
     }
-    const confirmed = window.confirm("Xóa hội thoại này?");
-    if (!confirmed) {
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteSession = () => {
+    if (!activeSessionId || deleteSessionMutation.isPending) {
       return;
     }
     deleteSessionMutation.mutate(activeSessionId);
@@ -242,6 +258,52 @@ export function DriverChatbotWidget() {
         onSendMessage={handleSendMessage}
       />
       <DriverChatbotToggle isOpen={isOpen} onToggle={handleToggle} />
+
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa hội thoại với AI?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toàn bộ tin nhắn trong cuộc trò chuyện này sẽ bị xóa vĩnh viễn. Hành động này không thể
+              hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                setIsDeleteConfirmOpen(false);
+                confirmDeleteSession();
+              }}
+            >
+              {deleteSessionMutation.isPending ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isDeleteSuccessOpen} onOpenChange={setIsDeleteSuccessOpen}>
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Đã xóa hội thoại</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cuộc trò chuyện với AI đã được xóa thành công.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction className="rounded-xl">Đã hiểu</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

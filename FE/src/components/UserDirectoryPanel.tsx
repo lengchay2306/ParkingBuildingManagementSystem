@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Car,
@@ -11,10 +11,23 @@ import {
   RefreshCw,
   Save,
   Search,
+  Trash2,
   UsersRound,
+  UserPlus,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +47,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { getAllUsers, updateUserById, type UserProfile } from "@/services/user.service";
+import {
+  createUser,
+  deleteUserById,
+  getAllUsers,
+  updateUserById,
+  type UserProfile,
+  type UserRole,
+} from "@/services/user.service";
 import {
   adminUpdateVehicle,
   getVehicleTypes,
@@ -46,6 +66,8 @@ type UserDirectoryPanelProps = {
   className?: string;
   compact?: boolean;
   tableOnly?: boolean;
+  allowDelete?: boolean;
+  allowCreate?: boolean;
 };
 
 const pageSize = 100;
@@ -55,6 +77,8 @@ export function UserDirectoryPanel({
   className,
   compact = false,
   tableOnly = false,
+  allowDelete = false,
+  allowCreate = false,
 }: UserDirectoryPanelProps) {
   const queryClient = useQueryClient();
   const [hasMounted, setHasMounted] = useState(false);
@@ -69,14 +93,20 @@ export function UserDirectoryPanel({
   const [editPhone, setEditPhone] = useState("");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "LOCKED">("ACTIVE");
   const [editError, setEditError] = useState<string | null>(null);
-  const [vehiclesUser, setVehiclesUser] = useState<UserProfile | null>(null);
-  const [isVehiclesOpen, setIsVehiclesOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [isVehicleEditOpen, setIsVehicleEditOpen] = useState(false);
   const [editVehiclePlate, setEditVehiclePlate] = useState("");
   const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
   const [editVehicleStatus, setEditVehicleStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createFullName, setCreateFullName] = useState("");
+  const [createPhone, setCreatePhone] = useState("");
+  const [createRoleId, setCreateRoleId] = useState("");
+  const [createStatus, setCreateStatus] = useState<"ACTIVE" | "LOCKED">("ACTIVE");
+  const [createError, setCreateError] = useState<string | null>(null);
   useEffect(() => {
     setHasMounted(true);
   }, []);
@@ -97,12 +127,22 @@ export function UserDirectoryPanel({
   const vehicleTypesQuery = useQuery({
     queryKey: ["vehicle-types"],
     queryFn: getVehicleTypes,
-    enabled: hasMounted && (isVehiclesOpen || isVehicleEditOpen),
+    enabled: hasMounted && (isDetailOpen || editingVehicle !== null),
   });
   const vehicleTypes = vehicleTypesQuery.data ?? [];
 
   const users = usersQuery.data?.users ?? [];
+  const roleOptions = useMemo(() => getRoleOptions(users), [users]);
   const pagination = usersQuery.data?.pagination;
+
+  useEffect(() => {
+    if (isCreateOpen && !createRoleId && roleOptions.length > 0) {
+      const defaultRole =
+        roleOptions.find((role) => role.roleName === "CUSTOMER") ?? roleOptions[0];
+      setCreateRoleId(defaultRole._id);
+    }
+  }, [isCreateOpen, createRoleId, roleOptions]);
+
   const totalCount = pagination?.totalCount ?? users.length;
   const totalPages = Math.max(pagination?.totalPages ?? 1, 1);
   const canGoBack = page > 1;
@@ -138,21 +178,17 @@ export function UserDirectoryPanel({
     }) => adminUpdateVehicle(vehicleId, payload),
     onSuccess: async (updatedVehicle) => {
       setEditVehicleError(null);
-      setIsVehicleEditOpen(false);
       setEditingVehicle(null);
 
-      const mergeVehicles = (user: UserProfile | null) => {
-        if (!user) {
-          return user;
+      setSelectedUser((current) => {
+        if (!current) {
+          return current;
         }
-        const vehicles = (user.vehicles ?? []).map((vehicle) =>
+        const vehicles = (current.vehicles ?? []).map((vehicle) =>
           vehicle._id === updatedVehicle._id ? updatedVehicle : vehicle,
         );
-        return { ...user, vehicles };
-      };
-
-      setVehiclesUser((current) => mergeVehicles(current));
-      setSelectedUser((current) => mergeVehicles(current));
+        return { ...current, vehicles };
+      });
 
       await queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Cập nhật xe thành công", {
@@ -166,6 +202,107 @@ export function UserDirectoryPanel({
       toast.error("Cập nhật xe thất bại", { description: message });
     },
   });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => deleteUserById(userId),
+    onSuccess: async (deletedUser) => {
+      setDeletingUser(null);
+      setIsDetailOpen(false);
+      setSelectedUser(null);
+      setIsEditing(false);
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Xóa thành công", {
+        description: `${deletedUser.fullName} và toàn bộ xe đã được xóa.`,
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error && error.message ? error.message : "Không thể xóa người dùng.";
+      toast.error("Xóa thất bại", { description: message });
+    },
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof createUser>[0]) => createUser(payload),
+    onSuccess: async (createdUser) => {
+      setCreateError(null);
+      setIsCreateOpen(false);
+      resetCreateForm();
+      await queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Tạo tài khoản thành công", {
+        description: `${createdUser.fullName} đã được tạo.`,
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error && error.message ? error.message : "Không thể tạo tài khoản.";
+      setCreateError(message);
+      toast.error("Tạo tài khoản thất bại", { description: message });
+    },
+  });
+
+  const resetCreateForm = () => {
+    setCreateEmail("");
+    setCreatePassword("");
+    setCreateFullName("");
+    setCreatePhone("");
+    setCreateRoleId("");
+    setCreateStatus("ACTIVE");
+    setCreateError(null);
+  };
+
+  const handleCreateOpenChange = (open: boolean) => {
+    setIsCreateOpen(open);
+    if (!open) {
+      resetCreateForm();
+    } else if (!createRoleId) {
+      const defaultRole =
+        roleOptions.find((role) => role.roleName === "CUSTOMER") ?? roleOptions[0];
+      if (defaultRole) {
+        setCreateRoleId(defaultRole._id);
+      }
+    }
+  };
+
+  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreateError(null);
+
+    const email = createEmail.trim().toLowerCase();
+    const fullName = createFullName.trim();
+    const phone = createPhone.trim();
+    const password = createPassword;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setCreateError("Email không hợp lệ.");
+      return;
+    }
+    if (password.length < 8) {
+      setCreateError("Mật khẩu phải có ít nhất 8 kí tự.");
+      return;
+    }
+    if (fullName.length < 2 || fullName.length > 30) {
+      setCreateError("Họ tên phải từ 2 đến 30 kí tự.");
+      return;
+    }
+    if (!/^[0-9]{10}$/.test(phone)) {
+      setCreateError("Số điện thoại phải gồm đúng 10 chữ số.");
+      return;
+    }
+    if (!createRoleId) {
+      setCreateError("Chọn vai trò cho tài khoản.");
+      return;
+    }
+
+    createUserMutation.mutate({
+      email,
+      password,
+      fullName,
+      phone,
+      roleId: createRoleId,
+      status: createStatus,
+    });
+  };
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -185,6 +322,7 @@ export function UserDirectoryPanel({
     if (!open) {
       setIsEditing(false);
       setEditError(null);
+      cancelVehicleEditing();
     }
   };
 
@@ -254,36 +392,20 @@ export function UserDirectoryPanel({
     updateUserMutation.mutate({ userId: selectedUser._id, payload });
   };
 
-  const openVehiclesDialog = () => {
-    if (!selectedUser) {
+  const startVehicleEditing = (vehicle: Vehicle) => {
+    if (editingVehicle?._id === vehicle._id) {
       return;
     }
-    setVehiclesUser(selectedUser);
-    setIsVehiclesOpen(true);
-  };
-
-  const handleVehiclesOpenChange = (open: boolean) => {
-    setIsVehiclesOpen(open);
-    if (!open) {
-      setVehiclesUser(null);
-    }
-  };
-
-  const startVehicleEditing = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
     setEditVehiclePlate(vehicle.licensePlate ?? "");
     setEditVehicleTypeId(getVehicleTypeId(vehicle) ?? "");
     setEditVehicleStatus(vehicle.status === "INACTIVE" ? "INACTIVE" : "ACTIVE");
     setEditVehicleError(null);
-    setIsVehicleEditOpen(true);
   };
 
-  const handleVehicleEditOpenChange = (open: boolean) => {
-    setIsVehicleEditOpen(open);
-    if (!open) {
-      setEditingVehicle(null);
-      setEditVehicleError(null);
-    }
+  const cancelVehicleEditing = () => {
+    setEditingVehicle(null);
+    setEditVehicleError(null);
   };
 
   const handleVehicleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -338,27 +460,40 @@ export function UserDirectoryPanel({
           <p className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
             {totalCount} người dùng
           </p>
-          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
-            <div className="relative w-48 sm:w-56">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Tìm kiếm"
-                className="h-9 rounded-xl pl-8 text-sm"
-              />
-            </div>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              disabled={usersQuery.isFetching}
-              onClick={() => void usersQuery.refetch()}
-              aria-label="Làm mới danh sách người dùng"
-            >
-              <RefreshCw className={cn("size-4", usersQuery.isFetching && "animate-spin")} />
-            </Button>
-          </form>
+          <div className="flex flex-wrap items-center gap-2">
+            {allowCreate ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleCreateOpenChange(true)}
+                className="h-9 rounded-xl px-3 text-[13px] font-semibold"
+              >
+                <UserPlus className="size-3.5" />
+                Tạo tài khoản
+              </Button>
+            ) : null}
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+              <div className="relative w-48 sm:w-56">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Tìm kiếm"
+                  className="h-9 rounded-xl pl-8 text-sm"
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                disabled={usersQuery.isFetching}
+                onClick={() => void usersQuery.refetch()}
+                aria-label="Làm mới danh sách người dùng"
+              >
+                <RefreshCw className={cn("size-4", usersQuery.isFetching && "animate-spin")} />
+              </Button>
+            </form>
+          </div>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-5 py-4">
@@ -403,7 +538,10 @@ export function UserDirectoryPanel({
 
       <div
         className={cn(
-          "grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] gap-2 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+          "grid gap-2 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+          allowDelete
+            ? "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_48px]"
+            : "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr]",
           tableOnly ? "px-1" : "px-5",
         )}
       >
@@ -412,7 +550,7 @@ export function UserDirectoryPanel({
         <span>Vai trò</span>
         <span>Trạng thái</span>
         <span>Tham gia</span>
-        <span className="text-right">Sửa</span>
+        {allowDelete ? <span className="text-right">Xóa</span> : null}
       </div>
 
       <div
@@ -436,8 +574,9 @@ export function UserDirectoryPanel({
             <UserRow
               key={user._id}
               user={user}
+              allowDelete={allowDelete}
               onSelect={() => handleSelectUser(user)}
-              onEdit={() => startEditing(user)}
+              onDelete={() => setDeletingUser(user)}
             />
           ))
         ) : (
@@ -481,18 +620,21 @@ export function UserDirectoryPanel({
       </div>
 
       <Dialog open={isDetailOpen} onOpenChange={handleDetailOpenChange}>
-        <DialogContent className="rounded-2xl border-border bg-card sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "Sửa người dùng" : "Chi tiết người dùng"}</DialogTitle>
-            <DialogDescription>
-              {isEditing
-                ? "Chỉnh sửa thông tin rồi bấm Lưu để lưu."
-                : "Thông tin chi tiết của người dùng."}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-2xl">
+          <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+            <DialogHeader>
+              <DialogTitle>{isEditing ? "Sửa người dùng" : "Chi tiết người dùng"}</DialogTitle>
+              <DialogDescription>
+                {isEditing
+                  ? "Chỉnh sửa thông tin rồi bấm Lưu để lưu."
+                  : "Thông tin chi tiết và danh sách xe của người dùng."}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
           {selectedUser ? (
-            <form onSubmit={handleEditSubmit} className="grid gap-4">
+            <form onSubmit={handleEditSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="user-full-name">Họ tên</Label>
                 <Input
@@ -540,7 +682,17 @@ export function UserDirectoryPanel({
                 </div>
               </div>
 
-              <div className="grid gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="user-role">Vai trò</Label>
+                  <Input
+                    id="user-role"
+                    value={getUserRoleName(selectedUser)}
+                    className="h-11 rounded-xl"
+                    disabled
+                  />
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="user-status">Trạng thái</Label>
                   {isEditing ? (
@@ -577,14 +729,169 @@ export function UserDirectoryPanel({
                 />
               </div>
 
+              {!isEditing ? (
+                <div className="grid gap-2">
+                  <Label>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Car className="size-3.5" />
+                      Xe đã đăng ký ({selectedUser.vehicles?.length ?? 0})
+                    </span>
+                  </Label>
+                  <div className="rounded-xl border border-border">
+                    {(selectedUser.vehicles ?? []).length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {(selectedUser.vehicles ?? []).map((vehicle) => (
+                          <div key={vehicle._id} className="px-4 py-3">
+                            {editingVehicle?._id === vehicle._id ? (
+                              <form onSubmit={handleVehicleEditSubmit} className="grid gap-3">
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  <div className="grid gap-2">
+                                    <Label htmlFor={`vehicle-plate-${vehicle._id}`}>Biển số</Label>
+                                    <Input
+                                      id={`vehicle-plate-${vehicle._id}`}
+                                      value={editVehiclePlate}
+                                      onChange={(event) =>
+                                        setEditVehiclePlate(event.target.value.toUpperCase())
+                                      }
+                                      className="h-10 rounded-xl font-mono tracking-wide"
+                                      placeholder="51A-123.45"
+                                    />
+                                  </div>
+                                  <div className="grid gap-2">
+                                    <Label htmlFor={`vehicle-type-${vehicle._id}`}>Loại xe</Label>
+                                    <Select
+                                      value={editVehicleTypeId}
+                                      onValueChange={setEditVehicleTypeId}
+                                    >
+                                      <SelectTrigger
+                                        id={`vehicle-type-${vehicle._id}`}
+                                        className="h-10 rounded-xl"
+                                      >
+                                        <SelectValue placeholder="Chọn loại xe" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {vehicleTypes.map((type: VehicleType) => (
+                                          <SelectItem key={type._id} value={type._id}>
+                                            {type.type}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                  <Label htmlFor={`vehicle-status-${vehicle._id}`}>Trạng thái xe</Label>
+                                  <Select
+                                    value={editVehicleStatus}
+                                    onValueChange={(value) =>
+                                      setEditVehicleStatus(value as "ACTIVE" | "INACTIVE")
+                                    }
+                                  >
+                                    <SelectTrigger
+                                      id={`vehicle-status-${vehicle._id}`}
+                                      className="h-10 rounded-xl"
+                                    >
+                                      <SelectValue placeholder="Chọn trạng thái" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                                      <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                <div className="rounded-xl border border-border bg-background/40 p-3">
+                                  <Label className="text-xs">Thẻ tháng</Label>
+                                  <div className="mt-1">
+                                    <MonthlyCardDetails vehicle={vehicle} detailed />
+                                  </div>
+                                </div>
+
+                                {editVehicleError ? (
+                                  <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                                    {editVehicleError}
+                                  </div>
+                                ) : null}
+
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={cancelVehicleEditing}
+                                    disabled={updateVehicleMutation.isPending}
+                                    className="h-9 rounded-xl px-3"
+                                  >
+                                    Hủy
+                                  </Button>
+                                  <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={updateVehicleMutation.isPending}
+                                    className="h-9 rounded-xl px-3"
+                                  >
+                                    {updateVehicleMutation.isPending ? (
+                                      <>
+                                        <LoaderCircle className="size-3.5 animate-spin" />
+                                        Đang lưu...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Save className="size-3.5" />
+                                        Lưu
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-mono text-sm font-semibold tracking-wide">
+                                    {vehicle.licensePlate}
+                                  </div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {getVehicleTypeName(vehicle)} · {vehicle.status ?? "ACTIVE"}
+                                  </div>
+                                  <div className="mt-1">
+                                    <MonthlyCardDetails vehicle={vehicle} />
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-9 rounded-xl px-3"
+                                  onClick={() => startVehicleEditing(vehicle)}
+                                  disabled={editingVehicle !== null}
+                                >
+                                  <Pencil className="size-3.5" />
+                                  Sửa
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        Người dùng này chưa có xe đăng ký.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
               {editError ? (
                 <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {editError}
                 </div>
               ) : null}
+              </div>
 
               {isEditing ? (
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-6 py-4">
                   <Button
                     type="button"
                     variant="secondary"
@@ -614,16 +921,7 @@ export function UserDirectoryPanel({
                   </Button>
                 </div>
               ) : (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={openVehiclesDialog}
-                    className="h-11 rounded-xl px-4 text-[13px] font-semibold"
-                  >
-                    <Car className="size-4" />
-                    Xem xe
-                  </Button>
+                <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
                   <Button
                     type="button"
                     onClick={() => startEditing()}
@@ -632,6 +930,17 @@ export function UserDirectoryPanel({
                     <Pencil className="size-4" />
                     Sửa hồ sơ
                   </Button>
+                  {allowDelete ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => setDeletingUser(selectedUser)}
+                      className="h-11 rounded-xl px-4 text-[13px] font-semibold"
+                    >
+                      <Trash2 className="size-4" />
+                      Xóa
+                    </Button>
+                  ) : null}
                 </div>
               )}
             </form>
@@ -639,146 +948,144 @@ export function UserDirectoryPanel({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isVehiclesOpen} onOpenChange={handleVehiclesOpenChange}>
-        <DialogContent className="rounded-2xl border-border bg-card sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Xe của người dùng</DialogTitle>
-            <DialogDescription>
-              {vehiclesUser
-                ? `Danh sách xe của ${vehiclesUser.fullName}`
-                : "Danh sách xe đã đăng ký"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-border">
-            {(vehiclesUser?.vehicles ?? []).length > 0 ? (
-              <div className="divide-y divide-border">
-                {(vehiclesUser?.vehicles ?? []).map((vehicle) => (
-                  <div
-                    key={vehicle._id}
-                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-mono text-sm font-semibold tracking-wide">
-                        {vehicle.licensePlate}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {getVehicleTypeName(vehicle)} · {vehicle.status ?? "ACTIVE"}
-                      </div>
-                      <div className="mt-1">
-                        <MonthlyCardDetails vehicle={vehicle} />
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="h-9 rounded-xl px-3"
-                      onClick={() => startVehicleEditing(vehicle)}
-                    >
-                      <Pencil className="size-3.5" />
-                      Sửa
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                Người dùng này chưa có xe đăng ký.
-              </div>
-            )}
+      <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-2xl">
+          <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+            <DialogHeader>
+              <DialogTitle>Tạo tài khoản</DialogTitle>
+              <DialogDescription>
+                Tạo tài khoản người dùng mới.
+              </DialogDescription>
+            </DialogHeader>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={isVehicleEditOpen} onOpenChange={handleVehicleEditOpenChange}>
-        <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sửa xe</DialogTitle>
-            <DialogDescription>
-              Cập nhật biển số, loại xe hoặc trạng thái xe.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleVehicleEditSubmit} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="admin-vehicle-plate">Biển số</Label>
-              <Input
-                id="admin-vehicle-plate"
-                value={editVehiclePlate}
-                onChange={(event) => setEditVehiclePlate(event.target.value.toUpperCase())}
-                className="h-11 rounded-xl font-mono tracking-wide"
-                placeholder="51A-123.45"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="admin-vehicle-type">Loại xe</Label>
-              <Select value={editVehicleTypeId} onValueChange={setEditVehicleTypeId}>
-                <SelectTrigger id="admin-vehicle-type" className="h-11 rounded-xl">
-                  <SelectValue placeholder="Chọn loại xe" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicleTypes.map((type: VehicleType) => (
-                    <SelectItem key={type._id} value={type._id}>
-                      {type.type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="admin-vehicle-status">Trạng thái xe</Label>
-              <Select
-                value={editVehicleStatus}
-                onValueChange={(value) => setEditVehicleStatus(value as "ACTIVE" | "INACTIVE")}
-              >
-                <SelectTrigger id="admin-vehicle-status" className="h-11 rounded-xl">
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">Hoạt động</SelectItem>
-                  <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2 rounded-xl border border-border bg-background/40 p-3">
-              <Label>Thẻ tháng</Label>
-              {editingVehicle ? <MonthlyCardDetails vehicle={editingVehicle} detailed /> : null}
-            </div>
-
-            {editVehicleError ? (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {editVehicleError}
+          <form onSubmit={handleCreateSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="create-full-name">Họ tên</Label>
+                <Input
+                  id="create-full-name"
+                  value={createFullName}
+                  onChange={(event) => setCreateFullName(event.target.value)}
+                  className="h-11 rounded-xl"
+                  placeholder="Nguyễn Văn A"
+                  autoComplete="name"
+                />
               </div>
-            ) : null}
 
-            <div className="flex justify-end gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="create-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="create-email"
+                      value={createEmail}
+                      onChange={(event) => setCreateEmail(event.target.value)}
+                      type="email"
+                      className="h-11 rounded-xl pl-9"
+                      placeholder="user@example.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="create-phone">Số điện thoại</Label>
+                  <div className="relative">
+                    <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="create-phone"
+                      value={createPhone}
+                      onChange={(event) => setCreatePhone(event.target.value.replace(/[^0-9]/g, ""))}
+                      className="h-11 rounded-xl pl-9"
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="0901234567"
+                      autoComplete="tel"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="create-password">Mật khẩu</Label>
+                <Input
+                  id="create-password"
+                  value={createPassword}
+                  onChange={(event) => setCreatePassword(event.target.value)}
+                  type="password"
+                  className="h-11 rounded-xl"
+                  placeholder="Tối thiểu 8 kí tự"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="create-role">Vai trò</Label>
+                  <Select value={createRoleId} onValueChange={setCreateRoleId}>
+                    <SelectTrigger id="create-role" className="h-11 rounded-xl">
+                      <SelectValue placeholder="Chọn vai trò" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roleOptions.map((role) => (
+                        <SelectItem key={role._id} value={role._id}>
+                          {role.roleName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="create-status">Trạng thái</Label>
+                  <Select
+                    value={createStatus}
+                    onValueChange={(value) => setCreateStatus(value as "ACTIVE" | "LOCKED")}
+                  >
+                    <SelectTrigger id="create-status" className="h-11 rounded-xl">
+                      <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                      <SelectItem value="LOCKED">Đã khóa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {createError ? (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {createError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 justify-end gap-2 border-t border-border px-6 py-4">
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => handleVehicleEditOpenChange(false)}
-                disabled={updateVehicleMutation.isPending}
-                className="h-11 rounded-xl px-4"
+                onClick={() => handleCreateOpenChange(false)}
+                disabled={createUserMutation.isPending}
+                className="h-11 rounded-xl px-4 text-[13px] font-semibold"
               >
-                Cancel
+                Hủy
               </Button>
               <Button
                 type="submit"
-                disabled={updateVehicleMutation.isPending}
+                disabled={createUserMutation.isPending || roleOptions.length === 0}
                 className="h-11 rounded-xl px-4 text-[13px] font-semibold"
               >
-                {updateVehicleMutation.isPending ? (
+                {createUserMutation.isPending ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    Đang lưu...
+                    Đang tạo...
                   </>
                 ) : (
                   <>
-                    <Save className="size-4" />
-                    Save
+                    <UserPlus className="size-4" />
+                    Tạo tài khoản
                   </>
                 )}
               </Button>
@@ -786,68 +1093,151 @@ export function UserDirectoryPanel({
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!deletingUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingUser(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="rounded-2xl border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingUser
+                ? `Người dùng "${deletingUser.fullName}" và toàn bộ ${deletingUser.vehicles?.length ?? 0} xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`
+                : "Người dùng và toàn bộ xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                if (!deletingUser || deleteUserMutation.isPending) {
+                  return;
+                }
+                deleteUserMutation.mutate(deletingUser._id);
+              }}
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
 
 function UserRow({
   user,
+  allowDelete,
   onSelect,
-  onEdit,
+  onDelete,
 }: {
   user: UserProfile;
+  allowDelete?: boolean;
   onSelect: () => void;
-  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const roleName = getUserRoleName(user);
   const status = user.status || "UNKNOWN";
 
-  return (
-    <div className="grid grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_72px] items-center gap-2 px-5 py-3.5 text-sm transition-colors hover:bg-secondary/60">
-      <button
-        type="button"
-        onClick={onSelect}
-        className="contents text-left focus:outline-none"
-      >
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-semibold">
-            {getInitials(user.fullName)}
-          </div>
-          <span className="truncate font-medium">{user.fullName}</span>
+  const rowContent = (
+    <>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-semibold">
+          {getInitials(user.fullName)}
         </div>
-        <span className="truncate text-muted-foreground">{user.email}</span>
-        <span className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">
-          {roleName}
-        </span>
-        <span
-          className={cn(
-            "inline-flex w-fit items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]",
-            status === "ACTIVE"
-              ? "bg-status-empty/15 text-status-empty"
-              : "bg-status-full/15 text-status-full",
-          )}
-        >
-          <span className="size-1.5 rounded-full bg-current" />
-          {status}
-        </span>
-        <span className="truncate font-mono text-xs text-muted-foreground">
-          {formatDate(user.createdAt)}
-        </span>
-      </button>
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={onEdit}
-          className="h-8 rounded-xl px-2.5"
-          aria-label={`Edit ${user.fullName}`}
-        >
-          <Pencil className="size-3.5" />
-        </Button>
+        <span className="truncate font-medium">{user.fullName}</span>
       </div>
-    </div>
+      <span className="truncate text-muted-foreground">{user.email}</span>
+      <span className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">
+        {roleName}
+      </span>
+      <span
+        className={cn(
+          "inline-flex w-fit items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]",
+          status === "ACTIVE"
+            ? "bg-status-empty/15 text-status-empty"
+            : "bg-status-full/15 text-status-full",
+        )}
+      >
+        <span className="size-1.5 rounded-full bg-current" />
+        {status}
+      </span>
+      <span className="truncate font-mono text-xs text-muted-foreground">
+        {formatDate(user.createdAt)}
+      </span>
+    </>
   );
+
+  if (allowDelete) {
+    return (
+      <div
+        className={cn(
+          "grid items-center gap-2 px-5 py-3.5 text-sm transition-colors hover:bg-secondary/60",
+          "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_48px]",
+        )}
+      >
+        <button
+          type="button"
+          onClick={onSelect}
+          className="col-span-5 grid cursor-pointer grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 rounded-lg text-left transition-colors hover:bg-background/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label={`Xem hồ sơ ${user.fullName}`}
+        >
+          {rowContent}
+        </button>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onDelete}
+            className="h-8 rounded-xl px-2.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
+            aria-label={`Xóa ${user.fullName}`}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "grid w-full grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 px-5 py-3.5 text-left text-sm transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+      )}
+      aria-label={`Xem hồ sơ ${user.fullName}`}
+    >
+      {rowContent}
+    </button>
+  );
+}
+
+function getRoleOptions(users: UserProfile[]): UserRole[] {
+  const map = new Map<string, string>();
+  for (const user of users) {
+    if (typeof user.roleId === "object" && user.roleId?._id && user.roleId?.roleName) {
+      map.set(user.roleId._id, user.roleId.roleName);
+    }
+  }
+  return Array.from(map.entries())
+    .map(([id, roleName]) => ({ _id: id, roleName }))
+    .sort((a, b) => a.roleName.localeCompare(b.roleName));
 }
 
 function getUserRoleName(user: UserProfile) {
