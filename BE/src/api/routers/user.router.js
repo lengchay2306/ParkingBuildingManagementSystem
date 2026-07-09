@@ -323,7 +323,7 @@ router.put(
  * @swagger
  * /api/v1/users/{userId}:
  *   put:
- *     summary: Update user by ID (Admin)
+ *     summary: Update user by ID (Admin/Manager)
  *     description: |
  *       Update any user's information by their ID.
  *       Only accessible by ADMIN.
@@ -445,7 +445,7 @@ router.put(
  * @swagger
  * /api/v1/users/{userId}:
  *   get:
- *     summary: Get user by ID (Admin)
+ *     summary: Get user by ID (Admin/Manager/Staff)
  *     description: Get a user by their ID. Only accessible by ADMIN.
  *     tags: [User]
  *     security:
