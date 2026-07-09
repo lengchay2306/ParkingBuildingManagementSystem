@@ -259,6 +259,14 @@ class UserService {
             throw new BadRequestError("Old password is incorrect");
         }
 
+        const isSameAsCurrent = await this.#hashService.compare({
+            string: newPassword,
+            hashed: existingUser.password,
+        });
+        if (isSameAsCurrent) {
+            throw new BadRequestError("New password must be different from old password");
+        }
+
         const hashedNewPassword = await this.#hashService.hash({ string: newPassword });
         const updatedUser = await this.#userRepository.changePassword({
             userId,
