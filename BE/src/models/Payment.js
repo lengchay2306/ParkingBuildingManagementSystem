@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const paymentSchema = mongoose.Schema({
-    sessionId: {
+    parkingSessionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ParkingSession",
         // required: true,

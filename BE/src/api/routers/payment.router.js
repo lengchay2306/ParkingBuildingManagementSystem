@@ -1,8 +1,10 @@
 import express from 'express'
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js'
 import { 
+    checkPaymentSchema,
     createSubcriptionPaymentLinkSchema,
-    getPricePoliciesSchema 
+    getPricePoliciesSchema, 
+    qrPaymentLinkSchema
 } from '../../validators/payment.validator.js'
 
 const router = express.Router()
@@ -141,6 +143,30 @@ router.post(
         const paymentController = req.container.resolve('paymentController')
 
         await paymentController.subscriptionPayment(req, res, next)
+    }
+)
+
+router.post(
+    "/staff/bill-qr",
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(qrPaymentLinkSchema),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+
+        await paymentController.qrPayment(req, res, next)
+    }
+)
+
+router.post(
+    '/check-payment',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(checkPaymentSchema),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+
+        await paymentController.checkPayment(req, res, next)
     }
 )
 

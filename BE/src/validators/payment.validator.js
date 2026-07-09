@@ -16,10 +16,19 @@ const getPricePoliciesSchema = Joi.object({
 });
 
 const createSubcriptionPaymentLinkSchema = Joi.object({
-    vehicleId: Joi.string().custom(validateMongoObjectId)
+    vehicleId: Joi.string().custom(validateMongoObjectId).required()
+})
+const qrPaymentLinkSchema = Joi.object({
+    parkingSessionId: Joi.string().custom(validateMongoObjectId).required()
+})
+
+const checkPaymentSchema = Joi.object({
+    orderCode: Joi.number().required(),
 })
 
 export {
     getPricePoliciesSchema,
     createSubcriptionPaymentLinkSchema,
+    qrPaymentLinkSchema,
+    checkPaymentSchema,
 }
