@@ -1,6 +1,11 @@
 import express from 'express';
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
-import { updateMyProfileSchema, updateUserByIdSchema } from '../../validators/user.validator.js';
+import {
+    updateMyProfileSchema,
+    createUserSchema,
+    updateUserByIdSchema,
+    userIdParamSchema,
+} from '../../validators/user.validator.js';
 
 const router = express.Router();
 
@@ -70,7 +75,7 @@ router.get(
  *       Get a paginated list of all users.
  *       Supports search by fullName, email, phone.
  *       Supports filtering by status and roleId.
- *       Only accessible by ADMIN and MANAGER.
+ *       Only accessible by ADMIN.
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
@@ -159,10 +164,94 @@ router.get(
 router.get(
     "/",
     authentication,
-    authorizationByRole(['ADMIN', 'MANAGER']),
+    authorizationByRole(['ADMIN','MANAGER','STAFF']),
     async (req, res, next) => {
         const userController = req.container.resolve('userController');
         await userController.getAllUser(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/users:
+ *   post:
+ *     summary: Create user (Admin)
+ *     description: Create a new user. Only accessible by ADMIN.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *               - phone
+ *               - roleId
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               fullName:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 30
+ *               phone:
+ *                 type: string
+ *                 pattern: "^[0-9]{10}$"
+ *               roleId:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, LOCKED]
+ *                 default: ACTIVE
+ *               vehicles:
+ *                 type: array
+ *                 description: Optional vehicles to create together with the user
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - licensePlate
+ *                     - vehicleTypeId
+ *                   properties:
+ *                     licensePlate:
+ *                       type: string
+ *                       example: "51A-123.45"
+ *                     vehicleTypeId:
+ *                       type: string
+ *                     monthlyCardId:
+ *                       type: string
+ *                       nullable: true
+ *                     status:
+ *                       type: string
+ *                       enum: [ACTIVE, INACTIVE]
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       409:
+ *         description: Email or phone already in use
+ */
+router.post(
+    "/",
+    authentication,
+    authorizationByRole(['ADMIN']),
+    validateData(createUserSchema),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.createUser(req, res, next);
     }
 );
 
@@ -234,11 +323,11 @@ router.put(
  * @swagger
  * /api/v1/users/{userId}:
  *   put:
- *     summary: Update user by ID (Admin/Manager)
+ *     summary: Update user by ID (Admin)
  *     description: |
  *       Update any user's information by their ID.
- *       Only accessible by ADMIN and MANAGER.
- *       Can update: email, fullName, phone, status, roleId.
+ *       Only accessible by ADMIN.
+ *       Can update: email, password, fullName, phone, status, roleId, vehicles.
  *     tags: [User]
  *     security:
  *       - bearerAuth: []
@@ -261,6 +350,9 @@ router.put(
  *                 type: string
  *                 format: email
  *                 example: "newemail@example.com"
+ *               password:
+ *                 type: string
+ *                 minLength: 8
  *               fullName:
  *                 type: string
  *                 minLength: 2
@@ -278,6 +370,34 @@ router.put(
  *                 type: string
  *                 description: Role ObjectId
  *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
+ *               vehicles:
+ *                 type: array
+ *                 description: |
+ *                   CRUD vehicles for this user. Each item requires an action:
+ *                   - create: licensePlate + vehicleTypeId required
+ *                   - update: vehicleId + at least one field to change
+ *                   - delete: vehicleId required
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - action
+ *                   properties:
+ *                     action:
+ *                       type: string
+ *                       enum: [create, update, delete]
+ *                     vehicleId:
+ *                       type: string
+ *                     licensePlate:
+ *                       type: string
+ *                       example: "51A-123.45"
+ *                     vehicleTypeId:
+ *                       type: string
+ *                     monthlyCardId:
+ *                       type: string
+ *                       nullable: true
+ *                     status:
+ *                       type: string
+ *                       enum: [ACTIVE, INACTIVE]
  *     responses:
  *       200:
  *         description: User updated successfully
@@ -312,11 +432,84 @@ router.put(
 router.put(
     "/:userId",
     authentication,
-    authorizationByRole(['ADMIN', 'MANAGER']),
+    authorizationByRole(['ADMIN','MANAGER']),
+    validateData(userIdParamSchema, 'params'),
     validateData(updateUserByIdSchema),
     async (req, res, next) => {
         const userController = req.container.resolve('userController');
         await userController.updateUserById(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}:
+ *   get:
+ *     summary: Get user by ID (Admin)
+ *     description: Get a user by their ID. Only accessible by ADMIN.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.get(
+    "/:userId",
+    authentication,
+    authorizationByRole(['ADMIN','MANAGER','STAFF']),
+    validateData(userIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.getUserById(req, res, next);
+    }
+);
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}:
+ *   delete:
+ *     summary: Delete user by ID (Admin)
+ *     description: Delete a user and all their vehicles. Only accessible by ADMIN.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
+router.delete(
+    "/:userId",
+    authentication,
+    authorizationByRole(['ADMIN']),
+    validateData(userIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.deleteUserById(req, res, next);
     }
 );
 

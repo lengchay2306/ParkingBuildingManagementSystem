@@ -6,12 +6,16 @@ class VehicleRepository {
     createVehicle = async ({
         userId,
         licensePlate,
-        vehicleTypeId
+        vehicleTypeId,
+        monthlyCardId,
+        status = "ACTIVE",
     }) => {
         const newVehicle = await Vehicle.create({
             userId,
             licensePlate,
-            vehicleTypeId
+            vehicleTypeId,
+            monthlyCardId,
+            status,
         })
         return newVehicle.toObject();
     }
@@ -87,6 +91,33 @@ class VehicleRepository {
             return null;
         }
         return deletedVehicle;
+    }
+
+    deleteVehicleById = async ({ vehicleId }) => {
+        const deletedVehicle = await Vehicle.findByIdAndDelete(vehicleId)
+            .populate("vehicleTypeId")
+            .populate("monthlyCardId")
+            .lean();
+
+        if (!deletedVehicle) {
+            return null;
+        }
+
+        return deletedVehicle;
+    }
+
+    deleteVehiclesByUserId = async ({ userId }) => {
+        const vehicles = await Vehicle.find({ userId })
+            .populate("vehicleTypeId")
+            .populate("monthlyCardId")
+            .lean();
+
+        if (vehicles.length === 0) {
+            return [];
+        }
+
+        await Vehicle.deleteMany({ userId });
+        return vehicles;
     }
 }
 

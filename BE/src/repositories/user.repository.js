@@ -160,6 +160,19 @@ class UserRepository {
     updateUserById = async ({ userId, updateData }) => {
         return this.#updateUserRecord({ userId, updateData });
     };
+
+    deleteUserById = async ({ userId }) => {
+        const deletedUser = await User.findByIdAndDelete(userId)
+            .populate('roleId')
+            .select('-password')
+            .lean();
+
+        if (!deletedUser) {
+            return null;
+        }
+
+        return deletedUser;
+    };
 }
 
 export default UserRepository
