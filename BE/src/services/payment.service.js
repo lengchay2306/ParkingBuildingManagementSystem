@@ -1,5 +1,6 @@
 import { configDotenv } from "dotenv"
 import { BadRequestError } from "../error/error.js"
+import { calculatedParkingFee } from "../utils/calculateFunction.js";
 configDotenv();
 
 const RETURN_URL = process.env.FE_RETURN_URL;
@@ -29,6 +30,99 @@ class PaymentService {
         this.#payosGateway = payosGateway;
         this.#parkingRepository = parkingRepository;
         this.#monthlyCardRepository = monthlyCardRepository
+    }
+
+    checkPayment = async ({
+        orderCode,
+        staffId,
+    }) => {
+        const paymentInfo = await this.#payosGateway.paymentRequests.get(orderCode);
+
+        if (!paymentInfo) {
+            throw new BadRequestError(`This payment doesn't exist! Please provide another existed orderCode`)
+        }
+
+        if (paymentInfo.status !== "PAID") {
+            throw new BadRequestError(`Custom bill hasn't been paid yet!`)
+        }
+
+        const existingPayment = await this.#paymentRepository.findPaymentByField({
+            orderCode: orderCode,
+        })
+
+        if (!existingPayment) {
+            throw new BadRequestError(`Cannot find this payment through this orderCode in db`)
+        }
+
+        if (!existingPayment.parkingSessionId) {
+            throw new BadRequestError(`This orderCode is not a parking checkout payment`)
+        }
+
+        if (existingPayment.status === 'PAID') {
+            return;
+        }
+
+        const updatePayment = await this.#paymentRepository.updatePayment({
+            field: { _id: existingPayment._id },
+            updateData: {
+                status: 'PAID'
+            }
+        })
+
+        if (!updatePayment) {
+            throw new BadRequestError(`Cannot update this payment status to PAID`)
+        }
+
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            _id: existingPayment.parkingSessionId,
+        })
+
+        if (!existingParkingSession) {
+            throw new BadRequestError(`Cannot find parking session of this payment!`)
+        }
+
+        if (existingParkingSession.status === 'COMPLETED') {
+            return;
+        }
+
+        const updatedParkingSession = await this.#parkingRepository.updateParkingSession({
+            field: { _id: existingParkingSession._id },
+            updateData: {
+                checkOutStaffId: staffId,
+                checkOutTime: Date.now(),
+                status: 'COMPLETED',
+            }
+        })
+
+        if (!updatedParkingSession) {
+            throw new BadRequestError(`Cannot set as complete this parking session`)
+        }
+
+        const slotId = existingParkingSession.parkingSlotId?._id
+            ?? existingParkingSession.parkingSlotId
+
+        const existingParkingSlot = await this.#parkingRepository.findParkingSlot({
+            _id: slotId,
+        })
+
+        if (!existingParkingSlot) {
+            throw new BadRequestError(`Cannot find parking slot of this parking session!`)
+        }
+
+        if (existingParkingSlot.status === "AVAILABLE") {
+            return;
+        }
+
+        const updatedParkingSlot = await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSlot._id },
+            updateData: {
+                status: 'AVAILABLE'
+            }
+        })
+
+        if (!updatedParkingSlot) {
+            throw new BadRequestError(`Cannot set as available for this parking slot`)
+        }
     }
 
     getAllPricePolicies = async ({
@@ -72,7 +166,7 @@ class PaymentService {
             throw new BadRequestError(`Cannot find payment through this orderCode!`)
         }
 
-        if (existingPayment.status === 'PAID') {
+        if (existingPayment.status === 'PAID' || existingPayment.parkingSessionId) {
             return true
         }
 
@@ -140,6 +234,81 @@ class PaymentService {
         }
     }
 
+    qrPayment = async ({
+        parkingSessionId,
+    }) => {
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            _id: parkingSessionId,
+        })
+
+        if (!existingParkingSession) {
+            throw new BadRequestError(`This parking session doesn't exist!`)
+        }
+
+        if (existingParkingSession.sessionType === 'MONTH') {
+            throw new BadRequestError(`This vehicle has a monthly card!`)
+        }
+
+        const existingPending = await this.#paymentRepository.findPaymentByField({
+            parkingSessionId: parkingSessionId,
+            status: 'PENDING'
+        })
+
+        if (existingPending) {
+            throw new BadRequestError(`This payment has been created already!`)
+        }
+
+        const vehicleTypeId = existingParkingSession.vehicleId?.vehicleTypeId
+
+        const pricePolicies = await this.#pricePolicyRepository.findHourlyPricePoliciesByVehicleType({
+            vehicleTypeId,
+        })
+
+        if (pricePolicies?.length === 0) {
+            throw new BadRequestError(`No price policy for this vehicle type`)
+        }
+
+        const checkOutTime = new Date();
+
+        const { totalHours, calculatedFee } = calculatedParkingFee({
+            checkInTime: existingParkingSession.checkInTime,
+            checkOutTime,
+            pricePolicies,
+        })
+
+        if (calculatedFee < 2000) {
+            throw new BadRequestError(`totalFee must be above 2000`)
+        }
+
+        const orderCode = Number(String(Date.now()).slice(-6) + Math.floor(100 + Math.random() * 900))
+
+        await this.#paymentRepository.savePayment({
+            paymentData: {
+                parkingSessionId: parkingSessionId,
+                amount: calculatedFee,
+                paymentMethod: 'TRANSFER',
+                status: 'PENDING',
+                orderCode,
+            }
+        })
+
+
+        const paymentLink = await this.#payosGateway.paymentRequests.create({
+            orderCode,
+            amount: total,
+            description: `CHECK_OUT_${orderCode}`,
+            returnUrl: RETURN_URL,
+            cancelUrl : CANCEL_URL,
+        });
+
+        return {
+            orderCode,
+            amount: calculatedFee,
+            totalHours,
+            qrCode: paymentLink.qrCode
+        }
+    }
+
     subscriptionPayment = async ({
         userId,
         vehicleId,
@@ -197,7 +366,7 @@ class PaymentService {
             throw new BadRequestError(`Cannot save payment information`)
         }
 
-        const paymentLink = await this.#payosGateway.createPaymentLink(paymentBody)
+        const paymentLink = await this.#payosGateway.paymentRequests.create(paymentBody)
 
         if (!checkoutUrl) {
             throw new BadRequestError(`Cannot request to PayOS`)
