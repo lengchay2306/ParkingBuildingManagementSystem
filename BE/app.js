@@ -48,6 +48,9 @@ import VehicleRouter from './src/api/routers/vehicle.router.js'
 import PaymentRouter from './src/api/routers/payment.router.js'
 import ChatbotRouter from './src/api/routers/chatbot.router.js'
 import PricePolicyRouter from './src/api/routers/pricePolicy.router.js'
+import FloorRouter from './src/api/routers/floor.router.js'
+import ParkingSlotRouter from './src/api/routers/parkingSlot.router.js'
+import ParkingSessionRouter from './src/api/routers/parkingSession.router.js'
 
 app.get("/", (req, res) => {
     res.send(`ZAWARUDO!`)
@@ -63,6 +66,9 @@ app.use(`${url}/users`, UserRouter)
 app.use(`${url}/vehicles`, VehicleRouter)
 app.use(`${url}/payment`, PaymentRouter)
 app.use(`${url}/price-policies`, PricePolicyRouter)
+app.use(`${url}/floors`, FloorRouter)
+app.use(`${url}/parking-slots`, ParkingSlotRouter)
+app.use(`${url}/parking-sessions`, ParkingSessionRouter)
 app.use(`${url}/chatbot`, ChatbotRouter)
 
 //handle error
