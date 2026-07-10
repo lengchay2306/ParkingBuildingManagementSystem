@@ -153,7 +153,9 @@ class PaymentService {
         const verifiedData = await this.#payosGateway.webhooks.verify(webhookBody);
 
         if (!verifiedData) {
-            throw new BadRequestError(`Invalid webhook signature`)
+            // throw new BadRequestError(`Invalid webhook signature`)
+            console.log(`invalid webhook signature! Griefers detected!`);
+            return;
         };
 
         const { orderCode } = verifiedData
@@ -163,7 +165,9 @@ class PaymentService {
         })
 
         if (!existingPayment) {
-            throw new BadRequestError(`Cannot find payment through this orderCode!`)
+            // throw new BadRequestError(`Cannot find payment through this orderCode!`)
+            console.log(`Cannot find existing payment from this orderCode!`);
+            return;
         }
 
         if (existingPayment.status === 'PAID' || existingPayment.parkingSessionId) {
@@ -295,7 +299,7 @@ class PaymentService {
 
         const paymentLink = await this.#payosGateway.paymentRequests.create({
             orderCode,
-            amount: total,
+            amount: calculatedFee,
             description: `CHECK_OUT_${orderCode}`,
             returnUrl: RETURN_URL,
             cancelUrl : CANCEL_URL,
