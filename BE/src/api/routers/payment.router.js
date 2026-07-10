@@ -146,6 +146,53 @@ router.post(
     }
 )
 
+/**
+ * @swagger
+ * /api/v1/payment/staff/bill-qr:
+ *   post:
+ *     summary: Create PayOS QR code for staff parking checkout
+ *     description: |
+ *       Staff generates a VietQR payment code for an active daily/guest parking session.
+ *       The parking fee is calculated from hourly price policies based on check-in time.
+ *       A PENDING payment record is saved and a PayOS QR code is returned for the customer to scan.
+ *       After the customer pays, staff must call `/check-payment` to verify and complete checkout.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - parkingSessionId
+ *             properties:
+ *               parkingSessionId:
+ *                 type: string
+ *                 description: ObjectId of the active parking session to bill
+ *                 example: "665f1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       200:
+ *         description: QR payment created successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 orderCode: 123456789
+ *                 amount: 56000
+ *                 totalHours: 3
+ *                 qrCode: "00020101021238570010A000000727..."
+ *       400:
+ *         description: |
+ *           Validation error, parking session not found, session is monthly type,
+ *           pending payment already exists, no price policy, fee below minimum, or PayOS request failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (ADMIN, MANAGER, or STAFF role required)
+ */
 router.post(
     "/staff/bill-qr",
     authentication,
@@ -158,6 +205,50 @@ router.post(
     }
 )
 
+/**
+ * @swagger
+ * /api/v1/payment/check-payment:
+ *   post:
+ *     summary: Verify customer payment and complete parking checkout
+ *     description: |
+ *       Staff verifies via PayOS that the customer has paid for a QR checkout bill.
+ *       On success, the payment status is updated to PAID, the parking session is completed,
+ *       and the parking slot is set back to AVAILABLE.
+ *       This endpoint is used for staff QR checkout flow (not monthly subscription).
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - orderCode
+ *             properties:
+ *               orderCode:
+ *                 type: number
+ *                 description: PayOS order code returned from `/staff/bill-qr`
+ *                 example: 123456789
+ *     responses:
+ *       200:
+ *         description: Payment verified and checkout completed successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 message: "PAYMENT SUCCESSFULLY"
+ *       400:
+ *         description: |
+ *           Validation error, payment not found, payment not yet paid on PayOS,
+ *           orderCode is not a parking checkout payment, or checkout failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (ADMIN, MANAGER, or STAFF role required)
+ */
 router.post(
     '/check-payment',
     authentication,
