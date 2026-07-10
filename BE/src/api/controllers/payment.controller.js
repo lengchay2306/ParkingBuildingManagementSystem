@@ -207,6 +207,24 @@ class PaymentController {
         }
     }
 
+    getPaymentById = async (req, res, next) => {
+        try {
+            const { paymentId } = req.params;
+
+            const payment = await this.#paymentService.getPaymentById({
+                paymentId,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: { payment },
+                message: 'Payment fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     deletePayment = async (req, res, next) => {
         try {
             const { paymentId } = req.params

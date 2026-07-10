@@ -54,6 +54,31 @@ class PaymentRepository {
         return Payment.findById(paymentId).lean()
     }
 
+    findPaymentDetailById = async ({
+        paymentId,
+    }) => {
+        return Payment.findById(paymentId)
+            .populate({
+                path: 'vehicleId',
+                populate: { path: 'vehicleTypeId' },
+            })
+            .populate({
+                path: 'parkingSessionId',
+                populate: [
+                    {
+                        path: 'vehicleId',
+                        populate: { path: 'vehicleTypeId' },
+                    },
+                    { path: 'parkingSlotId', populate: { path: 'floorId' } },
+                    { path: 'checkInUserId', select: '-password' },
+                    { path: 'checkOutUserId', select: '-password' },
+                    { path: 'checkInStaffId', select: '-password' },
+                    { path: 'checkOutStaffId', select: '-password' },
+                ],
+            })
+            .lean()
+    }
+
     getAllPayments = async ({
         filter = {},
         page = 1,
