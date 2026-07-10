@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronLeft, ChevronRight, LoaderCircle, RefreshCw } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, ChevronLeft, ChevronRight, LoaderCircle, RefreshCw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import { Badge } from "@/components/ui/badge";
@@ -9,17 +10,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
+  deleteErrorParkingSession,
   getParkingSessionsSafe,
   getParkingSessionSlotId,
   getSessionLicensePlate,
   getSessionVehicleTypeLabel,
   type ParkingSession,
 } from "@/services/parking.service";
+import { getMyProfile } from "@/services/user.service";
 
 type ParkingSessionListPanelProps = {
   className?: string;
   compact?: boolean;
   tableOnly?: boolean;
+  allowDeleteError?: boolean;
 };
 
 const pageSize = 12;
@@ -35,7 +39,9 @@ export function ParkingSessionListPanel({
   className,
   compact = false,
   tableOnly = false,
+  allowDeleteError = false,
 }: ParkingSessionListPanelProps) {
+  const queryClient = useQueryClient();
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<SessionStatusFilter>("ALL");
@@ -55,6 +61,32 @@ export function ParkingSessionListPanel({
         status: statusFilter === "ALL" ? undefined : statusFilter,
         date: isDateFilterActive ? sessionDate : undefined,
       }),
+  });
+
+  const profileQuery = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: getMyProfile,
+    enabled: allowDeleteError,
+  });
+
+  const deleteErrorMutation = useMutation({
+    mutationFn: (parkingSessionId: string) => {
+      const userId = profileQuery.data?._id;
+      if (!userId) {
+        throw new Error("Không lấy được thông tin nhân viên hiện tại.");
+      }
+      return deleteErrorParkingSession({ parkingSessionId, userId });
+    },
+    onSuccess: async () => {
+      setViewingSession(null);
+      await queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage"] });
+      toast.success("Đã xóa phiên lỗi");
+    },
+    onError: (error) => {
+      toast.error("Không xóa được phiên lỗi", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    },
   });
 
   const sessions = sessionsQuery.data?.parkingSessions ?? [];
@@ -212,7 +244,10 @@ export function ParkingSessionListPanel({
       >
         <div
           className={cn(
-            "grid grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr] gap-4 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            "grid gap-4 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            allowDeleteError
+              ? "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
+              : "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr]",
             tableOnly ? "px-1" : "px-6",
           )}
         >
@@ -221,6 +256,7 @@ export function ParkingSessionListPanel({
           <span>Check-in</span>
           <span>Check-out</span>
           <span>Trạng thái</span>
+          {allowDeleteError ? <span className="w-9" /> : null}
         </div>
 
         <div className={cn("space-y-2 pb-4", tableOnly ? "px-0" : "px-4")}>
@@ -237,42 +273,72 @@ export function ParkingSessionListPanel({
             </div>
           ) : sessions.length > 0 ? (
             sessions.map((session) => (
-              <button
+              <div
                 key={session._id}
-                type="button"
-                onClick={() => setViewingSession(session)}
-                className="grid w-full grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr] items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4 text-left transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className={cn(
+                  "grid w-full items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4",
+                  allowDeleteError
+                    ? "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
+                    : "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr]",
+                )}
               >
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[12px] font-medium">
-                    {getSessionLicensePlate(session) ?? "—"}
+                <button
+                  type="button"
+                  onClick={() => setViewingSession(session)}
+                  className="contents text-left hover:opacity-90 focus-visible:outline-none"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-mono text-[12px] font-medium">
+                      {getSessionLicensePlate(session) ?? "—"}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {session.isGuest ? "Khách vãng lai" : getUserLabel(session.checkInUserId)}
+                    </div>
                   </div>
-                  <div className="truncate text-[11px] text-muted-foreground">
-                    {session.isGuest ? "Khách vãng lai" : getUserLabel(session.checkInUserId)}
+
+                  <div className="min-w-0 truncate text-[12px] text-muted-foreground">
+                    {getSlotLabel(session)}
                   </div>
-                </div>
 
-                <div className="min-w-0 truncate text-[12px] text-muted-foreground">
-                  {getSlotLabel(session)}
-                </div>
+                  <div className="text-[12px] text-muted-foreground">
+                    {formatDateTime(session.checkInTime)}
+                  </div>
 
-                <div className="text-[12px] text-muted-foreground">
-                  {formatDateTime(session.checkInTime)}
-                </div>
+                  <div className="text-[12px] text-muted-foreground">
+                    {formatDateTime(session.checkOutTime ?? undefined)}
+                  </div>
 
-                <div className="text-[12px] text-muted-foreground">
-                  {formatDateTime(session.checkOutTime ?? undefined)}
-                </div>
-
-                <div>
-                  <Badge
-                    className={cn("border", getSessionStatusBadgeClass(session.status))}
-                    variant="outline"
+                  <div>
+                    <Badge
+                      className={cn("border", getSessionStatusBadgeClass(session.status))}
+                      variant="outline"
+                    >
+                      {getSessionStatusLabel(session.status)}
+                    </Badge>
+                  </div>
+                </button>
+                {allowDeleteError ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={deleteErrorMutation.isPending}
+                    title="Xóa phiên lỗi"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Xóa phiên lỗi ${getSessionLicensePlate(session) ?? session._id}?`,
+                        )
+                      ) {
+                        deleteErrorMutation.mutate(session._id);
+                      }
+                    }}
                   >
-                    {getSessionStatusLabel(session.status)}
-                  </Badge>
-                </div>
-              </button>
+                    <Trash2 className="size-4" />
+                  </Button>
+                ) : null}
+              </div>
             ))
           ) : (
             <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">

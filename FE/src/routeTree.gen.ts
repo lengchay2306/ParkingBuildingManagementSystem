@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StaffRouteImport } from './routes/staff'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +25,11 @@ const StaffRoute = StaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManagerRoute = ManagerRouteImport.update({
   id: '/manager',
   path: '/manager',
@@ -31,6 +38,11 @@ const ManagerRoute = ManagerRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DriverRoute = DriverRouteImport.update({
@@ -63,8 +75,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/payment/cancel': typeof PaymentCancelRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -73,8 +87,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/payment/cancel': typeof PaymentCancelRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -84,8 +100,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/staff': typeof StaffRoute
   '/payment/cancel': typeof PaymentCancelRoute
   '/payment/return': typeof PaymentReturnRoute
@@ -96,8 +114,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/driver'
+    | '/forgot-password'
     | '/login'
     | '/manager'
+    | '/reset-password'
     | '/staff'
     | '/payment/cancel'
     | '/payment/return'
@@ -106,8 +126,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/driver'
+    | '/forgot-password'
     | '/login'
     | '/manager'
+    | '/reset-password'
     | '/staff'
     | '/payment/cancel'
     | '/payment/return'
@@ -116,8 +138,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/driver'
+    | '/forgot-password'
     | '/login'
     | '/manager'
+    | '/reset-password'
     | '/staff'
     | '/payment/cancel'
     | '/payment/return'
@@ -127,8 +151,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   DriverRoute: typeof DriverRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ManagerRoute: typeof ManagerRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   StaffRoute: typeof StaffRoute
   PaymentCancelRoute: typeof PaymentCancelRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
@@ -143,6 +169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manager': {
       id: '/manager'
       path: '/manager'
@@ -155,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/driver': {
@@ -199,8 +239,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   DriverRoute: DriverRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ManagerRoute: ManagerRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   StaffRoute: StaffRoute,
   PaymentCancelRoute: PaymentCancelRoute,
   PaymentReturnRoute: PaymentReturnRoute,

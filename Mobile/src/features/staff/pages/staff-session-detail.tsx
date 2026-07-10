@@ -8,11 +8,17 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import {
+  checkStaffPayment,
+  createStaffBillQr,
+  type StaffBillQrResult,
+} from '@/features/payment/api';
+import {
   StaffSessionDetailGrid,
   StaffStatusBadge,
   type StaffDetailCell,
 } from '@/features/staff/components/premium';
 import { StaffActionButton } from '@/features/staff/components/staff-action-button';
+import { StaffPaymentQrModal } from '@/features/staff/components/staff-payment-qr-modal';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
@@ -43,6 +49,9 @@ export default function StaffSessionDetailScreen() {
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [tick, setTick] = useState(0);
+  const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [isCreatingBill, setIsCreatingBill] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
 
   const session = useMemo(
     () => parkingSessions.find((item) => item.id === sessionId) ?? null,
@@ -50,6 +59,7 @@ export default function StaffSessionDetailScreen() {
   );
 
   const isActive = session?.status.toUpperCase() === 'ACTIVE';
+  const isMonthlySession = session?.sessionType?.toUpperCase() === 'MONTH';
 
   useEffect(() => {
     if (session?.customerPhone && !checkoutPhone) {
@@ -172,6 +182,49 @@ export default function StaffSessionDetailScreen() {
     [checkoutPhone, checkoutSession, router, session, showToast, t],
   );
 
+  const handleCreateBillQr = useCallback(async () => {
+    if (!session) {
+      return;
+    }
+    setIsCreatingBill(true);
+    try {
+      const bill = await createStaffBillQr(session.id);
+      setPaymentBill(bill);
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : t('Không tạo được mã VietQR', 'Could not create VietQR'),
+        'error',
+      );
+    } finally {
+      setIsCreatingBill(false);
+    }
+  }, [session, showToast, t]);
+
+  const handleConfirmQrPayment = useCallback(async () => {
+    if (!paymentBill) {
+      return;
+    }
+    setIsConfirmingPayment(true);
+    try {
+      const message = await checkStaffPayment(paymentBill.orderCode);
+      setPaymentBill(null);
+      await loadParkingSessions();
+      showToast(message || t('Thanh toán thành công', 'Payment successful'), 'success');
+      router.back();
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : t('Chưa xác nhận được thanh toán', 'Payment not confirmed yet'),
+        'error',
+      );
+    } finally {
+      setIsConfirmingPayment(false);
+    }
+  }, [loadParkingSessions, paymentBill, router, showToast, t]);
+
   if (isLoading && !session) {
     return (
       <ThemedView style={styles.container}>
@@ -226,51 +279,72 @@ export default function StaffSessionDetailScreen() {
         <StaffSessionDetailGrid cells={detailCells} />
 
         <View style={styles.costDivider} />
-        <ThemedText style={styles.costLabel}>{t('Chi phí ước tính', 'Estimated cost')}</ThemedText>
-        <ThemedText style={styles.costValue}>{estimateSessionCost(session.checkInTime)}</ThemedText>
+        <ThemedText style={styles.costLabel}>
+          {isMonthlySession
+            ? t('Thẻ tháng', 'Monthly card')
+            : t('Chi phí ước tính', 'Estimated cost')}
+        </ThemedText>
+        <ThemedText style={styles.costValue}>
+          {isMonthlySession
+            ? t('Miễn phí (thẻ tháng)', 'Free (monthly card)')
+            : estimateSessionCost(session.checkInTime)}
+        </ThemedText>
         <ThemedText style={styles.costMeta}>
           {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
           {formatTimeLabel(session.checkInTime ?? '')}
         </ThemedText>
         <ThemedText style={styles.costHint}>
-          {t(
-            'Ước tính theo giờ — chưa bao gồm API phí chính thức.',
-            'Hourly estimate — official fee API not wired yet.',
-          )}
+          {isMonthlySession
+            ? t(
+                'Phiên thẻ tháng: xác nhận SĐT để ra cổng.',
+                'Monthly session: confirm phone to exit.',
+              )
+            : t(
+                'Phiên ngày: tạo VietQR → khách quét → xác nhận thanh toán.',
+                'Daily session: create VietQR → customer pays → confirm.',
+              )}
         </ThemedText>
       </ScrollView>
 
       {isActive ? (
         <View style={[styles.checkoutBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
           <ThemedText style={styles.checkoutTitle}>{t('Ra cổng', 'Checkout')}</ThemedText>
-          <StaffTextInput
-            editable={!isCheckingOut}
-            keyboardType="phone-pad"
-            onChangeText={(text) => setCheckoutPhone(text.replace(/\D/g, '').slice(0, 10))}
-            placeholder={t('SĐT khách (10 số)', 'Customer phone (10 digits)')}
-            value={checkoutPhone}
-          />
-          <View style={styles.checkoutActions}>
-            <View style={styles.checkoutActionItem}>
+          {isMonthlySession ? (
+            <>
+              <StaffTextInput
+                editable={!isCheckingOut}
+                keyboardType="phone-pad"
+                onChangeText={(text) => setCheckoutPhone(text.replace(/\D/g, '').slice(0, 10))}
+                placeholder={t('SĐT khách (10 số)', 'Customer phone (10 digits)')}
+                value={checkoutPhone}
+              />
               <StaffActionButton
                 disabled={isCheckingOut}
-                label={t('Tiền mặt', 'Cash')}
+                label={t('Xác nhận ra cổng', 'Confirm exit')}
                 loading={isCheckingOut}
-                onPress={() => void handleCheckout(t('Tiền mặt', 'Cash'))}
-                variant="secondary"
+                onPress={() => void handleCheckout(t('Thẻ tháng', 'Monthly card'))}
               />
-            </View>
-            <View style={styles.checkoutActionItem}>
-              <StaffActionButton
-                disabled={isCheckingOut}
-                label={t('Đã thanh toán', 'Paid')}
-                loading={isCheckingOut}
-                onPress={() => void handleCheckout(t('Khách đã thanh toán', 'Customer paid'))}
-              />
-            </View>
-          </View>
+            </>
+          ) : (
+            <StaffActionButton
+              disabled={isCreatingBill}
+              label={t('Tạo mã VietQR', 'Create VietQR')}
+              loading={isCreatingBill}
+              onPress={() => void handleCreateBillQr()}
+            />
+          )}
         </View>
       ) : null}
+
+      <StaffPaymentQrModal
+        visible={paymentBill !== null}
+        bill={paymentBill}
+        plate={session.plate}
+        isConfirming={isConfirmingPayment}
+        onClose={() => setPaymentBill(null)}
+        onConfirm={() => void handleConfirmQrPayment()}
+        t={t}
+      />
     </ThemedView>
   );
 }

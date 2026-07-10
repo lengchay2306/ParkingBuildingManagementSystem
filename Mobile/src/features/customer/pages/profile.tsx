@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -48,6 +49,7 @@ import {
   type VehicleType,
 } from '@/features/customer/api/vehicles';
 import { VehicleCard } from '@/features/customer/components';
+import { createSubscriptionCheckoutLink } from '@/features/payment/api';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
 function getInitials(fullName: string) {
@@ -96,6 +98,7 @@ export default function ProfileScreen() {
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string | null>(null);
   const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
+  const [buyingVehicleId, setBuyingVehicleId] = useState<string | null>(null);
 
   useProtectedSession();
   const { refreshRole } = useSessionRole();
@@ -362,6 +365,34 @@ export default function ProfileScreen() {
     }
   }
 
+  async function handleBuyMonthlyCard(vehicle: UserVehicle) {
+    setBuyingVehicleId(vehicle._id);
+    try {
+      const checkoutUrl = await createSubscriptionCheckoutLink(vehicle._id);
+      await openBrowserAsync(checkoutUrl, {
+        presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+      });
+      showToast(
+        t(
+          'Sau khi thanh toán, kéo xuống để làm mới hồ sơ.',
+          'After paying, pull to refresh your profile.',
+        ),
+        'success',
+      );
+      const refreshed = await getMyProfile();
+      setProfile(refreshed);
+    } catch (buyError) {
+      showToast(
+        buyError instanceof Error
+          ? buyError.message
+          : t('Không tạo được link thanh toán', 'Could not create payment link'),
+        'error',
+      );
+    } finally {
+      setBuyingVehicleId(null);
+    }
+  }
+
   if (isLoading && !profile) {
     return (
       <ThemedView style={styles.centered}>
@@ -549,7 +580,9 @@ export default function ProfileScreen() {
                 DesignColors={DesignColors}
                 onEdit={() => startEditingVehicle(vehicle)}
                 onDelete={() => confirmDeleteVehicle(vehicle)}
+                onBuyMonthlyCard={() => void handleBuyMonthlyCard(vehicle)}
                 isDeleting={deletingVehicleId === vehicle._id}
+                isBuyingMonthlyCard={buyingVehicleId === vehicle._id}
               />
             ))
           )}
@@ -1040,6 +1073,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       ...Typography.caption,
       color: DesignColors.inkSubtle,
       marginTop: 4,
+    },
+    buyCardButton: {
+      marginTop: Spacing.sm,
+      borderRadius: Radius.md,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 40,
+    },
+    buyCardButtonText: {
+      ...Typography.button,
+      fontWeight: '600',
     },
     emptyText: {
       ...Typography.bodySm,

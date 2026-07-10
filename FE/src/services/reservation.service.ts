@@ -297,6 +297,44 @@ export const deleteReservationByManage = async (reservationId: string) => {
   return payload.data?.deletedReservation ?? null;
 };
 
+/** GET /api/v1/reservations/by-plate/:licensePlate — ADMIN | MANAGER | STAFF */
+export const getReservationsByPlate = async (
+  licensePlate: string,
+  status?: ReservationStatus,
+) => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/reservations/by-plate/${encodeURIComponent(licensePlate.trim())}${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{
+    vehicle?: {
+      _id: string;
+      licensePlate?: string;
+      vehicleTypeId?: string | { _id?: string; type?: string };
+    };
+    reservations?: Reservation[];
+  }>(response);
+
+  if (!response.ok) {
+    throw new ReservationApiError(
+      response.status,
+      payload.message || reservationErrorMessage(response.status),
+    );
+  }
+
+  return {
+    vehicle: payload.data?.vehicle ?? null,
+    reservations: payload.data?.reservations ?? [],
+  };
+};
+
 /** @deprecated Use deleteReservationByManage */
 export const cancelReservationByStaff = deleteReservationByManage;
 

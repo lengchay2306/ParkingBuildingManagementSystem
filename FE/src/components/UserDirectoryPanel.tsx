@@ -51,6 +51,7 @@ import {
   createUser,
   deleteUserById,
   getAllUsers,
+  getUserById,
   updateUserById,
   type UserProfile,
   type UserRole,
@@ -315,6 +316,13 @@ export function UserDirectoryPanel({
     setIsEditing(false);
     setEditError(null);
     setIsDetailOpen(true);
+    void getUserById(user._id)
+      .then((fresh) => {
+        setSelectedUser(fresh);
+      })
+      .catch(() => {
+        // keep list payload if detail fetch fails
+      });
   };
 
   const handleDetailOpenChange = (open: boolean) => {

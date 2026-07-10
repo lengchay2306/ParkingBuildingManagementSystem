@@ -37,6 +37,7 @@ import {
   deleteReservationByManage,
   getAllReservations,
   getReservationSlotId,
+  getReservationsByPlate,
   type Reservation,
   type ReservationStatus,
 } from "@/services/reservation.service";
@@ -70,10 +71,23 @@ export function ReservationListPanel({
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
   const [viewingReservation, setViewingReservation] = useState<Reservation | null>(null);
   const [deletingReservation, setDeletingReservation] = useState<Reservation | null>(null);
+  const [plateInput, setPlateInput] = useState("");
+  const [plateQuery, setPlateQuery] = useState("");
 
   const reservationsQuery = useQuery({
     queryKey: ["reservations-manage", { statusFilter }],
     queryFn: () => fetchAllReservations(statusFilter),
+    enabled: !plateQuery,
+  });
+
+  const plateReservationsQuery = useQuery({
+    queryKey: ["reservations-by-plate", plateQuery, statusFilter],
+    queryFn: () =>
+      getReservationsByPlate(
+        plateQuery,
+        statusFilter === "ALL" ? undefined : statusFilter,
+      ),
+    enabled: Boolean(plateQuery),
   });
 
   const parkingSessionsQuery = useQuery({
@@ -82,9 +96,12 @@ export function ReservationListPanel({
   });
 
   const parkingSessions = parkingSessionsQuery.data ?? [];
+  const sourceReservations = plateQuery
+    ? (plateReservationsQuery.data?.reservations ?? [])
+    : (reservationsQuery.data ?? []);
   const sessionByReservationId = useMemo(() => {
     const map = new Map<string, ParkingSession>();
-    for (const reservation of reservationsQuery.data ?? []) {
+    for (const reservation of sourceReservations) {
       const session = findSessionForReservation(
         reservation,
         parkingSessions,
@@ -95,7 +112,7 @@ export function ReservationListPanel({
       }
     }
     return map;
-  }, [reservationsQuery.data, parkingSessions]);
+  }, [sourceReservations, parkingSessions]);
 
   const viewingParkingSession = viewingReservation
     ? (sessionByReservationId.get(viewingReservation._id) ?? null)
@@ -104,7 +121,9 @@ export function ReservationListPanel({
     ? getManageReservationDisplayStatus(viewingReservation, viewingParkingSession)
     : null;
 
-  const allReservations = reservationsQuery.data ?? [];
+  const allReservations = sourceReservations;
+  const listLoading = plateQuery ? plateReservationsQuery.isLoading : reservationsQuery.isLoading;
+  const listError = plateQuery ? plateReservationsQuery.error : reservationsQuery.error;
   const filteredReservations = useMemo(() => {
     if (!isDateFilterActive) {
       return allReservations;
@@ -127,6 +146,7 @@ export function ReservationListPanel({
       setDeletingReservation(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["reservations-manage"] }),
+        queryClient.invalidateQueries({ queryKey: ["reservations-by-plate"] }),
         queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage-reservations"] }),
         queryClient.invalidateQueries({ queryKey: ["parking-sessions-manage"] }),
       ]);
@@ -173,6 +193,48 @@ export function ReservationListPanel({
         tableOnly ? "px-1 py-1" : "justify-end",
       )}
     >
+      <div className="space-y-1.5">
+        <Label htmlFor="reservation-plate-search" className="text-[10px] uppercase tracking-[0.14em]">
+          Biển số
+        </Label>
+        <form
+          className="flex items-center gap-1.5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setPage(1);
+            setPlateQuery(plateInput.trim().toUpperCase());
+          }}
+        >
+          <Input
+            id="reservation-plate-search"
+            value={plateInput}
+            onChange={(event) => setPlateInput(event.target.value.toUpperCase())}
+            placeholder="51A-123.45"
+            className={cn(
+              "h-9 w-[140px] rounded-xl font-mono text-xs",
+              plateQuery && "border-primary/60 ring-1 ring-primary/20",
+            )}
+          />
+          <Button type="submit" size="sm" className="h-9 rounded-xl">
+            Tra
+          </Button>
+          {plateQuery ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-9 rounded-xl"
+              onClick={() => {
+                setPlateInput("");
+                setPlateQuery("");
+                setPage(1);
+              }}
+            >
+              Xóa
+            </Button>
+          ) : null}
+        </form>
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="reservation-manage-date" className="text-[10px] uppercase tracking-[0.14em]">
           Ngày
@@ -259,15 +321,23 @@ export function ReservationListPanel({
         size="icon"
         variant="ghost"
         onClick={() =>
-          void Promise.all([reservationsQuery.refetch(), parkingSessionsQuery.refetch()])
+          void Promise.all([
+            plateQuery ? plateReservationsQuery.refetch() : reservationsQuery.refetch(),
+            parkingSessionsQuery.refetch(),
+          ])
         }
-        disabled={reservationsQuery.isFetching || parkingSessionsQuery.isFetching}
+        disabled={
+          (plateQuery ? plateReservationsQuery.isFetching : reservationsQuery.isFetching) ||
+          parkingSessionsQuery.isFetching
+        }
         aria-label="Làm mới danh sách đặt chỗ"
       >
         <RefreshCw
           className={cn(
             "size-4",
-            (reservationsQuery.isFetching || parkingSessionsQuery.isFetching) && "animate-spin",
+            ((plateQuery ? plateReservationsQuery.isFetching : reservationsQuery.isFetching) ||
+              parkingSessionsQuery.isFetching) &&
+              "animate-spin",
           )}
         />
       </Button>
@@ -317,15 +387,15 @@ export function ReservationListPanel({
         </div>
 
         <div className={cn("space-y-2 pb-4", tableOnly ? "px-0" : "px-4")}>
-          {reservationsQuery.isLoading ? (
+          {listLoading ? (
             <div className="flex items-center gap-2 rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
               Đang tải đặt chỗ...
             </div>
-          ) : reservationsQuery.error ? (
+          ) : listError ? (
             <div className="rounded-xl bg-destructive/10 px-4 py-6 text-sm text-destructive">
-              {reservationsQuery.error instanceof Error
-                ? reservationsQuery.error.message
+              {listError instanceof Error
+                ? listError.message
                 : "Không thể tải danh sách đặt chỗ."}
             </div>
           ) : reservations.length > 0 ? (
@@ -422,7 +492,7 @@ export function ReservationListPanel({
             type="button"
             size="sm"
             variant="secondary"
-            disabled={!canGoBack || reservationsQuery.isFetching}
+            disabled={!canGoBack || (plateQuery ? plateReservationsQuery.isFetching : reservationsQuery.isFetching)}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             className="h-8 rounded-xl px-3"
           >
@@ -433,7 +503,7 @@ export function ReservationListPanel({
             type="button"
             size="sm"
             variant="secondary"
-            disabled={!canGoNext || reservationsQuery.isFetching}
+            disabled={!canGoNext || (plateQuery ? plateReservationsQuery.isFetching : reservationsQuery.isFetching)}
             onClick={() => setPage((current) => current + 1)}
             className="h-8 rounded-xl px-3"
           >

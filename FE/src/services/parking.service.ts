@@ -578,3 +578,35 @@ export const mapActiveParkingSessionsBySlotId = (sessions: ParkingSession[]) => 
   }
   return bySlotId;
 };
+
+/**
+ * DELETE /api/v1/parking/delete-error-parking-session/:parkingSessionId
+ * ADMIN | MANAGER — BE expects `{ userId }` (staff performing the delete) in body.
+ */
+export const deleteErrorParkingSession = async ({
+  parkingSessionId,
+  userId,
+}: {
+  parkingSessionId: string;
+  userId: string;
+}) => {
+  const response = await fetch(
+    `${API_BASE}/api/v1/parking/delete-error-parking-session/${encodeURIComponent(parkingSessionId)}`,
+    {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ userId }),
+    },
+  );
+  const apiPayload = await parseJson<{ updatedParkingSession?: ParkingSession }>(response);
+
+  if (!response.ok) {
+    throw new ParkingApiError(
+      response.status,
+      apiPayload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  return apiPayload.data?.updatedParkingSession ?? null;
+};
