@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -71,7 +73,7 @@ export const getAdminParkingSlots = async ({
   if (floorId) params.set("floorId", floorId);
   if (status) params.set("status", status);
 
-  const response = await fetch(`${API_BASE}/api/v1/parking-slots?${params}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking-slots?${params}`, {
     method: "GET",
     credentials: "include",
   });
@@ -95,7 +97,7 @@ export const getAdminParkingSlots = async ({
 
 /** GET /api/v1/parking-slots/:parkingSlotId — ADMIN */
 export const getAdminParkingSlotById = async (parkingSlotId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-slots/${encodeURIComponent(parkingSlotId)}`,
     { method: "GET", credentials: "include" },
   );
@@ -117,7 +119,7 @@ export const getAdminParkingSlotById = async (parkingSlotId: string) => {
 
 /** POST /api/v1/parking-slots — ADMIN */
 export const createAdminParkingSlot = async (body: CreateAdminParkingSlotRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/parking-slots`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking-slots`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -144,7 +146,7 @@ export const updateAdminParkingSlot = async (
   parkingSlotId: string,
   body: UpdateAdminParkingSlotRequest,
 ) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-slots/${encodeURIComponent(parkingSlotId)}`,
     {
       method: "PUT",
@@ -171,7 +173,7 @@ export const updateAdminParkingSlot = async (
 
 /** DELETE /api/v1/parking-slots/:parkingSlotId — ADMIN */
 export const deleteAdminParkingSlot = async (parkingSlotId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-slots/${encodeURIComponent(parkingSlotId)}`,
     { method: "DELETE", credentials: "include" },
   );

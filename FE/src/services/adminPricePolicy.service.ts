@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -68,7 +70,7 @@ export const getAdminPricePolicies = async ({
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (vehicleTypeId) params.set("vehicleTypeId", vehicleTypeId);
 
-  const response = await fetch(`${API_BASE}/api/v1/price-policies?${params}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/price-policies?${params}`, {
     method: "GET",
     credentials: "include",
   });
@@ -92,7 +94,7 @@ export const getAdminPricePolicies = async ({
 
 /** GET /api/v1/price-policies/:pricePolicyId — ADMIN */
 export const getAdminPricePolicyById = async (pricePolicyId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/price-policies/${encodeURIComponent(pricePolicyId)}`,
     { method: "GET", credentials: "include" },
   );
@@ -114,7 +116,7 @@ export const getAdminPricePolicyById = async (pricePolicyId: string) => {
 
 /** POST /api/v1/price-policies — ADMIN */
 export const createAdminPricePolicy = async (body: CreateAdminPricePolicyRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/price-policies`, {
+  const response = await authFetch(`${API_BASE}/api/v1/price-policies`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -141,7 +143,7 @@ export const updateAdminPricePolicy = async (
   pricePolicyId: string,
   body: UpdateAdminPricePolicyRequest,
 ) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/price-policies/${encodeURIComponent(pricePolicyId)}`,
     {
       method: "PUT",
@@ -168,7 +170,7 @@ export const updateAdminPricePolicy = async (
 
 /** DELETE /api/v1/price-policies/:pricePolicyId — ADMIN */
 export const deleteAdminPricePolicy = async (pricePolicyId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/price-policies/${encodeURIComponent(pricePolicyId)}`,
     { method: "DELETE", credentials: "include" },
   );

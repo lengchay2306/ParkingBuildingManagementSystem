@@ -244,9 +244,9 @@ function DriverPage() {
   const profileQuery = useQuery({
     queryKey: myProfileQueryKey,
     queryFn: getMyProfile,
-    enabled: hasMounted,
+    enabled: hasMounted, // chỉ gọi api khi user vào web an toàn
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true, // khi user focus lại web, query sẽ được gọi lại
   });
   const vehicleTypesQuery = useQuery({
     queryKey: vehicleTypesQueryKey,
@@ -716,6 +716,7 @@ function DriverPage() {
     } else {
       resetChangePasswordForm();
       setIsChangePasswordOpen(false);
+      //trong dialog có thể focus lại vào form change password, nên phải reset form
     }
   };
 

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type VehicleType = {
@@ -84,7 +86,7 @@ const vehicleErrorMessage = (status: number) => {
 };
 
 export const getVehicleTypes = async () => {
-  const response = await fetch(`${API_BASE}/api/v1/vehicles/types`, {
+  const response = await authFetch(`${API_BASE}/api/v1/vehicles/types`, {
     method: "GET",
     credentials: "include",
   });
@@ -101,7 +103,7 @@ export const getVehicleTypes = async () => {
 };
 
 export const getMyVehicles = async () => {
-  const response = await fetch(`${API_BASE}/api/v1/vehicles/user-vehicles`, {
+  const response = await authFetch(`${API_BASE}/api/v1/vehicles/user-vehicles`, {
     method: "GET",
     credentials: "include",
   });
@@ -125,7 +127,7 @@ export const getMyVehicles = async () => {
 
 export const getVehicleByLicensePlate = async (licensePlate: string) => {
   const normalizedPlate = licensePlate.trim().toUpperCase();
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/vehicles/${encodeURIComponent(normalizedPlate)}`,
     {
       method: "GET",
@@ -150,7 +152,7 @@ export const getVehicleByLicensePlate = async (licensePlate: string) => {
 };
 
 export const createVehicle = async (request: CreateVehicleRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/vehicles`, {
+  const response = await authFetch(`${API_BASE}/api/v1/vehicles`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -176,7 +178,7 @@ export const createVehicle = async (request: CreateVehicleRequest) => {
 };
 
 export const updateMyVehicle = async (vehicleId: string, request: UpdateVehicleRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/vehicles/user-vehicles/${encodeURIComponent(vehicleId)}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/vehicles/user-vehicles/${encodeURIComponent(vehicleId)}`, {
     method: "PUT",
     headers: {
       "content-type": "application/json",
@@ -204,7 +206,7 @@ export const updateMyVehicle = async (vehicleId: string, request: UpdateVehicleR
 
 /** Soft delete — backend sets status to INACTIVE (record is kept). */
 export const softDeleteMyVehicle = async (vehicleId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/vehicles/${encodeURIComponent(vehicleId)}/soft-delete`,
     {
       method: "DELETE",
@@ -234,7 +236,7 @@ export const adminUpdateVehicle = async (
   vehicleId: string,
   request: AdminUpdateVehicleRequest,
 ) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/vehicles/manage/${encodeURIComponent(vehicleId)}`,
     {
       method: "PUT",

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -64,7 +66,7 @@ export const getAllFloors = async ({
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (vehicleTypeId) params.set("vehicleTypeId", vehicleTypeId);
 
-  const response = await fetch(`${API_BASE}/api/v1/floors?${params}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/floors?${params}`, {
     method: "GET",
     credentials: "include",
   });
@@ -82,7 +84,7 @@ export const getAllFloors = async ({
 
 /** GET /api/v1/floors/:floorId — ADMIN */
 export const getFloorById = async (floorId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
     method: "GET",
     credentials: "include",
   });
@@ -101,7 +103,7 @@ export const getFloorById = async (floorId: string) => {
 
 /** POST /api/v1/floors — ADMIN */
 export const createFloor = async (body: CreateFloorRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/floors`, {
+  const response = await authFetch(`${API_BASE}/api/v1/floors`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -122,7 +124,7 @@ export const createFloor = async (body: CreateFloorRequest) => {
 
 /** PUT /api/v1/floors/:floorId — ADMIN */
 export const updateFloor = async (floorId: string, body: UpdateFloorRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -143,7 +145,7 @@ export const updateFloor = async (floorId: string, body: UpdateFloorRequest) => 
 
 /** DELETE /api/v1/floors/:floorId — ADMIN */
 export const deleteFloor = async (floorId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/floors/${encodeURIComponent(floorId)}`, {
     method: "DELETE",
     credentials: "include",
   });

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -57,7 +59,7 @@ export type GetRevenueParams = {
 
 /** GET /api/v1/dashboard — ADMIN | MANAGER */
 export const getDashboardStats = async () => {
-  const response = await fetch(`${API_BASE}/api/v1/dashboard`, {
+  const response = await authFetch(`${API_BASE}/api/v1/dashboard`, {
     method: "GET",
     credentials: "include",
   });
@@ -87,7 +89,7 @@ export const getRevenueStats = async (params: GetRevenueParams = {}) => {
   if (params.status) search.set("status", params.status);
 
   const query = search.toString();
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/dashboard/revenue${query ? `?${query}` : ""}`,
     {
       method: "GET",

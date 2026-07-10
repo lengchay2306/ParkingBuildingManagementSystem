@@ -1,3 +1,4 @@
+import { authFetch } from "@/lib/auth-fetch";
 import type { Vehicle } from "@/services/vehicle.service";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
@@ -74,12 +75,12 @@ const userErrorMessage = (status: number) => {
 };
 
 export const getMyProfile = async () => {
-  const response = await fetch(`${API_BASE}/api/v1/users/my-profile`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/my-profile`, {
     method: "GET",
-    credentials: "include",
+    credentials: "include", //gửi cookie session, không cần thủ công
   });
-  const payload = await parseJson<{ user?: UserProfile }>(response);
-
+  const payload = await parseJson<{ user?: UserProfile }>(response); 
+      //đọc dữ liệu thô từ ứng api và đổi thành object js
   if (!response.ok) {
     throw new UserApiError(response.status, payload.message || userErrorMessage(response.status));
   }
@@ -98,7 +99,7 @@ export type UpdateMyProfileRequest = {
 };
 
 export const updateMyProfile = async (payload: UpdateMyProfileRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/users/my-profile`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/my-profile`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -128,7 +129,7 @@ export type ChangePasswordRequest = {
 };
 
 export const changePassword = async (payload: ChangePasswordRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/users/my-profile/change-password`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/my-profile/change-password`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -181,7 +182,7 @@ export type CreateUserRequest = {
 };
 
 export const createUser = async (payload: CreateUserRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/users`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -208,7 +209,7 @@ export const createUser = async (payload: CreateUserRequest) => {
 };
 
 export const updateUserById = async (userId: string, payload: UpdateUserByIdRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/${userId}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -258,7 +259,7 @@ export const getAllUsers = async ({
     params.set("roleId", roleId);
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/users?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -285,7 +286,7 @@ export const getAllUsers = async ({
 };
 
 export const deleteUserById = async (userId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/${userId}`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -309,7 +310,7 @@ export const deleteUserById = async (userId: string) => {
 
 /** GET /api/v1/users/:userId — ADMIN | MANAGER | STAFF */
 export const getUserById = async (userId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/users/${encodeURIComponent(userId)}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/users/${encodeURIComponent(userId)}`, {
     method: "GET",
     credentials: "include",
   });

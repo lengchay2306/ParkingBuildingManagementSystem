@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type ChatMessageRole = "user" | "assistant";
@@ -83,7 +85,7 @@ const chatbotErrorMessage = (status: number, fallback?: string) => {
 };
 
 export const createChatSession = async (title?: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/chatbot/sessions`, {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/sessions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -118,7 +120,7 @@ export const getMyChatSessions = async ({
     page: String(page),
     limit: String(limit),
   });
-  const response = await fetch(`${API_BASE}/api/v1/chatbot/sessions?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/sessions?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -148,7 +150,7 @@ export const getMyChatSessions = async ({
 };
 
 export const getChatSession = async (sessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}`,
     {
       method: "GET",
@@ -176,7 +178,7 @@ export const getChatSession = async (sessionId: string) => {
 };
 
 export const sendChatMessage = async (sessionId: string, message: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}/messages`,
     {
       method: "POST",
@@ -202,7 +204,7 @@ export const sendChatMessage = async (sessionId: string, message: string) => {
 };
 
 export const deleteChatSession = async (sessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}`,
     {
       method: "DELETE",
@@ -231,7 +233,7 @@ export const sendStatelessChatMessage = async (
   message: string,
   history: StatelessChatHistoryEntry[] = [],
 ) => {
-  const response = await fetch(`${API_BASE}/api/v1/chatbot/message`, {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/message`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",

@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -72,7 +74,7 @@ export const getPricePolicies = async ({
     params.set("vehicleTypeId", vehicleTypeId);
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/payment/price-policies?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/payment/price-policies?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -104,7 +106,7 @@ export type StaffBillQrResult = {
 
 /** POST /api/v1/payment/staff/bill-qr — STAFF | MANAGER | ADMIN */
 export const createStaffBillQr = async (parkingSessionId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/payment/staff/bill-qr`, {
+  const response = await authFetch(`${API_BASE}/api/v1/payment/staff/bill-qr`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -147,7 +149,7 @@ export type CheckPaymentResult = {
 
 /** POST /api/v1/payment/check-payment — STAFF | MANAGER | ADMIN */
 export const checkStaffPayment = async (orderCode: number) => {
-  const response = await fetch(`${API_BASE}/api/v1/payment/check-payment`, {
+  const response = await authFetch(`${API_BASE}/api/v1/payment/check-payment`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -176,7 +178,7 @@ export type SubscriptionCheckoutResult = {
 
 /** POST /api/v1/payment/subscription/create-link — CUSTOMER only */
 export const createSubscriptionCheckoutLink = async (vehicleId: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/payment/subscription/create-link`, {
+  const response = await authFetch(`${API_BASE}/api/v1/payment/subscription/create-link`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

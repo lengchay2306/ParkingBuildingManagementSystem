@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type ApiPayload<T> = {
@@ -87,7 +89,7 @@ export const getAdminParkingSessions = async ({
   if (vehicleId) params.set("vehicleId", vehicleId);
   if (parkingSlotId) params.set("parkingSlotId", parkingSlotId);
 
-  const response = await fetch(`${API_BASE}/api/v1/parking-sessions?${params}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking-sessions?${params}`, {
     method: "GET",
     credentials: "include",
   });
@@ -111,7 +113,7 @@ export const getAdminParkingSessions = async ({
 
 /** GET /api/v1/parking-sessions/:parkingSessionId — ADMIN */
 export const getAdminParkingSessionById = async (parkingSessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-sessions/${encodeURIComponent(parkingSessionId)}`,
     { method: "GET", credentials: "include" },
   );
@@ -133,7 +135,7 @@ export const getAdminParkingSessionById = async (parkingSessionId: string) => {
 
 /** POST /api/v1/parking-sessions — ADMIN */
 export const createAdminParkingSession = async (body: CreateAdminParkingSessionRequest) => {
-  const response = await fetch(`${API_BASE}/api/v1/parking-sessions`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking-sessions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -160,7 +162,7 @@ export const updateAdminParkingSession = async (
   parkingSessionId: string,
   body: UpdateAdminParkingSessionRequest,
 ) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-sessions/${encodeURIComponent(parkingSessionId)}`,
     {
       method: "PUT",
@@ -187,7 +189,7 @@ export const updateAdminParkingSession = async (
 
 /** DELETE /api/v1/parking-sessions/:parkingSessionId — ADMIN */
 export const deleteAdminParkingSession = async (parkingSessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking-sessions/${encodeURIComponent(parkingSessionId)}`,
     { method: "DELETE", credentials: "include" },
   );

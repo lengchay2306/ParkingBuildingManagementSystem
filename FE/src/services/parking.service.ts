@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type ParkingSlotStatus = "AVAILABLE" | "RESERVED" | "UNAVAILABLE" | "CURRENTLY-IN-USED";
@@ -86,7 +88,7 @@ export const getParkingFloors = async ({
   }
 
   const query = params.toString();
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking/slots${query ? `?${query}` : ""}`,
     {
       method: "GET",
@@ -175,7 +177,7 @@ export const getParkingSessions = async ({
     params.set("date", date);
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/parking/parking-sessions?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking/parking-sessions?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -274,7 +276,7 @@ export const enrichParkingSessionsWithPlates = (
 export const getActiveUserParkingSession = async (
   vehicleId: string,
 ): Promise<ParkingSession | null> => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking/active-user-parking-session/${encodeURIComponent(vehicleId)}`,
     {
       method: "GET",
@@ -462,7 +464,7 @@ export type CreateGuestParkingSessionPayload = {
 };
 
 export const createParkingSession = async (payload: CreateParkingSessionPayload) => {
-  const response = await fetch(`${API_BASE}/api/v1/parking/create-parking-session`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking/create-parking-session`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -498,7 +500,7 @@ export const createGuestParkingSession = async (payload: CreateGuestParkingSessi
     body.phone = payload.phone.trim();
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/parking/create-parking-session/guest`, {
+  const response = await authFetch(`${API_BASE}/api/v1/parking/create-parking-session/guest`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -536,7 +538,7 @@ export const getCheckoutPhoneForSession = (session: ParkingSession) => {
 };
 
 export const checkoutParkingSession = async (payload: CheckoutParkingSessionPayload) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking/checkout-parking-session/${encodeURIComponent(payload.parkingSessionId)}`,
     {
       method: "PATCH",
@@ -590,7 +592,7 @@ export const deleteErrorParkingSession = async ({
   parkingSessionId: string;
   userId: string;
 }) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/parking/delete-error-parking-session/${encodeURIComponent(parkingSessionId)}`,
     {
       method: "DELETE",
