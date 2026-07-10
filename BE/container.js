@@ -46,10 +46,12 @@ import FloorRepository from "./src/repositories/floor.repository.js";
 import ParkingSlotRepository from "./src/repositories/parkingSlot.repository.js";
 import ParkingSessionRepository from "./src/repositories/parkingSession.repository.js";
 import DashboardRepository from "./src/repositories/dashboard.repository.js";
+import PasswordResetTokenRepository from "./src/repositories/passwordResetToken.repository.js";
 
 //3rd party
 import redisClient from "./src/utils/redisClient.js";
 import payosGateway from "./src/utils/payosGateway.js";
+import sendgridClient from "./src/utils/sendgridClient.js";
 
 const container = createContainer();
 
@@ -66,7 +68,12 @@ export function setupContainer({ io, notificationNamespace }) {
         payosGateway: asValue(payosGateway, {
             lifetime: Lifetime.SINGLETON,
         }),
-        
+        sendgridClient: asValue(sendgridClient, {
+            lifetime: Lifetime.SINGLETON,
+        }),
+        passwordResetTokenRepository: asClass(PasswordResetTokenRepository, {
+            lifetime: Lifetime.SCOPED,
+        }),
         //controllers
         authController: asClass(AuthController, {
             lifetime: Lifetime.SCOPED,
