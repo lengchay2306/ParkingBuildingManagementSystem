@@ -1,5 +1,5 @@
 import { configDotenv } from "dotenv"
-import { BadRequestError } from "../error/error.js"
+import { BadRequestError, NotFoundError } from "../error/error.js"
 import { calculatedParkingFee } from "../utils/calculateFunction.js";
 configDotenv();
 
@@ -378,6 +378,211 @@ class PaymentService {
 
         return paymentLink.checkoutUrl;
     }
-}
 
-export default PaymentService;  
+    cancelPayment = async ({
+        paymentId
+    }) => {
+        const existingPayment = await this.#paymentRepository.findPaymentById({
+            paymentId,
+        })
+
+        if (!existingPayment) {
+            throw new NotFoundError(`This payment doesn't exist!`)
+        }
+
+        if (existingPayment.status === 'CANCELLED' || existingPayment.status === 'PAID') {
+            throw new BadRequestError(`This payment has been cancelled or paid!`)
+        }
+
+        const updatedPayment = await this.#paymentRepository.cancelPayment({
+            paymentId,
+        })
+
+        if (!updatedPayment) {
+            throw new BadRequestError(`Cannot cancel this payment`)
+        }
+        return updatedPayment;
+    }
+
+    getAllPayments = async ({
+        page = 1,
+        limit = 10,
+        status,
+        paymentMethod,
+        orderCode,
+        vehicleId,
+        parkingSessionId,
+        licensePlate,
+        sortBy = 'createdAt',
+        sortOrder = -1,
+    }) => {
+        const filter = {};
+
+        if (status) {
+            filter.status = status;
+        }
+
+        if (paymentMethod) {
+            filter.paymentMethod = paymentMethod;
+        }
+
+        if (orderCode !== undefined && orderCode !== null && orderCode !== '') {
+            filter.orderCode = Number(orderCode);
+        }
+
+        if (vehicleId) {
+            filter.vehicleId = vehicleId;
+        }
+
+        if (parkingSessionId) {
+            filter.parkingSessionId = parkingSessionId;
+        }
+
+        if (licensePlate) {
+            const normalizedLicensePlate = licensePlate.trim().replace(/\s+/g, ' ').toUpperCase();
+
+            const [vehicle, sessions] = await Promise.all([
+                this.#vehicleRepository.getVehicleByLicensePlate({
+                    licensePlate: normalizedLicensePlate,
+                }),
+                this.#parkingRepository.findAllParkingSessionByField({
+                    licensePlate: normalizedLicensePlate,
+                }),
+            ]);
+
+            const orConditions = [];
+
+            if (vehicle?._id) {
+                orConditions.push({ vehicleId: vehicle._id });
+            }
+
+            if (sessions.length > 0) {
+                orConditions.push({
+                    parkingSessionId: { $in: sessions.map((session) => session._id) },
+                });
+            }
+
+            if (orConditions.length === 0) {
+                return {
+                    payments: [],
+                    pagination: {
+                        page,
+                        limit,
+                        totalCount: 0,
+                        totalPages: 0,
+                    },
+                };
+            }
+
+            filter.$or = orConditions;
+        }
+
+        return this.#paymentRepository.getAllPayments({
+            filter,
+            page,
+            limit,
+            sortBy,
+            sortOrder,
+        });
+    }
+
+    getPaymentsByLicensePlate = async ({
+        licensePlate,
+        page = 1,
+        limit = 10,
+        status,
+        paymentMethod,
+        sortBy = 'createdAt',
+        sortOrder = -1,
+    }) => {
+        const normalizedLicensePlate = licensePlate.trim().replace(/\s+/g, ' ').toUpperCase();
+
+        const vehicle = await this.#vehicleRepository.getVehicleByLicensePlate({
+            licensePlate: normalizedLicensePlate,
+        });
+
+        const sessionQueries = [
+            this.#parkingRepository.findAllParkingSessionByField({
+                licensePlate: normalizedLicensePlate,
+            }),
+        ];
+
+        if (vehicle?._id) {
+            sessionQueries.push(
+                this.#parkingRepository.findAllParkingSessionByField({
+                    vehicleId: vehicle._id,
+                }),
+            );
+        }
+
+        const sessionResults = await Promise.all(sessionQueries);
+        const sessionIdSet = new Set();
+        for (const sessions of sessionResults) {
+            for (const session of sessions) {
+                sessionIdSet.add(String(session._id));
+            }
+        }
+        const sessionIds = [...sessionIdSet];
+
+        if (!vehicle && sessionIds.length === 0) {
+            throw new NotFoundError('Vehicle or parking sessions not found for this license plate');
+        }
+
+        const orConditions = [];
+
+        if (vehicle?._id) {
+            orConditions.push({ vehicleId: vehicle._id });
+        }
+
+        if (sessionIds.length > 0) {
+            orConditions.push({
+                parkingSessionId: { $in: sessionIds },
+            });
+        }
+
+        const filter = { $or: orConditions };
+
+        if (status) {
+            filter.status = status;
+        }
+
+        if (paymentMethod) {
+            filter.paymentMethod = paymentMethod;
+        }
+
+        const result = await this.#paymentRepository.getAllPayments({
+            filter,
+            page,
+            limit,
+            sortBy,
+            sortOrder,
+        });
+
+        return {
+            licensePlate: normalizedLicensePlate,
+            vehicle: vehicle ?? null,
+            payments: result.payments,
+            pagination: result.pagination,
+        };
+    }
+
+    deletePayment = async ({
+        paymentId
+    }) => {
+        const existingPayment = await this.#paymentRepository.findPaymentById({ paymentId });
+        if (!existingPayment) {
+            throw new NotFoundError(`This payment doesn't exist!`)
+        }
+        // Only PAID or CANCELLED payments can be hard-deleted
+        if (existingPayment.status !== 'PAID' && existingPayment.status !== 'CANCELLED') {
+            throw new BadRequestError(`Only PAID or CANCELLED payments can be deleted!`)
+        }
+        const deletedPayment = await this.#paymentRepository.deletePayment({ paymentId });
+        if (!deletedPayment) {
+            throw new BadRequestError(`Cannot delete this payment`)
+        }
+        return deletedPayment;
+    }
+};
+
+export default PaymentService;
