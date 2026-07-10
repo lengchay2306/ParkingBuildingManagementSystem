@@ -1,15 +1,15 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { AnimatedLoader } from '@/components/animated-loader';
-import { ScalePressable } from '@/components/scale-pressable';
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import type { ParkingFloor } from '@/features/customer/api/parking';
-import { FloorSlotsPanel } from '@/features/customer/components/floor-slots-panel';
-import { CUSTOMER_ROUTES } from '@/roles';
+import { AnimatedLoader } from "@/components/animated-loader";
+import { ScalePressable } from "@/components/scale-pressable";
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import type { ParkingFloor } from "@/features/customer/api/parking";
+import { FloorSlotsPanel } from "@/features/customer/components/floor-slots-panel";
+import { CUSTOMER_ROUTES } from "@/roles";
 
 type Props = {
   floors: ParkingFloor[];
@@ -28,12 +28,12 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface2,
-      overflow: 'hidden' as const,
+      overflow: "hidden" as const,
     },
     floorHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
       padding: Spacing.sm,
       gap: Spacing.sm,
     },
@@ -47,15 +47,15 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
     floorName: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '600' as const,
+      fontWeight: "600" as const,
     },
     floorStats: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
     },
     slotGrid: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
       gap: Spacing.xs,
       paddingHorizontal: Spacing.sm,
       paddingBottom: Spacing.sm,
@@ -66,7 +66,7 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
       borderWidth: 1,
       paddingHorizontal: 8,
       paddingVertical: 6,
-      alignItems: 'center' as const,
+      alignItems: "center" as const,
     },
     slotAvailable: {
       borderColor: DesignColors.semanticSuccess,
@@ -86,7 +86,7 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
     slotChipText: {
       ...Typography.caption,
       color: DesignColors.ink,
-      fontWeight: '500' as const,
+      fontWeight: "500" as const,
     },
     slotChipTextActive: {},
     slotChipTextDisabled: {
@@ -110,8 +110,8 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <ThemedText style={styles.eyebrow}>{t('Thời gian thực', 'Live')}</ThemedText>
-          <ThemedText style={styles.title}>{t('Chỗ đỗ trống', 'Available spots')}</ThemedText>
+          <ThemedText style={styles.eyebrow}>{t("Thời gian thực", "Live")}</ThemedText>
+          <ThemedText style={styles.title}>{t("Chỗ đỗ trống", "Available spots")}</ThemedText>
         </View>
         <ScalePressable
           onPress={() => router.push(CUSTOMER_ROUTES.parkingMap as never)}
@@ -119,23 +119,36 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
           scaleTo={0.95}
         >
           <Ionicons name="map-outline" size={14} color={DesignColors.primary} />
-          <ThemedText style={styles.mapLinkText}>{t('Bản đồ 3D', '3D map')}</ThemedText>
+          <ThemedText style={styles.mapLinkText}>{t("Bản đồ 3D", "3D map")}</ThemedText>
         </ScalePressable>
       </View>
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryChip}>
           <ThemedText style={styles.summaryValue}>{totalAvailable}</ThemedText>
-          <ThemedText style={styles.summaryLabel}>{t('Chỗ trống', 'Free spots')}</ThemedText>
+          <ThemedText style={styles.summaryLabel}>{t("Chỗ trống", "Free spots")}</ThemedText>
         </View>
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: `${DesignColors.semanticSuccess}33`, borderColor: DesignColors.semanticSuccess }]} />
-            <ThemedText style={styles.legendText}>{t('Trống', 'Free')}</ThemedText>
+            <View
+              style={[
+                styles.legendDot,
+                {
+                  backgroundColor: `${DesignColors.semanticSuccess}33`,
+                  borderColor: DesignColors.semanticSuccess,
+                },
+              ]}
+            />
+            <ThemedText style={styles.legendText}>{t("Trống", "Free")}</ThemedText>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: `${DesignColors.primary}22`, borderColor: DesignColors.primary }]} />
-            <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
+            <View
+              style={[
+                styles.legendDot,
+                { backgroundColor: `${DesignColors.primary}22`, borderColor: DesignColors.primary },
+              ]}
+            />
+            <ThemedText style={styles.legendText}>{t("Đang dùng", "In use")}</ThemedText>
           </View>
         </View>
       </View>
@@ -143,7 +156,9 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
       {isLoading ? (
         <AnimatedLoader color={DesignColors.primary} size="small" style={styles.loader} />
       ) : floors.length === 0 ? (
-        <ThemedText style={styles.emptyText}>{t('Không có dữ liệu bãi đỗ', 'No parking data')}</ThemedText>
+        <ThemedText style={styles.emptyText}>
+          {t("Không có dữ liệu bãi đỗ", "No parking data")}
+        </ThemedText>
       ) : (
         <FloorSlotsPanel floors={floors} t={t} styles={panelStyles} DesignColors={DesignColors} />
       )}
@@ -162,9 +177,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: Spacing.sm,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
       gap: Spacing.sm,
     },
     headerText: {
@@ -174,15 +189,15 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     eyebrow: {
       ...Typography.eyebrow,
       color: DesignColors.primary,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     title: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
     },
     mapLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
       borderRadius: Radius.pill,
       borderWidth: 1,
@@ -194,14 +209,14 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     mapLinkText: {
       ...Typography.caption,
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     summaryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
-      flexWrap: 'wrap',
+      flexWrap: "wrap",
     },
     summaryChip: {
       borderRadius: Radius.lg,
@@ -210,7 +225,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: DesignColors.surface2,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.xs,
-      alignItems: 'center',
+      alignItems: "center",
       minWidth: 88,
     },
     summaryValue: {
@@ -222,13 +237,13 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkSubtle,
     },
     legendRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
-      flexWrap: 'wrap',
+      flexWrap: "wrap",
     },
     legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
     },
     legendDot: {
@@ -247,7 +262,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     emptyText: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
       paddingVertical: Spacing.md,
     },
   });

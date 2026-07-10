@@ -1,62 +1,62 @@
-import { View, type TextStyle, type ViewStyle } from 'react-native';
+import { View, type TextStyle, type ViewStyle } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette } from '@/constants/design';
-import type { Reservation } from '@/features/customer/api/reservations';
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette } from "@/constants/design";
+import type { Reservation } from "@/features/customer/api/reservations";
 
 export function formatReservationDateTime(value: string | undefined) {
   if (!value) {
-    return '—';
+    return "—";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return '—';
+    return "—";
   }
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 function reservationStatusColor(status: string | undefined, DesignColors: DesignColorPalette) {
   const normalized = status?.toUpperCase();
-  if (normalized === 'PENDING') {
+  if (normalized === "PENDING") {
     return DesignColors.primary;
   }
-  if (normalized === 'CLAIMED') {
+  if (normalized === "CLAIMED") {
     return DesignColors.semanticSuccess;
   }
-  if (normalized === 'EXPIRED') {
+  if (normalized === "EXPIRED") {
     return DesignColors.inkMuted;
   }
-  if (normalized === 'CANCELLED') {
-    return '#ef4444';
+  if (normalized === "CANCELLED") {
+    return "#ef4444";
   }
   return DesignColors.inkSubtle;
 }
 
 function getReservationPlate(reservation: Reservation): string {
-  if (typeof reservation.vehicleId === 'object' && reservation.vehicleId?.licensePlate) {
+  if (typeof reservation.vehicleId === "object" && reservation.vehicleId?.licensePlate) {
     return reservation.vehicleId.licensePlate;
   }
-  return '—';
+  return "—";
 }
 
 function getReservationSlot(reservation: Reservation): string {
-  if (typeof reservation.parkingSlotId === 'object' && reservation.parkingSlotId?.slotNumber) {
+  if (typeof reservation.parkingSlotId === "object" && reservation.parkingSlotId?.slotNumber) {
     return reservation.parkingSlotId.slotNumber;
   }
-  return '—';
+  return "—";
 }
 
 function getReservationFloor(reservation: Reservation): string {
   const slot = reservation.parkingSlotId;
-  if (typeof slot === 'object' && slot?.floorId?.floorName) {
+  if (typeof slot === "object" && slot?.floorId?.floorName) {
     return slot.floorId.floorName;
   }
-  return '—';
+  return "—";
 }
 
 export type ReservationCardStyles = {
@@ -98,21 +98,21 @@ export function ReservationCard({
       </View>
 
       <View style={styles.infoRow}>
-        <ThemedText style={styles.infoLabel}>{t('Chỗ đỗ', 'Slot')}</ThemedText>
+        <ThemedText style={styles.infoLabel}>{t("Chỗ đỗ", "Slot")}</ThemedText>
         <ThemedText style={styles.infoValue}>{getReservationSlot(reservation)}</ThemedText>
       </View>
       <View style={styles.infoRow}>
-        <ThemedText style={styles.infoLabel}>{t('Tầng', 'Floor')}</ThemedText>
+        <ThemedText style={styles.infoLabel}>{t("Tầng", "Floor")}</ThemedText>
         <ThemedText style={styles.infoValue}>{getReservationFloor(reservation)}</ThemedText>
       </View>
       <View style={styles.infoRow}>
-        <ThemedText style={styles.infoLabel}>{t('Dự kiến đến', 'Expected arrival')}</ThemedText>
+        <ThemedText style={styles.infoLabel}>{t("Dự kiến đến", "Expected arrival")}</ThemedText>
         <ThemedText style={styles.infoValue}>
           {formatReservationDateTime(reservation.expectedArrival)}
         </ThemedText>
       </View>
       <View style={styles.infoRow}>
-        <ThemedText style={styles.infoLabel}>{t('Hết hạn giữ chỗ', 'Hold expires')}</ThemedText>
+        <ThemedText style={styles.infoLabel}>{t("Hết hạn giữ chỗ", "Hold expires")}</ThemedText>
         <ThemedText style={styles.infoValue}>
           {formatReservationDateTime(reservation.expiryAt)}
         </ThemedText>

@@ -1,12 +1,9 @@
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
-import {
-  CUSTOMER_ROUTES,
-  type PostLoginRoute,
-} from '@/roles';
+import { CUSTOMER_ROUTES, type PostLoginRoute } from "@/roles";
 
-export type { PostLoginRoute } from '@/roles';
-export { resolvePostLoginRoute } from '@/roles';
+export type { PostLoginRoute } from "@/roles";
+export { resolvePostLoginRoute } from "@/roles";
 
 type StoredCookie = {
   name?: string;
@@ -21,9 +18,9 @@ type CookieManagerType = {
 
 let CookieManager: CookieManagerType | null = null;
 
-if (Platform.OS !== 'web') {
+if (Platform.OS !== "web") {
   try {
-    CookieManager = require('@react-native-cookies/cookies').default as CookieManagerType;
+    CookieManager = require("@react-native-cookies/cookies").default as CookieManagerType;
   } catch {
     CookieManager = null;
   }
@@ -83,10 +80,10 @@ function normalizeApiBaseUrl(raw: string | undefined): string {
   const value = raw?.trim();
   if (!value) {
     throw new Error(
-      'EXPO_PUBLIC_API_URL is missing. Copy Mobile/.env.example to Mobile/.env, set the API URL, then restart Expo with: npx expo start -c',
+      "EXPO_PUBLIC_API_URL is missing. Copy Mobile/.env.example to Mobile/.env, set the API URL, then restart Expo with: npx expo start -c",
     );
   }
-  return value.replace(/\/+$/, '');
+  return value.replace(/\/+$/, "");
 }
 
 export const API_URL = normalizeApiBaseUrl(process.env.EXPO_PUBLIC_API_URL);
@@ -96,10 +93,10 @@ const AUTH_REFRESH_PATH = `${API_URL}/auth/refresh-token`;
 let refreshInFlight: Promise<boolean> | null = null;
 
 function resolveApiUrl(path: string) {
-  if (path.startsWith('http')) {
+  if (path.startsWith("http")) {
     return path;
   }
-  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_URL}${normalized}`;
 }
 
@@ -111,7 +108,7 @@ async function parseApiResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? payload?.data?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? payload?.data?.message ?? "Request failed");
   }
 
   return payload;
@@ -126,11 +123,11 @@ async function getCookieHeader(url: string): Promise<string | undefined> {
     const parts = Object.values(jar ?? {})
       .map((entry) => {
         const name = entry?.name?.trim();
-        const value = entry?.value ?? '';
-        return name ? `${name}=${value}` : '';
+        const value = entry?.value ?? "";
+        return name ? `${name}=${value}` : "";
       })
       .filter(Boolean);
-    return parts.length > 0 ? parts.join('; ') : undefined;
+    return parts.length > 0 ? parts.join("; ") : undefined;
   } catch {
     return undefined;
   }
@@ -140,12 +137,12 @@ async function sessionFetch(url: string, init: RequestInit = {}): Promise<Respon
   const headers = new Headers(init.headers as HeadersInit);
   const cookieHeader = await getCookieHeader(url);
   if (cookieHeader) {
-    headers.set('Cookie', cookieHeader);
+    headers.set("Cookie", cookieHeader);
   }
   return fetch(url, {
     ...init,
     headers,
-    credentials: 'include',
+    credentials: "include",
   });
 }
 
@@ -153,19 +150,18 @@ async function persistCookies(response: Response) {
   if (!CookieManager) {
     return;
   }
-  const setCookie = response.headers.get('set-cookie');
+  const setCookie = response.headers.get("set-cookie");
   if (!setCookie) {
     return;
   }
-  const cookieUrl =
-    response.url && !response.url.startsWith('about:') ? response.url : API_URL;
+  const cookieUrl = response.url && !response.url.startsWith("about:") ? response.url : API_URL;
   await CookieManager.setFromResponse(cookieUrl, setCookie);
 }
 
 async function requestRefreshToken(): Promise<boolean> {
   const url = resolveApiUrl(AUTH_REFRESH_PATH);
   const response = await sessionFetch(url, {
-    method: 'POST',
+    method: "POST",
   });
 
   await persistCookies(response);
@@ -221,10 +217,10 @@ export type RegisterPayload = {
 };
 
 export async function register(payload: RegisterPayload) {
-  const response = await fetch(resolveApiUrl('/auth/register'), {
-    method: 'POST',
+  const response = await fetch(resolveApiUrl("/auth/register"), {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       email: payload.email.trim().toLowerCase(),
@@ -238,35 +234,59 @@ export async function register(payload: RegisterPayload) {
 }
 
 export async function login(email: string, password: string) {
-  const url = resolveApiUrl('/auth/login');
+  const url = resolveApiUrl("/auth/login");
   let response: Response;
   try {
     response = await sessionFetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
     });
   } catch {
-    throw new Error(
-      `Cannot reach API at ${url}. Check EXPO_PUBLIC_API_URL`,
-    );
+    throw new Error(`Cannot reach API at ${url}. Check EXPO_PUBLIC_API_URL`);
   }
 
   await persistCookies(response);
   return parseApiResponse(response);
 }
 
+/** POST /auth/forgot-password — public; BE emails reset link (FE URL). */
+export async function forgotPassword(email: string) {
+  const response = await fetch(resolveApiUrl("/auth/forgot-password"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: email.trim() }),
+  });
+
+  return parseApiResponse(response);
+}
+
+/** POST /auth/reset-password — public; token from email link query. */
+export async function resetPassword(token: string, newPassword: string) {
+  const response = await fetch(resolveApiUrl("/auth/reset-password"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ token: token.trim(), newPassword }),
+  });
+
+  return parseApiResponse(response);
+}
+
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split('.');
+  const parts = token.split(".");
   if (parts.length < 2) {
     return null;
   }
   try {
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-    if (typeof globalThis.atob !== 'function') {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    if (typeof globalThis.atob !== "function") {
       return null;
     }
     const json = globalThis.atob(padded);
@@ -289,7 +309,7 @@ export async function getRoleNameFromAccessToken(): Promise<string | null> {
     }
     const payload = decodeJwtPayload(token);
     const role = payload?.roleName;
-    return typeof role === 'string' && role.trim() ? role.trim().toUpperCase() : null;
+    return typeof role === "string" && role.trim() ? role.trim().toUpperCase() : null;
   } catch {
     return null;
   }
@@ -299,11 +319,16 @@ export function extractRoleNameFromProfile(user: UserProfile | undefined): strin
   if (!user) {
     return null;
   }
-  if (typeof user.roleName === 'string' && user.roleName.trim()) {
+  if (typeof user.roleName === "string" && user.roleName.trim()) {
     return user.roleName.trim().toUpperCase();
   }
   const roleId = user.roleId;
-  if (roleId && typeof roleId === 'object' && typeof roleId.roleName === 'string' && roleId.roleName.trim()) {
+  if (
+    roleId &&
+    typeof roleId === "object" &&
+    typeof roleId.roleName === "string" &&
+    roleId.roleName.trim()
+  ) {
     return roleId.roleName.trim().toUpperCase();
   }
   return null;
@@ -329,11 +354,11 @@ export async function resolveRoleAfterLogin(): Promise<string | null> {
 
 /** GET /users/my-profile — requires session cookies from login. */
 export async function getMyProfile(): Promise<UserProfile> {
-  const response = await authFetch('/users/my-profile');
+  const response = await authFetch("/users/my-profile");
   const payload = (await parseApiResponse(response)) as AuthResponse | null;
   const user = payload?.data?.user;
   if (!user) {
-    throw new Error(payload?.message ?? 'Profile response is missing user data');
+    throw new Error(payload?.message ?? "Profile response is missing user data");
   }
   return user;
 }
@@ -345,22 +370,22 @@ export type UpdateMyProfilePayload = {
 
 /** PUT /users/my-profile — at least one of fullName or phone is required. */
 export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<UserProfile> {
-  const response = await authFetch('/users/my-profile', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authFetch("/users/my-profile", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const result = (await parseApiResponse(response)) as AuthResponse | null;
   const user = result?.data?.user;
   if (!user) {
-    throw new Error(result?.message ?? 'Update response is missing user data');
+    throw new Error(result?.message ?? "Update response is missing user data");
   }
   return user;
 }
 
 export async function logout() {
-  const response = await authFetch('/auth/logout', {
-    method: 'DELETE',
+  const response = await authFetch("/auth/logout", {
+    method: "DELETE",
   });
 
   await parseApiResponse(response);

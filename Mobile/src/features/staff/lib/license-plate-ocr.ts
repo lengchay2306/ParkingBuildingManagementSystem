@@ -10,38 +10,38 @@ const DIGIT_POSITIONS = new Set([0, 1, 4, 5, 6, 8, 9]);
 function normalizeOcrPlateCandidate(raw: string): string {
   return raw
     .toUpperCase()
-    .replace(/\s+/g, '')
-    .split('')
+    .replace(/\s+/g, "")
+    .split("")
     .map((char, index) => {
       if (!DIGIT_POSITIONS.has(index)) {
         return char;
       }
       switch (char) {
-        case 'O':
-        case 'Q':
-        case 'D':
-          return '0';
-        case 'I':
-        case 'L':
-        case '|':
-          return '1';
-        case 'Z':
-          return '2';
-        case 'S':
-          return '5';
-        case 'G':
-          return '6';
-        case 'B':
-          return '8';
+        case "O":
+        case "Q":
+        case "D":
+          return "0";
+        case "I":
+        case "L":
+        case "|":
+          return "1";
+        case "Z":
+          return "2";
+        case "S":
+          return "5";
+        case "G":
+          return "6";
+        case "B":
+          return "8";
         default:
           return char;
       }
     })
-    .join('');
+    .join("");
 }
 
 function formatCompactPlate(raw: string): string {
-  const chars = normalizeOcrPlateCandidate(raw.replace(/[^0-9A-Z]/gi, ''));
+  const chars = normalizeOcrPlateCandidate(raw.replace(/[^0-9A-Z]/gi, ""));
   if (chars.length < 8) {
     return chars;
   }
@@ -63,7 +63,7 @@ function tryNormalizePlate(raw: string): string | null {
  * Tolerates common OCR misreads (O/0, I/1, etc.) and whitespace between segments.
  */
 export function extractLicensePlateFromOcrText(text: string): string | null {
-  const compact = text.replace(/\s+/g, '').toUpperCase();
+  const compact = text.replace(/\s+/g, "").toUpperCase();
 
   for (const match of compact.matchAll(LOOSE_PLATE_PATTERN)) {
     const plate = tryNormalizePlate(match[0]);
@@ -77,8 +77,8 @@ export function extractLicensePlateFromOcrText(text: string): string | null {
     .split(/[\n\r]+/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .join('')
-    .replace(/\s+/g, '')
+    .join("")
+    .replace(/\s+/g, "")
     .toUpperCase();
 
   const joinedPlate = tryNormalizePlate(hyphenJoined);
@@ -95,7 +95,7 @@ export function extractLicensePlateFromOcrText(text: string): string | null {
   }
 
   // Last resort: strip non-alphanumeric except dot and hyphen
-  const stripped = text.replace(/[^0-9A-Za-z.\-]/g, '').toUpperCase();
+  const stripped = text.replace(/[^0-9A-Za-z.\-]/g, "").toUpperCase();
   for (const match of stripped.matchAll(LOOSE_PLATE_PATTERN)) {
     const plate = tryNormalizePlate(match[0]);
     if (plate) {

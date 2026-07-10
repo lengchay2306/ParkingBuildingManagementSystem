@@ -1,4 +1,4 @@
-import type { ParkingFloor, ParkingSession } from '@/features/staff/api';
+import type { ParkingFloor, ParkingSession } from "@/features/staff/api";
 
 export type StaffCheckInRecord = {
   id: string;
@@ -17,11 +17,11 @@ export type StaffCheckInRecord = {
 
 export function formatDurationFrom(iso?: string): string {
   if (!iso) {
-    return '—';
+    return "—";
   }
   const start = new Date(iso).getTime();
   if (Number.isNaN(start)) {
-    return '—';
+    return "—";
   }
   const minutes = Math.max(0, Math.floor((Date.now() - start) / 60000));
   const hours = Math.floor(minutes / 60);
@@ -34,32 +34,32 @@ export function formatDurationFrom(iso?: string): string {
 
 export function estimateSessionCost(iso?: string, hourlyRate = 25000): string {
   if (!iso) {
-    return '—';
+    return "—";
   }
   const start = new Date(iso).getTime();
   if (Number.isNaN(start)) {
-    return '—';
+    return "—";
   }
   const hours = Math.max(1, Math.ceil((Date.now() - start) / 3600000));
   const total = hours * hourlyRate;
-  return `${total.toLocaleString('vi-VN')}₫`;
+  return `${total.toLocaleString("vi-VN")}₫`;
 }
 
 export function formatTimeLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
-    return '—';
+    return "—";
   }
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export function resolveSlotLabel(
-  parkingSlotId: ParkingSession['parkingSlotId'],
+  parkingSlotId: ParkingSession["parkingSlotId"],
   floors: ParkingFloor[],
 ): string {
-  const slotId = typeof parkingSlotId === 'string' ? parkingSlotId : parkingSlotId?._id;
+  const slotId = typeof parkingSlotId === "string" ? parkingSlotId : parkingSlotId?._id;
   if (!slotId) {
-    return '—';
+    return "—";
   }
   for (const floor of floors) {
     const slot = floor.slots.find((item) => item._id === slotId);
@@ -67,7 +67,7 @@ export function resolveSlotLabel(
       return `${floor.floorName} · ${slot.slotNumber}`;
     }
   }
-  if (typeof parkingSlotId === 'object' && parkingSlotId.slotNumber) {
+  if (typeof parkingSlotId === "object" && parkingSlotId.slotNumber) {
     return parkingSlotId.slotNumber;
   }
   return slotId.slice(-6);
@@ -98,19 +98,19 @@ export function mapParkingSessionToRecord(
   floors: ParkingFloor[] = [],
 ): StaffCheckInRecord {
   const plate =
-    typeof session.vehicleId === 'object' && session.vehicleId?.licensePlate
+    typeof session.vehicleId === "object" && session.vehicleId?.licensePlate
       ? session.vehicleId.licensePlate
-      : '—';
+      : "—";
 
   const customerPhone =
-    typeof session.checkInUserId === 'object' ? session.checkInUserId?.phone : undefined;
+    typeof session.checkInUserId === "object" ? session.checkInUserId?.phone : undefined;
   const customerName =
-    typeof session.checkInUserId === 'object' ? session.checkInUserId?.fullName : undefined;
+    typeof session.checkInUserId === "object" ? session.checkInUserId?.fullName : undefined;
 
   const vehicleType =
-    typeof session.vehicleId === 'object' &&
+    typeof session.vehicleId === "object" &&
     session.vehicleId?.vehicleTypeId &&
-    typeof session.vehicleId.vehicleTypeId === 'object'
+    typeof session.vehicleId.vehicleTypeId === "object"
       ? session.vehicleId.vehicleTypeId.type
       : undefined;
 
@@ -119,9 +119,7 @@ export function mapParkingSessionToRecord(
     plate,
     slotLabel: resolveSlotLabel(session.parkingSlotId, floors),
     slotId:
-      typeof session.parkingSlotId === 'object'
-        ? session.parkingSlotId._id
-        : session.parkingSlotId,
+      typeof session.parkingSlotId === "object" ? session.parkingSlotId._id : session.parkingSlotId,
     status: session.status,
     timeLabel: formatTimeLabel(session.checkInTime),
     checkInTime: session.checkInTime,
@@ -139,7 +137,7 @@ export function indexActiveSessionsBySlotId(
 ): Record<string, StaffCheckInRecord> {
   const bySlot: Record<string, StaffCheckInRecord> = {};
   for (const session of sessions) {
-    if (session.status.toUpperCase() !== 'ACTIVE' || !session.slotId) {
+    if (session.status.toUpperCase() !== "ACTIVE" || !session.slotId) {
       continue;
     }
     bySlot[session.slotId] = session;

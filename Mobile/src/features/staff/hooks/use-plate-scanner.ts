@@ -1,9 +1,9 @@
-import { useCameraPermissions } from 'expo-camera';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CameraView } from 'expo-camera';
+import { useCameraPermissions } from "expo-camera";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CameraView } from "expo-camera";
 
-import { cropImageToViewfinder } from '@/features/staff/lib/crop-plate-image';
-import { extractLicensePlateFromOcrText } from '@/features/staff/lib/license-plate-ocr';
+import { cropImageToViewfinder } from "@/features/staff/lib/crop-plate-image";
+import { extractLicensePlateFromOcrText } from "@/features/staff/lib/license-plate-ocr";
 import {
   canRunCloudOcrNow,
   getCloudOcrCooldownRemainingMs,
@@ -11,7 +11,7 @@ import {
   isCloudOcrManualOnly,
   isOcrReady,
   recognizePlateText,
-} from '@/features/staff/lib/ocr-runtime';
+} from "@/features/staff/lib/ocr-runtime";
 
 const CAMERA_WARMUP_MS = 1200;
 
@@ -42,7 +42,7 @@ export function usePlateScanner({ active, onPlateDetected, t }: UsePlateScannerO
 
   const ocrMode = getOcrMode();
   const ocrAvailable = isOcrReady();
-  const isCloudOcr = ocrMode === 'cloud';
+  const isCloudOcr = ocrMode === "cloud";
   const manualCloudScan = isCloudOcrManualOnly();
   const scanIntervalMs = isCloudOcr ? SCAN_INTERVAL_MS.cloud : SCAN_INTERVAL_MS.native;
   const scanBlockedByCooldown = isCloudOcr && cooldownSeconds > 0;
@@ -103,7 +103,7 @@ export function usePlateScanner({ active, onPlateDetected, t }: UsePlateScannerO
       setStatusMessage(
         waitSec > 0
           ? t(`Giới hạn OCR — đợi ${waitSec}s`, `OCR limit — wait ${waitSec}s`)
-          : t('Giới hạn OCR — thử lại sau vài giây', 'OCR limit — try again in a few seconds'),
+          : t("Giới hạn OCR — thử lại sau vài giây", "OCR limit — try again in a few seconds"),
       );
       return;
     }
@@ -119,31 +119,27 @@ export function usePlateScanner({ active, onPlateDetected, t }: UsePlateScannerO
       });
 
       if (!photo?.uri) {
-        setStatusMessage(t('Không chụp được khung hình', 'Could not capture frame'));
+        setStatusMessage(t("Không chụp được khung hình", "Could not capture frame"));
         return;
       }
 
-      const ocrUri = await cropImageToViewfinder(
-        photo.uri,
-        photo.width ?? 0,
-        photo.height ?? 0,
-      );
+      const ocrUri = await cropImageToViewfinder(photo.uri, photo.width ?? 0, photo.height ?? 0);
 
       const result = await recognizePlateText(ocrUri);
       if (!result.ok) {
         consecutiveFailuresRef.current += 1;
-        if (result.code === 'rate_limited') {
+        if (result.code === "rate_limited") {
           setStatusMessage(
             t(`OCR bị giới hạn — ${result.message}`, `OCR rate limited — ${result.message}`),
           );
-        } else if (result.code === 'network' || result.code === 'api_error') {
+        } else if (result.code === "network" || result.code === "api_error") {
           setStatusMessage(
             isCloudOcr
               ? t(`OCR lỗi: ${result.message}`, `OCR error: ${result.message}`)
-              : t('Lỗi nhận diện — thử lại', 'Recognition error — try again'),
+              : t("Lỗi nhận diện — thử lại", "Recognition error — try again"),
           );
         } else if (consecutiveFailuresRef.current > 2) {
-          setStatusMessage(t('Đang tìm biển số trong khung…', 'Looking for plate in frame…'));
+          setStatusMessage(t("Đang tìm biển số trong khung…", "Looking for plate in frame…"));
         }
         return;
       }
@@ -151,14 +147,14 @@ export function usePlateScanner({ active, onPlateDetected, t }: UsePlateScannerO
       consecutiveFailuresRef.current = 0;
       const plate = extractLicensePlateFromOcrText(result.text);
       if (!plate) {
-        setStatusMessage(t('Chưa thấy biển số hợp lệ trong khung', 'No valid plate in frame yet'));
+        setStatusMessage(t("Chưa thấy biển số hợp lệ trong khung", "No valid plate in frame yet"));
         return;
       }
 
       detectedRef.current = true;
       onPlateDetected(plate);
     } catch {
-      setStatusMessage(t('Quét thất bại — thử lại', 'Scan failed — try again'));
+      setStatusMessage(t("Quét thất bại — thử lại", "Scan failed — try again"));
     } finally {
       isScanningRef.current = false;
       if (!detectedRef.current) {

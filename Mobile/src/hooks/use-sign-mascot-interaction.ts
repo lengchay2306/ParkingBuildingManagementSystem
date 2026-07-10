@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { EyeCoverMode } from '@/components/sign-mascot';
+import type { EyeCoverMode } from "@/components/sign-mascot";
 import {
   emailLengthToLookX,
   getBusyMascotLines,
@@ -25,21 +25,21 @@ import {
   mapRegisterErrorToMascotSpeech,
   pickRandomLine,
   type MascotSpeech,
-} from '@/lib/sign-mascot-utils';
+} from "@/lib/sign-mascot-utils";
 
 type FocusField =
-  | 'loginEmail'
-  | 'loginPassword'
-  | 'signupFullName'
-  | 'signupEmail'
-  | 'signupPhone'
-  | 'signupPassword'
+  | "loginEmail"
+  | "loginPassword"
+  | "signupFullName"
+  | "signupEmail"
+  | "signupPhone"
+  | "signupPassword"
   | null;
 
 type Params = {
   t: (vi: string, en: string) => string;
   focusedField: FocusField;
-  activeView: 'login' | 'signup';
+  activeView: "login" | "signup";
   loginEmail: string;
   loginPassword: string;
   signupEmail: string;
@@ -127,7 +127,7 @@ export function useSignMascotInteraction({
     (error: unknown) => {
       authErrorLockRef.current = true;
       clearSpeechTimer();
-      const message = error instanceof Error ? error.message : String(error ?? '');
+      const message = error instanceof Error ? error.message : String(error ?? "");
       showSpeech(mapAuthErrorToMascotSpeech(message, t), ERROR_SPEECH_MS);
       setTimeout(() => {
         authErrorLockRef.current = false;
@@ -140,7 +140,7 @@ export function useSignMascotInteraction({
     (error: unknown) => {
       authErrorLockRef.current = true;
       clearSpeechTimer();
-      const message = error instanceof Error ? error.message : String(error ?? '');
+      const message = error instanceof Error ? error.message : String(error ?? "");
       showSpeech(mapRegisterErrorToMascotSpeech(message, t), ERROR_SPEECH_MS);
       setTimeout(() => {
         authErrorLockRef.current = false;
@@ -200,14 +200,13 @@ export function useSignMascotInteraction({
     return true;
   }, [signupEmail, signupFullName, signupPassword, signupPhone, speakRandom, t]);
 
-  const isPasswordFocused =
-    focusedField === 'loginPassword' || focusedField === 'signupPassword';
+  const isPasswordFocused = focusedField === "loginPassword" || focusedField === "signupPassword";
 
   const lookX = useMemo(() => {
-    if (focusedField === 'loginEmail') return emailLengthToLookX(loginEmail.length);
-    if (focusedField === 'signupEmail') return emailLengthToLookX(signupEmail.length);
-    if (focusedField === 'signupFullName') return emailLengthToLookX(signupFullName.length);
-    if (focusedField === 'signupPhone') return emailLengthToLookX(signupPhone.length);
+    if (focusedField === "loginEmail") return emailLengthToLookX(loginEmail.length);
+    if (focusedField === "signupEmail") return emailLengthToLookX(signupEmail.length);
+    if (focusedField === "signupFullName") return emailLengthToLookX(signupFullName.length);
+    if (focusedField === "signupPhone") return emailLengthToLookX(signupPhone.length);
     return 0;
   }, [focusedField, loginEmail, signupEmail, signupFullName, signupPhone]);
 
@@ -224,14 +223,14 @@ export function useSignMascotInteraction({
   );
 
   const eyeCover = useMemo((): EyeCoverMode => {
-    if (isSigningIn || isSigningUp) return 'open';
-    if (!isPasswordFocused) return 'open';
-    if (isTypingPassword) return 'peek';
-    return 'covered';
+    if (isSigningIn || isSigningUp) return "open";
+    if (!isPasswordFocused) return "open";
+    if (isTypingPassword) return "peek";
+    return "covered";
   }, [isPasswordFocused, isSigningIn, isSigningUp, isTypingPassword]);
 
   const handlePasswordFocus = useCallback(
-    (field: 'loginPassword' | 'signupPassword') => {
+    (field: "loginPassword" | "signupPassword") => {
       passwordFieldRef.current = field;
       setIsTypingPassword(false);
       peekSpeechShownRef.current = false;
@@ -295,7 +294,7 @@ export function useSignMascotInteraction({
       loginEmailRef.current = text;
       if (emailValidateTimerRef.current) clearTimeout(emailValidateTimerRef.current);
       emailValidateTimerRef.current = setTimeout(() => {
-        if (focusedField === 'loginEmail') validateEmail(text);
+        if (focusedField === "loginEmail") validateEmail(text);
       }, EMAIL_VALIDATE_DEBOUNCE_MS);
     },
     [focusedField, validateEmail],
@@ -306,7 +305,7 @@ export function useSignMascotInteraction({
       signupEmailRef.current = text;
       if (emailValidateTimerRef.current) clearTimeout(emailValidateTimerRef.current);
       emailValidateTimerRef.current = setTimeout(() => {
-        if (focusedField === 'signupEmail') validateEmail(text);
+        if (focusedField === "signupEmail") validateEmail(text);
       }, EMAIL_VALIDATE_DEBOUNCE_MS);
     },
     [focusedField, validateEmail],
@@ -353,7 +352,7 @@ export function useSignMascotInteraction({
   useEffect(() => {
     if (prevActiveViewRef.current !== activeView) {
       prevActiveViewRef.current = activeView;
-      const lines = activeView === 'signup' ? getSignupWelcomeLines(t) : getLoginWelcomeLines(t);
+      const lines = activeView === "signup" ? getSignupWelcomeLines(t) : getLoginWelcomeLines(t);
       showSpeech(pickRandomLine(lines), 3800);
     }
   }, [activeView, showSpeech, t]);
@@ -368,21 +367,24 @@ export function useSignMascotInteraction({
 
   useEffect(() => {
     const scheduleIdleLine = () => {
-      randomIdleTimerRef.current = setTimeout(() => {
-        const canSpeak =
-          !isSigningIn &&
-          !isSigningUp &&
-          !isPasswordFocused &&
-          focusedField !== 'loginEmail' &&
-          focusedField !== 'signupEmail' &&
-          focusedField !== 'signupPhone' &&
-          focusedField !== 'signupFullName';
+      randomIdleTimerRef.current = setTimeout(
+        () => {
+          const canSpeak =
+            !isSigningIn &&
+            !isSigningUp &&
+            !isPasswordFocused &&
+            focusedField !== "loginEmail" &&
+            focusedField !== "signupEmail" &&
+            focusedField !== "signupPhone" &&
+            focusedField !== "signupFullName";
 
-        if (canSpeak) {
-          showSpeech(pickRandomLine(getIdleMascotLines(t)), 3600);
-        }
-        scheduleIdleLine();
-      }, 16000 + Math.random() * 14000);
+          if (canSpeak) {
+            showSpeech(pickRandomLine(getIdleMascotLines(t)), 3600);
+          }
+          scheduleIdleLine();
+        },
+        16000 + Math.random() * 14000,
+      );
     };
 
     scheduleIdleLine();

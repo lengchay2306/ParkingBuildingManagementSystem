@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 export type StaffDetailCell = {
   id: string;
@@ -37,12 +37,12 @@ export function StaffSessionDetailGrid({ cells }: StaffSessionDetailGridProps) {
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.sm,
     },
     cell: {
-      width: '47%',
+      width: "47%",
       flexGrow: 1,
       backgroundColor: DesignColors.surface2,
       borderRadius: Radius.lg,
@@ -55,14 +55,14 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     label: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.8,
       fontSize: 10,
     },
     value: {
       ...Typography.body,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 16,
     },
   });

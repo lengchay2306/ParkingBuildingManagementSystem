@@ -1,37 +1,38 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useMemo } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
-import { Radius, Spacing } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { Radius, Spacing } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffDarkCardProps = {
   children: React.ReactNode;
-  accentBorder?: 'success' | 'warning' | 'danger' | 'primary' | 'none';
+  accentBorder?: "success" | "warning" | "danger" | "primary" | "none";
   style?: StyleProp<ViewStyle>;
 };
 
-export function StaffDarkCard({ children, accentBorder = 'none', style }: StaffDarkCardProps) {
+export function StaffDarkCard({ children, accentBorder = "none", style }: StaffDarkCardProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const borderColor =
-    accentBorder === 'success'
+    accentBorder === "success"
       ? DesignColors.accentEmerald
-      : accentBorder === 'warning'
+      : accentBorder === "warning"
         ? DesignColors.accentAmber
-        : accentBorder === 'danger'
+        : accentBorder === "danger"
           ? DesignColors.semanticDanger
-          : accentBorder === 'primary'
+          : accentBorder === "primary"
             ? DesignColors.primary
-            : 'transparent';
+            : "transparent";
 
   return (
     <View
       style={[
         styles.card,
-        accentBorder !== 'none' && { borderLeftWidth: 3, borderLeftColor: borderColor },
+        accentBorder !== "none" && { borderLeftWidth: 3, borderLeftColor: borderColor },
         style,
-      ]}>
+      ]}
+    >
       {children}
     </View>
   );

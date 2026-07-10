@@ -1,29 +1,31 @@
 /** Expo Router paths (route groups like `(customer)` are omitted from URLs). */
 export const AUTH_ROUTES = {
-  signIn: '/sign-platform',
+  signIn: "/sign-platform",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
 } as const;
 
 export const CUSTOMER_ROUTES = {
-  home: '/home',
-  parkingMap: '/parking-map',
-  reservations: '/reservations',
-  profile: '/profile',
-  settings: '/settings',
-  driver: '/driver',
+  home: "/home",
+  parkingMap: "/parking-map",
+  reservations: "/reservations",
+  profile: "/profile",
+  settings: "/settings",
+  driver: "/driver",
 } as const;
 
 export const STAFF_ROUTES = {
-  home: '/staff-home',
-  checkIn: '/staff-check-in',
-  slots: '/staff-slots',
-  slotDetail: '/staff-slots/[slotId]',
-  sessions: '/staff-sessions',
-  sessionDetail: '/staff-sessions/[sessionId]',
-  operations: '/staff-operations',
-  profile: '/staff-profile',
-  settings: '/staff-settings',
+  home: "/staff-home",
+  checkIn: "/staff-check-in",
+  slots: "/staff-slots",
+  slotDetail: "/staff-slots/[slotId]",
+  sessions: "/staff-sessions",
+  sessionDetail: "/staff-sessions/[sessionId]",
+  operations: "/staff-operations",
+  profile: "/staff-profile",
+  settings: "/staff-settings",
   /** Legacy alias — redirects to home. */
-  legacy: '/staff',
+  legacy: "/staff",
 } as const;
 
 export function staffSlotDetailPath(slotId: string) {
@@ -35,12 +37,12 @@ export function staffSessionDetailPath(sessionId: string) {
 }
 
 export const MANAGER_ROUTES = {
-  home: '/manager',
+  home: "/manager",
 } as const;
 
 export const ADMIN_ROUTES = {
-  home: '/admin',
-  dashboard: '/dashboard',
+  home: "/admin",
+  dashboard: "/dashboard",
 } as const;
 
 export const ROLE_ROUTES = {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,10 +6,10 @@ import {
   type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
-} from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+} from "react-native";
+import Svg, { Path } from "react-native-svg";
 
-import { Fonts } from '@/constants/theme';
+import { Fonts } from "@/constants/theme";
 
 const TYPE_INTERVAL_MS = 28;
 const RADIUS = 14;
@@ -25,17 +25,17 @@ export type BotSpeechBubbleTheme = {
 };
 
 export const BOT_SPEECH_BUBBLE_LIGHT: BotSpeechBubbleTheme = {
-  fill: '#ffffff',
-  stroke: '#3b82f6',
-  text: '#0f172a',
+  fill: "#ffffff",
+  stroke: "#3b82f6",
+  text: "#0f172a",
   borderWidth: 2,
   shadow: true,
 };
 
 export const BOT_SPEECH_BUBBLE_DARK: BotSpeechBubbleTheme = {
-  fill: '#16182a',
-  stroke: '#6366f1',
-  text: '#e2e8f0',
+  fill: "#16182a",
+  stroke: "#6366f1",
+  text: "#e2e8f0",
   borderWidth: 2,
   shadow: false,
 };
@@ -67,8 +67,8 @@ function buildBubblePath(width: number, bodyHeight: number): string {
     `Q 0 ${bottom} 0 ${bottom - r}`,
     `V ${r}`,
     `Q 0 0 ${r} 0`,
-    'Z',
-  ].join(' ');
+    "Z",
+  ].join(" ");
 }
 
 export function BotSpeechBubble({
@@ -81,21 +81,18 @@ export function BotSpeechBubble({
 }: BotSpeechBubbleProps) {
   const theme = isDark ? BOT_SPEECH_BUBBLE_DARK : BOT_SPEECH_BUBBLE_LIGHT;
   const resolvedTextColor = textColor ?? theme.text;
-  const [displayedText, setDisplayedText] = useState('');
+  const [displayedText, setDisplayedText] = useState("");
   const [frame, setFrame] = useState({ width: 0, height: 0 });
 
   const bubblePath = useMemo(
-    () =>
-      frame.width > 0 && frame.height > 0
-        ? buildBubblePath(frame.width, frame.height)
-        : '',
+    () => (frame.width > 0 && frame.height > 0 ? buildBubblePath(frame.width, frame.height) : ""),
     [frame.height, frame.width],
   );
 
   const svgHeight = frame.height + TAIL_H;
 
   useEffect(() => {
-    setDisplayedText('');
+    setDisplayedText("");
     if (!text) return;
 
     let charIndex = 0;
@@ -112,22 +109,21 @@ export function BotSpeechBubble({
 
   const onFrameLayout = (event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
-    setFrame((prev) =>
-      prev.width === width && prev.height === height ? prev : { width, height },
-    );
+    setFrame((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
   };
 
   return (
     <View
       style={[
         styles.shell,
-        { maxWidth, minWidth, width: '100%', paddingBottom: TAIL_H },
+        { maxWidth, minWidth, width: "100%", paddingBottom: TAIL_H },
         theme.shadow && styles.lightShadow,
         style,
       ]}
       accessibilityRole="text"
       accessibilityLiveRegion="polite"
-      accessibilityLabel={text}>
+      accessibilityLabel={text}
+    >
       <View style={styles.frame} onLayout={onFrameLayout}>
         {bubblePath ? (
           <Svg
@@ -135,7 +131,8 @@ export function BotSpeechBubble({
             style={styles.svgLayer}
             width={frame.width}
             height={svgHeight}
-            viewBox={`0 0 ${frame.width} ${svgHeight}`}>
+            viewBox={`0 0 ${frame.width} ${svgHeight}`}
+          >
             <Path
               d={bubblePath}
               fill={theme.fill}
@@ -150,7 +147,8 @@ export function BotSpeechBubble({
         <View style={styles.content}>
           <Text
             numberOfLines={3}
-            style={[styles.text, { color: resolvedTextColor, fontFamily: Fonts.sans }]}>
+            style={[styles.text, { color: resolvedTextColor, fontFamily: Fonts.sans }]}
+          >
             {displayedText}
           </Text>
         </View>
@@ -161,16 +159,16 @@ export function BotSpeechBubble({
 
 const styles = StyleSheet.create({
   shell: {
-    position: 'relative',
-    alignSelf: 'center',
-    overflow: 'visible',
+    position: "relative",
+    alignSelf: "center",
+    overflow: "visible",
   },
   frame: {
-    position: 'relative',
-    overflow: 'visible',
+    position: "relative",
+    overflow: "visible",
   },
   svgLayer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     zIndex: 0,
@@ -183,11 +181,11 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     lineHeight: 16,
-    textAlign: 'center',
-    fontWeight: '600',
+    textAlign: "center",
+    fontWeight: "600",
   },
   lightShadow: {
-    shadowColor: '#2563eb',
+    shadowColor: "#2563eb",
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },

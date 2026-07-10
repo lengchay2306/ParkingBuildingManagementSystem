@@ -1,33 +1,33 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import type { CustomerParkingSession } from '@/features/customer/api/parking';
-import type { UserVehicle } from '@/lib/auth-api';
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import type { CustomerParkingSession } from "@/features/customer/api/parking";
+import type { UserVehicle } from "@/lib/auth-api";
 
 function formatElapsed(checkInTime: string | undefined) {
   if (!checkInTime) {
-    return '00:00:00';
+    return "00:00:00";
   }
   const diff = Math.max(0, Date.now() - new Date(checkInTime).getTime());
   const hours = Math.floor(diff / 3_600_000);
   const mins = Math.floor((diff % 3_600_000) / 60_000);
   const secs = Math.floor((diff % 60_000) / 1_000);
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 function resolveSlotLabel(session: CustomerParkingSession | null) {
-  if (!session || typeof session.parkingSlotId !== 'object') {
-    return '—';
+  if (!session || typeof session.parkingSlotId !== "object") {
+    return "—";
   }
   const floor = session.parkingSlotId.floorId?.floorName;
   const slot = session.parkingSlotId.slotNumber;
   if (floor && slot) {
     return `${floor} · ${slot}`;
   }
-  return slot ?? '—';
+  return slot ?? "—";
 }
 
 type Props = {
@@ -47,7 +47,7 @@ export function CustomerHomeOverviewCard({
   DesignColors,
 }: Props) {
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const isParked = activeSession?.status?.toUpperCase() === 'ACTIVE';
+  const isParked = activeSession?.status?.toUpperCase() === "ACTIVE";
   const [elapsed, setElapsed] = useState(() => formatElapsed(activeSession?.checkInTime));
 
   useEffect(() => {
@@ -61,18 +61,18 @@ export function CustomerHomeOverviewCard({
     return () => clearInterval(timer);
   }, [activeSession?.checkInTime, isParked]);
 
-  const plate = defaultVehicle?.licensePlate ?? t('Chưa có xe', 'No vehicle');
+  const plate = defaultVehicle?.licensePlate ?? t("Chưa có xe", "No vehicle");
 
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
         <View style={styles.headerText}>
-          <ThemedText style={styles.caption}>{t('Xin chào', 'Welcome')}</ThemedText>
+          <ThemedText style={styles.caption}>{t("Xin chào", "Welcome")}</ThemedText>
           <ThemedText style={styles.name}>{fullName}</ThemedText>
         </View>
         <View style={styles.walletBadge}>
           <Ionicons name="wallet-outline" size={14} color={DesignColors.primary} />
-          <ThemedText style={styles.walletText}>{t('$24.50', '$24.50')}</ThemedText>
+          <ThemedText style={styles.walletText}>{t("$24.50", "$24.50")}</ThemedText>
         </View>
       </View>
 
@@ -80,11 +80,11 @@ export function CustomerHomeOverviewCard({
         <View style={[styles.statusPill, isParked ? styles.statusParked : styles.statusOutside]}>
           <View style={[styles.statusDot, isParked ? styles.dotParked : styles.dotOutside]} />
           <ThemedText style={styles.statusText}>
-            {isParked ? t('Đang trong bãi', 'Parked') : t('Ngoài bãi', 'Outside')}
+            {isParked ? t("Đang trong bãi", "Parked") : t("Ngoài bãi", "Outside")}
           </ThemedText>
         </View>
         <View style={styles.plateBadge}>
-          <ThemedText style={styles.plateLabel}>{t('Biển số', 'Plate')}</ThemedText>
+          <ThemedText style={styles.plateLabel}>{t("Biển số", "Plate")}</ThemedText>
           <ThemedText style={styles.plateValue}>{plate}</ThemedText>
         </View>
       </View>
@@ -92,19 +92,21 @@ export function CustomerHomeOverviewCard({
       {isParked ? (
         <View style={styles.activeSession}>
           <View style={styles.activeHeader}>
-            <ThemedText style={styles.activeEyebrow}>{t('Phiên đang mở', 'Active session')}</ThemedText>
+            <ThemedText style={styles.activeEyebrow}>
+              {t("Phiên đang mở", "Active session")}
+            </ThemedText>
             <ThemedText style={styles.activeSlot}>{resolveSlotLabel(activeSession)}</ThemedText>
           </View>
           <ThemedText style={styles.activeTimer}>{elapsed}</ThemedText>
           <ThemedText style={styles.activeHint}>
-            {t('Thời gian gửi từ lúc check-in', 'Time since check-in')}
+            {t("Thời gian gửi từ lúc check-in", "Time since check-in")}
           </ThemedText>
         </View>
       ) : (
         <ThemedText style={styles.outsideHint}>
           {t(
-            'Xe chưa trong bãi. Quét QR hoặc đặt chỗ trước khi đến.',
-            'Vehicle is not in the lot. Scan QR or reserve before arrival.',
+            "Xe chưa trong bãi. Quét QR hoặc đặt chỗ trước khi đến.",
+            "Vehicle is not in the lot. Scan QR or reserve before arrival.",
           )}
         </ThemedText>
       )}
@@ -123,9 +125,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: Spacing.sm,
     },
     headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
       gap: Spacing.sm,
     },
     headerText: {
@@ -141,8 +143,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.ink,
     },
     walletBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
       borderRadius: Radius.pill,
       borderWidth: 1,
@@ -154,18 +156,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     walletText: {
       ...Typography.caption,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     statusRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
-      flexWrap: 'wrap',
+      flexWrap: "wrap",
     },
     statusPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
       borderRadius: Radius.pill,
       paddingHorizontal: Spacing.sm,
@@ -193,11 +195,11 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     statusText: {
       ...Typography.caption,
-      fontWeight: '600',
+      fontWeight: "600",
       color: DesignColors.ink,
     },
     plateBadge: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
       gap: 2,
     },
     plateLabel: {
@@ -218,15 +220,15 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: 4,
     },
     activeHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     activeEyebrow: {
       ...Typography.caption,
       color: DesignColors.primary,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     activeSlot: {
       ...Typography.caption,

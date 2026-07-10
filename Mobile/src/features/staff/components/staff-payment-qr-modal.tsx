@@ -1,23 +1,12 @@
-import React, { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useMemo } from "react";
+import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { StaffActionButton } from '@/features/staff/components/staff-action-button';
-import {
-  formatVnd,
-  vietQrImageUri,
-  type StaffBillQrResult,
-} from '@/features/payment/api';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { StaffActionButton } from "@/features/staff/components/staff-action-button";
+import { formatVnd, vietQrImageUri, type StaffBillQrResult } from "@/features/payment/api";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffPaymentQrModalProps = {
   visible: boolean;
@@ -48,15 +37,15 @@ export function StaffPaymentQrModal({
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
           <View style={styles.header}>
-            <ThemedText style={styles.title}>{t('Thanh toán VietQR', 'VietQR payment')}</ThemedText>
+            <ThemedText style={styles.title}>{t("Thanh toán VietQR", "VietQR payment")}</ThemedText>
             <Pressable onPress={onClose} hitSlop={12}>
-              <ThemedText style={styles.close}>{t('Đóng', 'Close')}</ThemedText>
+              <ThemedText style={styles.close}>{t("Đóng", "Close")}</ThemedText>
             </Pressable>
           </View>
 
           <ThemedText style={styles.subtitle}>
-            {t('Khách quét mã để thanh toán phí gửi xe', 'Customer scans to pay parking fee')}
-            {plate ? ` · ${plate}` : ''}
+            {t("Khách quét mã để thanh toán phí gửi xe", "Customer scans to pay parking fee")}
+            {plate ? ` · ${plate}` : ""}
           </ThemedText>
 
           {!bill ? (
@@ -67,18 +56,18 @@ export function StaffPaymentQrModal({
             <>
               <View style={styles.metaRow}>
                 <View style={styles.metaItem}>
-                  <ThemedText style={styles.metaLabel}>{t('Số tiền', 'Amount')}</ThemedText>
+                  <ThemedText style={styles.metaLabel}>{t("Số tiền", "Amount")}</ThemedText>
                   <ThemedText style={styles.metaValue}>{formatVnd(bill.amount)}</ThemedText>
                 </View>
                 <View style={styles.metaItem}>
-                  <ThemedText style={styles.metaLabel}>{t('Thời gian', 'Duration')}</ThemedText>
+                  <ThemedText style={styles.metaLabel}>{t("Thời gian", "Duration")}</ThemedText>
                   <ThemedText style={styles.metaValue}>
-                    {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} h` : '—'}
+                    {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} h` : "—"}
                   </ThemedText>
                 </View>
               </View>
               <ThemedText style={styles.orderCode}>
-                {t('Mã đơn', 'Order')}: {bill.orderCode}
+                {t("Mã đơn", "Order")}: {bill.orderCode}
               </ThemedText>
 
               <View style={styles.qrWrap}>
@@ -90,7 +79,7 @@ export function StaffPaymentQrModal({
               <StaffActionButton
                 disabled={isConfirming}
                 loading={isConfirming}
-                label={t('Đã thanh toán — xác nhận ra cổng', 'Paid — confirm exit')}
+                label={t("Đã thanh toán — xác nhận ra cổng", "Paid — confirm exit")}
                 onPress={onConfirm}
               />
             </>
@@ -105,8 +94,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     backdrop: {
       flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0,0,0,0.55)',
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0,0,0,0.55)",
     },
     sheet: {
       borderTopLeftRadius: Radius.xl,
@@ -119,9 +108,9 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.sm,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
     title: {
       ...Typography.cardTitle,
@@ -130,7 +119,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     close: {
       ...Typography.bodySm,
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     subtitle: {
       ...Typography.bodySm,
@@ -138,11 +127,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     loadingBox: {
       height: 200,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     metaRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
     },
     metaItem: {
@@ -156,22 +145,22 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     metaLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     metaValue: {
       ...Typography.subhead,
       color: DesignColors.ink,
       marginTop: 4,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     orderCode: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      fontFamily: 'monospace',
+      fontFamily: "monospace",
     },
     qrWrap: {
-      alignSelf: 'center',
-      backgroundColor: '#ffffff',
+      alignSelf: "center",
+      backgroundColor: "#ffffff",
       borderRadius: Radius.md,
       padding: Spacing.sm,
       marginVertical: Spacing.xs,

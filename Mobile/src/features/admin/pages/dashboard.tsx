@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import React, { useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
-import { useAppToast } from '@/components/app-toast';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useProtectedSession } from '@/hooks/use-protected-session';
-import { useSessionRole } from '@/hooks/session-role';
-import { logout } from '@/lib/auth-api';
-import { Spacing } from '@/constants/theme';
-import { AUTH_ROUTES } from '@/roles';
+import { useAppToast } from "@/components/app-toast";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useProtectedSession } from "@/hooks/use-protected-session";
+import { useSessionRole } from "@/hooks/session-role";
+import { logout } from "@/lib/auth-api";
+import { Spacing } from "@/constants/theme";
+import { AUTH_ROUTES } from "@/roles";
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -25,13 +25,10 @@ export default function DashboardScreen() {
     try {
       await logout();
       await refreshRole();
-      showToast('Logged out successfully', 'success');
+      showToast("Logged out successfully", "success");
       router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
-      showToast(
-        logoutError instanceof Error ? logoutError.message : 'Cannot log out',
-        'error',
-      );
+      showToast(logoutError instanceof Error ? logoutError.message : "Cannot log out", "error");
     } finally {
       setIsLoggingOut(false);
     }
@@ -47,7 +44,8 @@ export default function DashboardScreen() {
           <Pressable
             disabled={isLoggingOut}
             onPress={handleLogout}
-            style={({ pressed }) => [styles.logoutButton, pressed && styles.buttonPressed]}>
+            style={({ pressed }) => [styles.logoutButton, pressed && styles.buttonPressed]}
+          >
             {isLoggingOut ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
@@ -63,45 +61,45 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#010102',
+    backgroundColor: "#010102",
   },
   safeArea: {
     flex: 1,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: Spacing.three,
     gap: Spacing.two,
   },
   title: {
-    color: '#f7f8f8',
+    color: "#f7f8f8",
     fontSize: 24,
     lineHeight: 28,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   subtitle: {
-    color: '#8a8f98',
+    color: "#8a8f98",
     fontSize: 15,
     lineHeight: 22,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: Spacing.two,
   },
   logoutButton: {
     minHeight: 40,
     minWidth: 140,
     borderRadius: 8,
-    backgroundColor: '#5e6ad2',
+    backgroundColor: "#5e6ad2",
     paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   logoutButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   buttonPressed: {
     opacity: 0.8,

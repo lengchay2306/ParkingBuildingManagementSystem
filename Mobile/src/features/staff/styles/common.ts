@@ -1,7 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import { MaxContentWidth } from '@/constants/theme';
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import { MaxContentWidth } from "@/constants/theme";
 
 export function createStaffStyles(DesignColors: DesignColorPalette) {
   return StyleSheet.create({
@@ -13,16 +13,16 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.section,
       gap: Spacing.lg,
-      width: '100%',
+      width: "100%",
       maxWidth: MaxContentWidth,
-      alignSelf: 'center',
+      alignSelf: "center",
     },
     header: {
       gap: Spacing.xs,
     },
     eyebrow: {
       ...Typography.eyebrow,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       color: DesignColors.inkSubtle,
       letterSpacing: 1.2,
       fontSize: 11,
@@ -30,7 +30,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     title: {
       ...Typography.pageTitle,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     subtitle: {
       ...Typography.body,
@@ -64,9 +64,9 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       elevation: 4,
     },
     scanCtaButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: Spacing.sm,
       borderRadius: Radius.lg,
       borderWidth: 1,
@@ -88,14 +88,14 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     scanCtaButtonText: {
       ...Typography.button,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       letterSpacing: 0.8,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     searchRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
-      alignItems: 'stretch',
+      alignItems: "stretch",
     },
     searchInput: {
       flex: 1,
@@ -103,38 +103,38 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     fieldLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.8,
       fontSize: 11,
       marginBottom: -4,
     },
     actionRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
     },
     actionRowItem: {
       flex: 1,
     },
     fullWidthButton: {
-      width: '100%',
+      width: "100%",
     },
     buttonPressed: {
       opacity: 0.88,
     },
     sessionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
     },
     linkText: {
       ...Typography.caption,
       color: DesignColors.accentSky,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     sessionPlate: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     sessionDetail: {
       ...Typography.bodySm,
@@ -142,22 +142,22 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     },
     scannerLoading: {
       ...StyleSheet.absoluteFillObject,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(11,15,25,0.6)',
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(11,15,25,0.6)",
       zIndex: 100,
     },
     vehicleFoundCard: {
       borderRadius: Radius.lg,
       borderWidth: 1,
-      borderColor: 'rgba(16,185,129,0.35)',
-      backgroundColor: 'rgba(16,185,129,0.08)',
+      borderColor: "rgba(16,185,129,0.35)",
+      backgroundColor: "rgba(16,185,129,0.08)",
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
       gap: 2,
     },
     metricRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
     },
     metricBadge: {
@@ -168,25 +168,25 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       backgroundColor: DesignColors.surface2,
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.sm,
-      alignItems: 'center',
+      alignItems: "center",
       gap: 4,
     },
     metricBadgeAvailable: {
-      borderColor: 'rgba(16,185,129,0.35)',
-      backgroundColor: 'rgba(16,185,129,0.08)',
+      borderColor: "rgba(16,185,129,0.35)",
+      backgroundColor: "rgba(16,185,129,0.08)",
     },
     metricBadgeInUse: {
-      borderColor: 'rgba(245,158,11,0.35)',
-      backgroundColor: 'rgba(245,158,11,0.08)',
+      borderColor: "rgba(245,158,11,0.35)",
+      backgroundColor: "rgba(245,158,11,0.08)",
     },
     metricBadgeTotal: {
-      borderColor: 'rgba(96,165,250,0.3)',
-      backgroundColor: 'rgba(96,165,250,0.08)',
+      borderColor: "rgba(96,165,250,0.3)",
+      backgroundColor: "rgba(96,165,250,0.08)",
     },
     metricLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.6,
       fontSize: 10,
     },
@@ -203,8 +203,8 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.accentSky,
     },
     slotGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.sm,
     },
     slotChip: {
@@ -217,7 +217,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     },
     slotChipSelected: {
       borderColor: DesignColors.accentViolet,
-      backgroundColor: 'rgba(139,92,246,0.12)',
+      backgroundColor: "rgba(139,92,246,0.12)",
       shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.35,
@@ -230,15 +230,15 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     slotChipText: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     slotChipTextSelected: {
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     floorRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
       borderTopWidth: 1,
       borderTopColor: DesignColors.hairline,
       paddingTop: Spacing.xs,
@@ -252,12 +252,12 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkMuted,
     },
     quickGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.sm,
     },
     quickItem: {
-      flexBasis: '47%',
+      flexBasis: "47%",
       flexGrow: 1,
       borderRadius: Radius.lg,
       borderWidth: 1,
@@ -265,20 +265,20 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       backgroundColor: DesignColors.surface2,
       paddingVertical: Spacing.md,
       paddingHorizontal: Spacing.sm,
-      alignItems: 'center',
+      alignItems: "center",
     },
     quickText: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '500',
-      textAlign: 'center',
+      fontWeight: "500",
+      textAlign: "center",
     },
     sessionList: {
       gap: Spacing.sm,
     },
     sessionRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
       gap: Spacing.sm,
       borderRadius: Radius.lg,
       borderWidth: 1,
@@ -297,7 +297,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     },
     sessionRowPlate: {
       ...Typography.bodySm,
-      fontWeight: '600',
+      fontWeight: "600",
       color: DesignColors.ink,
       letterSpacing: 0.4,
     },
@@ -306,23 +306,23 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkMuted,
     },
     sessionRowRight: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
       gap: Spacing.xs,
-      justifyContent: 'center',
+      justifyContent: "center",
     },
     statusBadgeActive: {
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(16,185,129,0.12)',
+      backgroundColor: "rgba(16,185,129,0.12)",
       borderWidth: 1,
-      borderColor: 'rgba(16,185,129,0.35)',
+      borderColor: "rgba(16,185,129,0.35)",
       paddingHorizontal: Spacing.sm,
       paddingVertical: 3,
     },
     statusBadgeTextActive: {
       ...Typography.caption,
       color: DesignColors.accentEmerald,
-      textTransform: 'uppercase',
-      fontWeight: '600',
+      textTransform: "uppercase",
+      fontWeight: "600",
       fontSize: 10,
       letterSpacing: 0.5,
     },
@@ -344,7 +344,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     },
     navCardTitle: {
       ...Typography.bodySm,
-      fontWeight: '600',
+      fontWeight: "600",
       color: DesignColors.ink,
     },
     navCardMeta: {
@@ -352,8 +352,8 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkMuted,
     },
     settingsButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       borderRadius: Radius.xl,
       borderWidth: 1,
@@ -370,15 +370,15 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     profileName: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     profileMeta: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
     },
     slotStatusAvailable: {
-      backgroundColor: 'rgba(16,185,129,0.06)',
-      borderColor: 'rgba(16,185,129,0.4)',
+      backgroundColor: "rgba(16,185,129,0.06)",
+      borderColor: "rgba(16,185,129,0.4)",
       shadowColor: DesignColors.accentEmerald,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.25,
@@ -386,31 +386,31 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       elevation: 2,
     },
     slotStatusInUse: {
-      backgroundColor: 'rgba(245,158,11,0.10)',
-      borderColor: 'rgba(245,158,11,0.45)',
+      backgroundColor: "rgba(245,158,11,0.10)",
+      borderColor: "rgba(245,158,11,0.45)",
     },
     slotStatusUnavailable: {
       backgroundColor: DesignColors.surface3,
       borderColor: DesignColors.hairline,
     },
     slotCell: {
-      width: '30%',
+      width: "30%",
       aspectRatio: 1,
       borderRadius: Radius.lg,
       borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     slotCellInner: {
       flex: 1,
-      width: '100%',
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
     },
     slotCellText: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
       letterSpacing: 0.3,
     },
     slotCellTextInUse: {
@@ -424,13 +424,13 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       borderRadius: Radius.xl,
       borderWidth: 1,
       padding: Spacing.lg,
-      justifyContent: 'flex-end',
+      justifyContent: "flex-end",
       gap: Spacing.xs,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     slotHeroHeaderAvailable: {
-      backgroundColor: 'rgba(16,185,129,0.08)',
-      borderColor: 'rgba(16,185,129,0.4)',
+      backgroundColor: "rgba(16,185,129,0.08)",
+      borderColor: "rgba(16,185,129,0.4)",
     },
     slotHeroHeaderInUse: {
       backgroundColor: DesignColors.surface2,
@@ -445,18 +445,18 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     slotHeroEyebrow: {
       ...Typography.eyebrow,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       fontSize: 11,
     },
     slotHeroTitle: {
       ...Typography.headline,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     slotHeroStatus: {
       ...Typography.caption,
-      textTransform: 'uppercase',
-      fontWeight: '600',
+      textTransform: "uppercase",
+      fontWeight: "600",
       letterSpacing: 0.8,
     },
     slotHeroStatusAvailable: {
@@ -472,13 +472,13 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       opacity: 0,
     },
     slotHeroFill: {
-      width: '100%',
-      height: '100%',
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: "100%",
+      height: "100%",
+      alignItems: "center",
+      justifyContent: "center",
     },
     slotPressable: {
-      width: '30%',
+      width: "30%",
       aspectRatio: 1,
     },
     slotPressablePressed: {
@@ -489,7 +489,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.md,
     },
     floorTabs: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.xs,
       paddingVertical: 2,
     },
@@ -501,19 +501,19 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       backgroundColor: DesignColors.surface2,
       paddingVertical: Spacing.xs,
       paddingHorizontal: Spacing.sm,
-      alignItems: 'center',
-      flexDirection: 'row',
+      alignItems: "center",
+      flexDirection: "row",
       gap: 6,
     },
     floorTabBadge: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
       fontSize: 10,
-      fontWeight: '600',
+      fontWeight: "600",
       minWidth: 18,
-      textAlign: 'center',
+      textAlign: "center",
       borderRadius: Radius.pill,
-      overflow: 'hidden',
+      overflow: "hidden",
       paddingHorizontal: 5,
       paddingVertical: 1,
       backgroundColor: DesignColors.surface3,
@@ -522,18 +522,18 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       ...Typography.caption,
       color: DesignColors.accentViolet,
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: "700",
       minWidth: 18,
-      textAlign: 'center',
+      textAlign: "center",
       borderRadius: Radius.pill,
-      overflow: 'hidden',
+      overflow: "hidden",
       paddingHorizontal: 5,
       paddingVertical: 1,
-      backgroundColor: 'rgba(139,92,246,0.2)',
+      backgroundColor: "rgba(139,92,246,0.2)",
     },
     floorTabActive: {
       borderColor: DesignColors.accentViolet,
-      backgroundColor: 'rgba(139,92,246,0.12)',
+      backgroundColor: "rgba(139,92,246,0.12)",
     },
     floorTabPressed: {
       opacity: 0.88,
@@ -546,7 +546,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     floorTabTextActive: {
       ...Typography.button,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 13,
     },
     floorMeta: {
@@ -561,19 +561,19 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     floorMetaTitle: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     floorMetaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
-      flexWrap: 'wrap',
+      flexWrap: "wrap",
     },
     floorMetaStats: {
       ...Typography.caption,
       color: DesignColors.accentEmerald,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     floorMetaStatsMuted: {
       ...Typography.caption,
@@ -584,13 +584,13 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkMuted,
     },
     legendRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.md,
     },
     legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
     },
     legendDot: {
@@ -607,9 +607,9 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.sm,
     },
     slotPickerMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       borderRadius: Radius.md,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -620,7 +620,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     slotPickerMetaText: {
       ...Typography.caption,
       color: DesignColors.accentEmerald,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     slotPickerMetaMuted: {
       ...Typography.caption,
@@ -628,24 +628,24 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       fontSize: 11,
     },
     compactSlotGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.xs,
     },
     compactSlotCell: {
-      width: '18.5%',
+      width: "18.5%",
       minWidth: 52,
       aspectRatio: 1.05,
       borderRadius: Radius.md,
       borderWidth: 1,
       borderColor: DesignColors.hairlineStrong,
       backgroundColor: DesignColors.surface3,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     compactSlotCellSelected: {
       borderColor: DesignColors.accentViolet,
-      backgroundColor: 'rgba(139,92,246,0.18)',
+      backgroundColor: "rgba(139,92,246,0.18)",
       shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.45,
@@ -659,13 +659,13 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     compactSlotCellText: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 11,
       letterSpacing: 0.2,
     },
     compactSlotCellTextSelected: {
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
     },
   });
 }

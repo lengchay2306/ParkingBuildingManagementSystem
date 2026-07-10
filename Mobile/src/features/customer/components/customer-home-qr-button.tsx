@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useEffect, useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -8,11 +8,11 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { ScalePressable } from '@/components/scale-pressable';
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
+import { ScalePressable } from "@/components/scale-pressable";
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
 
 type Props = {
   onPress: () => void;
@@ -61,10 +61,10 @@ export function CustomerHomeQrButton({ onPress, t, DesignColors }: Props) {
           </View>
           <View style={styles.textBlock}>
             <ThemedText style={styles.title}>
-              {t('Quét mã QR / Thanh toán', 'Scan QR / Pay')}
+              {t("Quét mã QR / Thanh toán", "Scan QR / Pay")}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              {t('Ra vào cổng nhanh chóng', 'Fast gate entry & exit')}
+              {t("Ra vào cổng nhanh chóng", "Fast gate entry & exit")}
             </ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={DesignColors.onPrimary} />
@@ -77,24 +77,24 @@ export function CustomerHomeQrButton({ onPress, t, DesignColors }: Props) {
 const createStyles = (DesignColors: DesignColorPalette) =>
   StyleSheet.create({
     wrap: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       paddingVertical: Spacing.xs,
     },
     pulseRing: {
-      position: 'absolute',
-      width: '100%',
+      position: "absolute",
+      width: "100%",
       height: 72,
       borderRadius: Radius.xl,
       backgroundColor: DesignColors.primary,
     },
     button: {
-      width: '100%',
+      width: "100%",
       minHeight: 72,
       borderRadius: Radius.xl,
       backgroundColor: DesignColors.primary,
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
@@ -108,9 +108,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       width: 48,
       height: 48,
       borderRadius: Radius.lg,
-      backgroundColor: 'rgba(255,255,255,0.16)',
-      alignItems: 'center',
-      justifyContent: 'center',
+      backgroundColor: "rgba(255,255,255,0.16)",
+      alignItems: "center",
+      justifyContent: "center",
     },
     textBlock: {
       flex: 1,
@@ -122,6 +122,6 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     subtitle: {
       ...Typography.caption,
-      color: 'rgba(255,255,255,0.82)',
+      color: "rgba(255,255,255,0.82)",
     },
   });

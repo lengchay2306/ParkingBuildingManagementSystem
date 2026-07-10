@@ -1,4 +1,4 @@
-export { APP_ROLES, isAppRole, normalizeAppRole, type AppRole } from '@/roles/types';
+export { APP_ROLES, isAppRole, normalizeAppRole, type AppRole } from "@/roles/types";
 export {
   ADMIN_ROUTES,
   AUTH_ROUTES,
@@ -9,5 +9,5 @@ export {
   staffSlotDetailPath,
   staffSessionDetailPath,
   type PostLoginRoute,
-} from '@/roles/routes';
-export { resolvePostLoginRoute, resolveRoleLabel, roleHomeRoute } from '@/roles/navigation';
+} from "@/roles/routes";
+export { resolvePostLoginRoute, resolveRoleLabel, roleHomeRoute } from "@/roles/navigation";

@@ -1,31 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Dimensions,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { GLView, type ExpoWebGLRenderingContext } from 'expo-gl';
-import { Renderer, THREE } from 'expo-three';
-import { useRouter } from 'expo-router';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { DesignColorPalette, DesignColors, Radius, Spacing, Typography } from '@/constants/design';
-import { MaxContentWidth } from '@/constants/theme';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { useGrayscale } from '@/hooks/use-grayscale';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { useThemePreference } from '@/hooks/theme-preference';
-import { resolveThreeColor } from '@/lib/three-color';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dimensions, PanResponder, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { GLView, type ExpoWebGLRenderingContext } from "expo-gl";
+import { Renderer, THREE } from "expo-three";
+import { useRouter } from "expo-router";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { DesignColorPalette, DesignColors, Radius, Spacing, Typography } from "@/constants/design";
+import { MaxContentWidth } from "@/constants/theme";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { useGrayscale } from "@/hooks/use-grayscale";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { useThemePreference } from "@/hooks/theme-preference";
+import { resolveThreeColor } from "@/lib/three-color";
 import {
   floorLabel,
   floorTabLabel,
   PARKING_FLOORS,
   vehicleTypeLabel,
   type ParkingFloorConfig,
-} from '@/lib/parking-floor-config';
+} from "@/lib/parking-floor-config";
 
 /* ── Map palette — realistic parking garage tones ───────────── */
 type MapPalette = {
@@ -43,82 +36,79 @@ type MapPalette = {
 };
 
 const MAP_COLORS_DARK: MapPalette = {
-  lane: '#3f444a',
-  laneMark: '#d8dce1',
-  ramp: '#5a5448',
-  rampUpHead: '#756745',
-  rampDownHead: '#5e5850',
-  rampMark: '#e3c463',
-  flowIn: '#4a4f56',
-  flowOut: '#57534a',
-  entry: '#454a52',
+  lane: "#3f444a",
+  laneMark: "#d8dce1",
+  ramp: "#5a5448",
+  rampUpHead: "#756745",
+  rampDownHead: "#5e5850",
+  rampMark: "#e3c463",
+  flowIn: "#4a4f56",
+  flowOut: "#57534a",
+  entry: "#454a52",
   platform: DesignColors.surface2,
-  stallLine: '#8f96a3',
+  stallLine: "#8f96a3",
 };
 
 const MAP_COLORS_LIGHT: MapPalette = {
-  lane: '#667d9b',
-  laneMark: '#ffffff',
-  ramp: '#876f46',
-  rampUpHead: '#745810',
-  rampDownHead: '#74624a',
-  rampMark: '#ba912f',
-  flowIn: '#5f7593',
-  flowOut: '#756a5b',
-  entry: '#566f92',
-  platform: '#b7c7db',
-  stallLine: '#4d607f',
+  lane: "#667d9b",
+  laneMark: "#ffffff",
+  ramp: "#876f46",
+  rampUpHead: "#745810",
+  rampDownHead: "#74624a",
+  rampMark: "#ba912f",
+  flowIn: "#5f7593",
+  flowOut: "#756a5b",
+  entry: "#566f92",
+  platform: "#b7c7db",
+  stallLine: "#4d607f",
 };
 
 let MapColors: MapPalette = MAP_COLORS_DARK;
 
 /* ── Slot status — muted but readable in dark mode ─────────── */
 const SlotStatusColors = {
-  empty: '#365741',
-  'in-use': '#4d5360',
-  reserved: '#665e4a',
-  maintenance: '#6b4c4c',
-  locked: '#454951',
+  empty: "#365741",
+  "in-use": "#4d5360",
+  reserved: "#665e4a",
+  maintenance: "#6b4c4c",
+  locked: "#454951",
 } as const;
 
 const SlotStatusColorsLight = {
-  empty: '#2f9b53',
-  'in-use': '#4e5f76',
-  reserved: '#9a7a35',
-  maintenance: '#b35d4f',
-  locked: '#6c7482',
+  empty: "#2f9b53",
+  "in-use": "#4e5f76",
+  reserved: "#9a7a35",
+  maintenance: "#b35d4f",
+  locked: "#6c7482",
 } as const;
 
 const GrayscaleStatusColors = {
-  empty: '#383838',
-  'in-use': '#525252',
-  reserved: '#484848',
-  maintenance: '#444444',
-  locked: '#2e2e2e',
+  empty: "#383838",
+  "in-use": "#525252",
+  reserved: "#484848",
+  maintenance: "#444444",
+  locked: "#2e2e2e",
 } as const;
 
 type SlotStatus = keyof typeof SlotStatusColors;
 
 const statusLabel = (status: SlotStatus, t: (vi: string, en: string) => string): string => {
   const labels: Record<SlotStatus, string> = {
-    empty: t('Trống', 'Empty'),
-    'in-use': t('Đang sử dụng', 'In use'),
-    reserved: t('Đã đặt trước', 'Reserved'),
-    maintenance: t('Bảo trì', 'Maintenance'),
-    locked: t('Tạm khóa', 'Locked'),
+    empty: t("Trống", "Empty"),
+    "in-use": t("Đang sử dụng", "In use"),
+    reserved: t("Đã đặt trước", "Reserved"),
+    maintenance: t("Bảo trì", "Maintenance"),
+    locked: t("Tạm khóa", "Locked"),
   };
   return labels[status];
 };
 
-const selectionAccentColor = (
-  resolvedScheme: 'light' | 'dark',
-  grayscale: boolean,
-): string => {
-  if (grayscale) return '#9a9a9a';
-  return resolvedScheme === 'light' ? '#3f5f8a' : '#8aa6d9';
+const selectionAccentColor = (resolvedScheme: "light" | "dark", grayscale: boolean): string => {
+  if (grayscale) return "#9a9a9a";
+  return resolvedScheme === "light" ? "#3f5f8a" : "#8aa6d9";
 };
 
-type ParkingClass = 'motorcycle' | 'car' | 'car-large';
+type ParkingClass = "motorcycle" | "car" | "car-large";
 
 type ParkingStandard = {
   stallW: number;
@@ -132,7 +122,7 @@ type ParkingStandard = {
 const PARKING_STANDARDS: Record<ParkingClass, ParkingStandard> = {
   motorcycle: { stallW: 0.9, stallD: 2.0, aisleW: 2.8, gap: 0.1, rampW: 0.35, crossW: 3.0 },
   car: { stallW: 2.5, stallD: 4.8, aisleW: 5.5, gap: 0.14, rampW: 0.42, crossW: 5.5 },
-  'car-large': { stallW: 2.8, stallD: 5.4, aisleW: 6.0, gap: 0.16, rampW: 0.45, crossW: 6.0 },
+  "car-large": { stallW: 2.8, stallD: 5.4, aisleW: 6.0, gap: 0.16, rampW: 0.45, crossW: 6.0 },
 };
 
 type FloorConfig = ParkingFloorConfig;
@@ -212,7 +202,7 @@ type SlotInfo = {
   floor: number;
   row: number;
   aisle: number;
-  side: 'L' | 'R';
+  side: "L" | "R";
   status: SlotStatus;
 };
 
@@ -221,20 +211,20 @@ type SlotPlacement = {
   z: number;
   row: number;
   aisle: number;
-  side: 'L' | 'R';
+  side: "L" | "R";
 };
 
-type RoadFlow = 'pz' | 'nz' | 'px' | 'nx';
+type RoadFlow = "pz" | "nz" | "px" | "nx";
 
 type RoadKind =
-  | 'entry-in'
-  | 'entry-out'
-  | 'cross-in'
-  | 'cross-out'
-  | 'lane'
-  | 'ramp-up'
-  | 'ramp-down'
-  | 'ramp-side';
+  | "entry-in"
+  | "entry-out"
+  | "cross-in"
+  | "cross-out"
+  | "lane"
+  | "ramp-up"
+  | "ramp-down"
+  | "ramp-side";
 
 type RoadSegment = {
   cx: number;
@@ -277,23 +267,22 @@ function getStd(config: FloorConfig): ParkingStandard {
   return PARKING_STANDARDS[config.parkingClass];
 }
 
-function hashSlotStatus(
-  floor: number,
-  row: number,
-  aisle: number,
-  side: number,
-): SlotStatus {
+function hashSlotStatus(floor: number, row: number, aisle: number, side: number): SlotStatus {
   const n = (floor * 19 + row * 13 + aisle * 7 + side * 3) % 24;
-  if (n < 9) return 'empty';
-  if (n < 15) return 'in-use';
-  if (n < 19) return 'reserved';
-  if (n < 22) return 'maintenance';
-  return 'locked';
+  if (n < 9) return "empty";
+  if (n < 15) return "in-use";
+  if (n < 19) return "reserved";
+  if (n < 22) return "maintenance";
+  return "locked";
 }
 
-function statusColor(status: SlotStatus, grayscale: boolean, resolvedScheme: 'light' | 'dark'): string {
+function statusColor(
+  status: SlotStatus,
+  grayscale: boolean,
+  resolvedScheme: "light" | "dark",
+): string {
   if (grayscale) return GrayscaleStatusColors[status];
-  return resolvedScheme === 'light' ? SlotStatusColorsLight[status] : SlotStatusColors[status];
+  return resolvedScheme === "light" ? SlotStatusColorsLight[status] : SlotStatusColors[status];
 }
 
 function countSlots(config: FloorConfig): number {
@@ -303,7 +292,7 @@ function countSlots(config: FloorConfig): number {
 /** Module double-loaded: [ô trái][làn][ô phải] × N, đỗ vuông góc 90° */
 function computeFloorLayout(config: FloorConfig): FloorLayout {
   const std = getStd(config);
-  const carLike = config.parkingClass !== 'motorcycle';
+  const carLike = config.parkingClass !== "motorcycle";
   const stallW = std.stallW;
   const stallD = std.stallD * (carLike ? 1.06 : 1);
   const aisleW = std.aisleW * (carLike ? 1.16 : 1);
@@ -324,22 +313,22 @@ function computeFloorLayout(config: FloorConfig): FloorLayout {
       const z = -totalDepth / 2 + row * pitchZ + stallW / 2;
       const xLeft = moduleX + stallD / 2;
       const xRight = moduleX + stallD + aisleW + stallD / 2;
-      slots.push({ x: xLeft, z, row, aisle, side: 'L' });
-      slots.push({ x: xRight, z, row, aisle, side: 'R' });
+      slots.push({ x: xLeft, z, row, aisle, side: "L" });
+      slots.push({ x: xRight, z, row, aisle, side: "R" });
     }
     moduleX += moduleW;
   }
 
   const roads = computeRoadNetwork(config, std, { lanes, totalWidth, totalDepth });
   const noParkingKinds = new Set<RoadKind>([
-    'entry-in',
-    'entry-out',
-    'cross-in',
-    'cross-out',
-    'lane',
-    'ramp-up',
-    'ramp-down',
-    'ramp-side',
+    "entry-in",
+    "entry-out",
+    "cross-in",
+    "cross-out",
+    "lane",
+    "ramp-up",
+    "ramp-down",
+    "ramp-side",
   ]);
   const centerClearanceX = Math.max(0.04, stallD * 0.08);
   const centerClearanceZ = Math.max(0.04, stallW * 0.08);
@@ -384,11 +373,11 @@ function renumberSlotRows(slots: SlotPlacement[]): SlotPlacement[] {
 function computeRoadNetwork(
   config: FloorConfig,
   std: ParkingStandard,
-  layout: Pick<FloorLayout, 'lanes' | 'totalWidth' | 'totalDepth'>,
+  layout: Pick<FloorLayout, "lanes" | "totalWidth" | "totalDepth">,
 ): RoadSegment[] {
   const tw = layout.totalWidth;
   const td = layout.totalDepth;
-  const carLike = config.parkingClass !== 'motorcycle';
+  const carLike = config.parkingClass !== "motorcycle";
   // Sơ đồ tượng trưng theo sketch: 2 dải ngang + nhiều dải dọc.
   const cw = std.crossW * (carLike ? 0.9 : 0.82);
   const laneRun = td - cw * 1.02;
@@ -401,16 +390,16 @@ function computeRoadNetwork(
       cz: zSouth,
       width: tw * 0.97,
       depth: cw,
-      flow: 'px',
-      kind: 'cross-in',
+      flow: "px",
+      kind: "cross-in",
     },
     {
       cx: 0,
       cz: zNorth,
       width: tw * 0.97,
       depth: cw,
-      flow: 'nx',
-      kind: 'cross-out',
+      flow: "nx",
+      kind: "cross-out",
     },
   ];
 
@@ -420,8 +409,8 @@ function computeRoadNetwork(
       cz: 0,
       width: lane.width,
       depth: laneRun,
-      flow: index % 2 === 0 ? 'pz' : 'nz',
-      kind: 'lane',
+      flow: index % 2 === 0 ? "pz" : "nz",
+      kind: "lane",
     });
   });
 
@@ -430,8 +419,14 @@ function computeRoadNetwork(
 
 function floorFootprint(config: FloorConfig) {
   const layout = computeFloorLayout(config);
-  const roadHalfWidth = layout.roads.reduce((max, road) => Math.max(max, Math.abs(road.cx) + road.width / 2), 0);
-  const roadHalfDepth = layout.roads.reduce((max, road) => Math.max(max, Math.abs(road.cz) + road.depth / 2), 0);
+  const roadHalfWidth = layout.roads.reduce(
+    (max, road) => Math.max(max, Math.abs(road.cx) + road.width / 2),
+    0,
+  );
+  const roadHalfDepth = layout.roads.reduce(
+    (max, road) => Math.max(max, Math.abs(road.cz) + road.depth / 2),
+    0,
+  );
   const halfWidth = Math.max(layout.totalWidth / 2, roadHalfWidth);
   const halfDepth = Math.max(layout.totalDepth / 2, roadHalfDepth);
   return {
@@ -445,13 +440,13 @@ function floorFootprint(config: FloorConfig) {
 function cameraRadiusForFootprint(
   width: number,
   depth: number,
-  mode: 'all' | 'single',
+  mode: "all" | "single",
   fovDeg = 40,
 ) {
   const span = Math.max(width, depth);
   const fovRad = (fovDeg * Math.PI) / 180;
   const fitDistance = span / (2 * Math.tan(fovRad / 2));
-  if (mode === 'single') {
+  if (mode === "single") {
     return fitDistance * 0.48;
   }
   return fitDistance * 1.9 + FLOOR_COUNT * ALL_MODE_EXPLODE_GAP * 0.35;
@@ -459,15 +454,10 @@ function cameraRadiusForFootprint(
 
 type ZoomLimits = { min: number; max: number; default: number };
 
-function getZoomLimits(mode: 'all' | 'single', floorIndex: number): ZoomLimits {
+function getZoomLimits(mode: "all" | "single", floorIndex: number): ZoomLimits {
   const footprint = floorFootprint(FLOORS[floorIndex]);
-  const fov = mode === 'single' ? 36 : 48;
-  const defaultRadius = cameraRadiusForFootprint(
-    footprint.width,
-    footprint.depth,
-    mode,
-    fov,
-  );
+  const fov = mode === "single" ? 36 : 48;
+  const defaultRadius = cameraRadiusForFootprint(footprint.width, footprint.depth, mode, fov);
   return {
     default: defaultRadius,
     min: defaultRadius * 0.28,
@@ -480,24 +470,22 @@ function clampRadius(radius: number, limits: ZoomLimits) {
 }
 
 function roadBaseColor(road: RoadSegment): string {
-  if (road.kind === 'lane' || road.kind === 'cross-in' || road.kind === 'cross-out') {
+  if (road.kind === "lane" || road.kind === "cross-in" || road.kind === "cross-out") {
     return MapColors.lane;
   }
-  if (road.kind === 'entry-in') {
+  if (road.kind === "entry-in") {
     return MapColors.flowIn;
   }
-  if (
-    road.kind === 'entry-out'
-  ) {
+  if (road.kind === "entry-out") {
     return MapColors.flowOut;
   }
-  if (road.kind === 'ramp-up') {
+  if (road.kind === "ramp-up") {
     return MapColors.rampUpHead;
   }
-  if (road.kind === 'ramp-down') {
+  if (road.kind === "ramp-down") {
     return MapColors.rampDownHead;
   }
-  if (road.kind === 'ramp-side') {
+  if (road.kind === "ramp-side") {
     return MapColors.ramp;
   }
   return MapColors.lane;
@@ -505,16 +493,16 @@ function roadBaseColor(road: RoadSegment): string {
 
 function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
   const laneMarkMat = createMapMaterial(MapColors.laneMark, RENDER_LAYER.roadMark);
-  const stopMarkMat = createMapMaterial('#f4f5f7', RENDER_LAYER.roadMark);
+  const stopMarkMat = createMapMaterial("#f4f5f7", RENDER_LAYER.roadMark);
 
-  const laneRoads = roads.filter((r) => r.kind === 'lane');
-  const crossRoads = roads.filter((r) => r.kind === 'cross-in' || r.kind === 'cross-out');
+  const laneRoads = roads.filter((r) => r.kind === "lane");
+  const crossRoads = roads.filter((r) => r.kind === "cross-in" || r.kind === "cross-out");
 
   const addDashedCenterLine = (
     road: RoadSegment,
     skipZones: Array<{ center: number; half: number }> = [],
   ) => {
-    const axisLength = road.flow === 'pz' || road.flow === 'nz' ? road.depth : road.width;
+    const axisLength = road.flow === "pz" || road.flow === "nz" ? road.depth : road.width;
     const dashLen = Math.max(0.22, Math.min(0.62, axisLength * 0.12));
     const gapLen = dashLen * 0.7;
     const half = axisLength / 2;
@@ -523,7 +511,7 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
 
     while (cursor + dashLen < half - gapLen) {
       const sample =
-        road.flow === 'pz' || road.flow === 'nz'
+        road.flow === "pz" || road.flow === "nz"
           ? road.cz + cursor + dashLen / 2
           : road.cx + cursor + dashLen / 2;
       const isSkipped = skipZones.some((zone) => Math.abs(sample - zone.center) <= zone.half);
@@ -533,11 +521,11 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
       }
 
       const mark =
-        road.flow === 'pz' || road.flow === 'nz'
+        road.flow === "pz" || road.flow === "nz"
           ? new THREE.Mesh(new THREE.BoxGeometry(stripeW, DASH_MARK_HEIGHT, dashLen), laneMarkMat)
           : new THREE.Mesh(new THREE.BoxGeometry(dashLen, DASH_MARK_HEIGHT, stripeW), laneMarkMat);
       applyMeshLayer(mark, RENDER_LAYER.roadMark);
-      if (road.flow === 'pz' || road.flow === 'nz') {
+      if (road.flow === "pz" || road.flow === "nz") {
         mark.position.set(road.cx, MAP_LAYER.roadMark, road.cz + cursor + dashLen / 2);
       } else {
         mark.position.set(road.cx + cursor + dashLen / 2, MAP_LAYER.roadMark, road.cz);
@@ -553,7 +541,7 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
       new THREE.BoxGeometry(road.width * 0.9, STOP_MARK_HEIGHT, lineDepth),
       stopMarkMat,
     );
-    const z = road.flow === 'nz' ? road.cz + road.depth * 0.33 : road.cz - road.depth * 0.33;
+    const z = road.flow === "nz" ? road.cz + road.depth * 0.33 : road.cz - road.depth * 0.33;
     stop.position.set(road.cx, MAP_LAYER.roadMark, z);
     applyMeshLayer(stop, RENDER_LAYER.roadMark);
     group.add(stop);
@@ -561,28 +549,25 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
 
   roads.forEach((road) => {
     const mat = createMapMaterial(roadBaseColor(road), RENDER_LAYER.road);
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(road.width, ROAD_THICKNESS, road.depth),
-      mat,
-    );
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(road.width, ROAD_THICKNESS, road.depth), mat);
     mesh.position.set(road.cx, MAP_LAYER.road + ROAD_THICKNESS / 2, road.cz);
     applyMeshLayer(mesh, RENDER_LAYER.road);
     group.add(mesh);
 
     if (
-      road.kind === 'lane' ||
-      road.kind === 'cross-in' ||
-      road.kind === 'cross-out' ||
-      road.kind === 'entry-in' ||
-      road.kind === 'entry-out'
+      road.kind === "lane" ||
+      road.kind === "cross-in" ||
+      road.kind === "cross-out" ||
+      road.kind === "entry-in" ||
+      road.kind === "entry-out"
     ) {
-      if (road.kind === 'cross-in' || road.kind === 'cross-out') {
+      if (road.kind === "cross-in" || road.kind === "cross-out") {
         const skipZones = laneRoads.map((lane) => ({
           center: lane.cx,
           half: Math.max(lane.width * 0.55, 0.22),
         }));
         addDashedCenterLine(road, skipZones);
-      } else if (road.kind === 'lane') {
+      } else if (road.kind === "lane") {
         const skipZones = crossRoads.map((cross) => ({
           center: cross.cz,
           half: Math.max(cross.depth * 0.55, 0.34),
@@ -592,24 +577,19 @@ function buildRoadMeshes(group: THREE.Group, roads: RoadSegment[]) {
         addDashedCenterLine(road);
       }
     }
-    if (road.kind === 'entry-out') {
+    if (road.kind === "entry-out") {
       addStopLine(road);
     }
   });
-
 }
 
-function buildRoundedIntersections(
-  group: THREE.Group,
-  roads: RoadSegment[],
-  config: FloorConfig,
-) {
-  if (config.parkingClass === 'motorcycle') return;
-  const crossIn = roads.find((r) => r.kind === 'cross-in');
-  const crossOut = roads.find((r) => r.kind === 'cross-out');
-  const entryIn = roads.find((r) => r.kind === 'entry-in');
-  const entryOut = roads.find((r) => r.kind === 'entry-out');
-  const rampUp = roads.find((r) => r.kind === 'ramp-up');
+function buildRoundedIntersections(group: THREE.Group, roads: RoadSegment[], config: FloorConfig) {
+  if (config.parkingClass === "motorcycle") return;
+  const crossIn = roads.find((r) => r.kind === "cross-in");
+  const crossOut = roads.find((r) => r.kind === "cross-out");
+  const entryIn = roads.find((r) => r.kind === "entry-in");
+  const entryOut = roads.find((r) => r.kind === "entry-out");
+  const rampUp = roads.find((r) => r.kind === "ramp-up");
   if (!crossIn || !crossOut) return;
 
   const circleMat = new THREE.MeshBasicMaterial({ color: MapColors.lane, toneMapped: false });
@@ -678,9 +658,9 @@ function buildFloorEnvelope(group: THREE.Group, width: number, depth: number) {
 }
 
 function buildCurvedRampGuides(group: THREE.Group, roads: RoadSegment[]) {
-  const rampSide = roads.find((r) => r.kind === 'ramp-side');
-  const crossIn = roads.find((r) => r.kind === 'cross-in');
-  const crossOut = roads.find((r) => r.kind === 'cross-out');
+  const rampSide = roads.find((r) => r.kind === "ramp-side");
+  const crossIn = roads.find((r) => r.kind === "cross-in");
+  const crossOut = roads.find((r) => r.kind === "cross-out");
   if (!rampSide || !crossIn || !crossOut) return;
 
   const makeCurve = (startZ: number, endZ: number, rise: number, color: string) => {
@@ -725,11 +705,13 @@ function buildHelicalInterFloorRamp(
       const px = centerX + Math.cos(angle) * radius;
       const py = from.y + (to.y - from.y) * t;
       const pz = centerZ + Math.sin(angle) * radius;
-      points.push(
-        new THREE.Vector3(px, py, pz),
+      points.push(new THREE.Vector3(px, py, pz));
+      leftRailPoints.push(
+        new THREE.Vector3(px + Math.cos(angle) * 0.18, py + 0.16, pz + Math.sin(angle) * 0.18),
       );
-      leftRailPoints.push(new THREE.Vector3(px + Math.cos(angle) * 0.18, py + 0.16, pz + Math.sin(angle) * 0.18));
-      rightRailPoints.push(new THREE.Vector3(px - Math.cos(angle) * 0.18, py + 0.16, pz - Math.sin(angle) * 0.18));
+      rightRailPoints.push(
+        new THREE.Vector3(px - Math.cos(angle) * 0.18, py + 0.16, pz - Math.sin(angle) * 0.18),
+      );
     }
 
     const deck = new THREE.Mesh(
@@ -747,7 +729,6 @@ function buildHelicalInterFloorRamp(
       railMat,
     );
     building.add(rightRail);
-
   }
 }
 
@@ -767,11 +748,11 @@ export default function ParkingMapScreen() {
   const DesignColors = useDesignColors();
   const { t, language } = useLanguagePreference();
   const { resolvedScheme } = useThemePreference();
-  MapColors = resolvedScheme === 'light' ? MAP_COLORS_LIGHT : MAP_COLORS_DARK;
+  MapColors = resolvedScheme === "light" ? MAP_COLORS_LIGHT : MAP_COLORS_DARK;
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [activeFloor, setActiveFloor] = useState(0);
-  const [viewMode, setViewMode] = useState<'all' | 'single'>('all');
-  const [interactionMode, setInteractionMode] = useState<'rotate' | 'pan'>('rotate');
+  const [viewMode, setViewMode] = useState<"all" | "single">("all");
+  const [interactionMode, setInteractionMode] = useState<"rotate" | "pan">("rotate");
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
   const [slotStatusOverrides, setSlotStatusOverrides] = useState<Record<string, SlotStatus>>({});
   const uniformLayoutBounds = useMemo(() => {
@@ -802,8 +783,8 @@ export default function ParkingMapScreen() {
   const floorTargetsRef = useRef<FloorTarget[]>([]);
   const selectionFillRef = useRef<THREE.Mesh | null>(null);
   const selectionAnchorRef = useRef<SelectionAnchor | null>(null);
-  const viewModeRef = useRef<'all' | 'single'>('all');
-  const interactionModeRef = useRef<'rotate' | 'pan'>('rotate');
+  const viewModeRef = useRef<"all" | "single">("all");
+  const interactionModeRef = useRef<"rotate" | "pan">("rotate");
   const activeFloorRef = useRef(0);
   const buildingRef = useRef<THREE.Group | null>(null);
   const zoomLimitsRef = useRef<ZoomLimits>({ min: 2, max: 30, default: 10 });
@@ -822,11 +803,9 @@ export default function ParkingMapScreen() {
   const applyOrbitToCamera = useCallback(() => {
     const mode = viewModeRef.current;
     const focusY =
-      mode === 'all'
-        ? ((FLOOR_COUNT - 1) * ALL_MODE_EXPLODE_GAP) / 2 + FOCUS_OFFSET
-        : FOCUS_OFFSET;
+      mode === "all" ? ((FLOOR_COUNT - 1) * ALL_MODE_EXPLODE_GAP) / 2 + FOCUS_OFFSET : FOCUS_OFFSET;
     const { radius, phi, theta } = orbitRef.current;
-    const lift = mode === 'single' ? 0.4 : 2.1;
+    const lift = mode === "single" ? 0.4 : 2.1;
     targetCamera.current.set(
       radius * Math.cos(theta) * Math.sin(phi),
       radius * Math.cos(phi) + focusY + lift,
@@ -853,27 +832,24 @@ export default function ParkingMapScreen() {
     [applyOrbitToCamera],
   );
 
-  const setOrbitForMode = (mode: 'all' | 'single', floorIndex = 0) => {
+  const setOrbitForMode = (mode: "all" | "single", floorIndex = 0) => {
     const limits = getZoomLimits(mode, floorIndex);
     zoomLimitsRef.current = limits;
 
-    if (mode === 'single') {
+    if (mode === "single") {
       orbitRef.current.phi = 0.28;
       orbitRef.current.radius = limits.default;
     } else {
-      const widest = FLOORS.reduce(
-        (max, floor) => Math.max(max, floorFootprint(floor).width),
-        0,
-      );
+      const widest = FLOORS.reduce((max, floor) => Math.max(max, floorFootprint(floor).width), 0);
       orbitRef.current.phi = 0.56;
       orbitRef.current.theta = Math.PI * 0.85;
       orbitRef.current.radius = cameraRadiusForFootprint(
         widest,
         FLOOR_COUNT * ALL_MODE_EXPLODE_GAP,
-        'all',
+        "all",
         48,
       );
-      zoomLimitsRef.current = getZoomLimits('all', floorIndex);
+      zoomLimitsRef.current = getZoomLimits("all", floorIndex);
     }
   };
 
@@ -901,39 +877,42 @@ export default function ParkingMapScreen() {
     setSelectedSlot(null);
   }, []);
 
-  const updateFocus = useCallback((mode: 'all' | 'single', floorIndex: number) => {
-    viewModeRef.current = mode;
-    activeFloorRef.current = floorIndex;
-    setOrbitForMode(mode, floorIndex);
+  const updateFocus = useCallback(
+    (mode: "all" | "single", floorIndex: number) => {
+      viewModeRef.current = mode;
+      activeFloorRef.current = floorIndex;
+      setOrbitForMode(mode, floorIndex);
 
-    if (cameraRef.current) {
-      cameraRef.current.fov = mode === 'single' ? 36 : 48;
-      cameraRef.current.updateProjectionMatrix();
-    }
-
-    const focusY =
-      mode === 'all' ? ((FLOOR_COUNT - 1) * FLOOR_GAP) / 2 + FOCUS_OFFSET : FOCUS_OFFSET;
-    targetLookAt.current.set(0, focusY, 0);
-    applyOrbitToCamera();
-
-    floorTargetsRef.current = Array.from({ length: FLOOR_COUNT }, (_, floor) => {
-      if (mode === 'all') {
-        const center = (FLOOR_COUNT - 1) / 2;
-        const n = floor - center;
-        return {
-          x: n * ALL_MODE_SPREAD_X,
-          y: floor * ALL_MODE_EXPLODE_GAP,
-          z: -n * ALL_MODE_SPREAD_Z,
-          opacity: 0.96,
-          scale: 1,
-        };
+      if (cameraRef.current) {
+        cameraRef.current.fov = mode === "single" ? 36 : 48;
+        cameraRef.current.updateProjectionMatrix();
       }
-      if (floor === floorIndex) {
-        return { x: 0, y: 0, z: 0, opacity: 1, scale: 1 };
-      }
-      return { x: 0, y: floor * FLOOR_GAP - 1.9, z: 0, opacity: 0, scale: 1 };
-    });
-  }, [applyOrbitToCamera]);
+
+      const focusY =
+        mode === "all" ? ((FLOOR_COUNT - 1) * FLOOR_GAP) / 2 + FOCUS_OFFSET : FOCUS_OFFSET;
+      targetLookAt.current.set(0, focusY, 0);
+      applyOrbitToCamera();
+
+      floorTargetsRef.current = Array.from({ length: FLOOR_COUNT }, (_, floor) => {
+        if (mode === "all") {
+          const center = (FLOOR_COUNT - 1) / 2;
+          const n = floor - center;
+          return {
+            x: n * ALL_MODE_SPREAD_X,
+            y: floor * ALL_MODE_EXPLODE_GAP,
+            z: -n * ALL_MODE_SPREAD_Z,
+            opacity: 0.96,
+            scale: 1,
+          };
+        }
+        if (floor === floorIndex) {
+          return { x: 0, y: 0, z: 0, opacity: 1, scale: 1 };
+        }
+        return { x: 0, y: floor * FLOOR_GAP - 1.9, z: 0, opacity: 0, scale: 1 };
+      });
+    },
+    [applyOrbitToCamera],
+  );
 
   const syncSelectionHighlight = useCallback(() => {
     const anchor = selectionAnchorRef.current;
@@ -947,13 +926,17 @@ export default function ParkingMapScreen() {
       return;
     }
 
-    if (viewModeRef.current === 'single' && anchor.floorIndex !== activeFloorRef.current) {
+    if (viewModeRef.current === "single" && anchor.floorIndex !== activeFloorRef.current) {
       selectionFill.visible = false;
       return;
     }
 
     const { width, depth, height } = floorMesh.slotDims;
-    selectionFill.scale.set(width + SELECTION_PAD * 0.82, height * 1.3, depth + SELECTION_PAD * 0.82);
+    selectionFill.scale.set(
+      width + SELECTION_PAD * 0.82,
+      height * 1.3,
+      depth + SELECTION_PAD * 0.82,
+    );
 
     floorMesh.slotMeshes[anchor.slotIndex].getWorldPosition(tempPosition.current);
     selectionFill.position.copy(tempPosition.current);
@@ -964,17 +947,20 @@ export default function ParkingMapScreen() {
   const syncSelectionHighlightRef = useRef(syncSelectionHighlight);
   syncSelectionHighlightRef.current = syncSelectionHighlight;
 
-  const applySlotColors = useCallback((grayscale: boolean) => {
-    floorMeshesRef.current.forEach((floorMesh) => {
-      floorMesh.slotMeshes.forEach((mesh, index) => {
-        const slot = floorMesh.slotMap[index];
-        if (!slot) return;
-        const effectiveStatus = slotStatusOverrides[slot.id] ?? slot.status;
-        const material = mesh.material as THREE.MeshBasicMaterial;
-        material.color.set(statusColor(effectiveStatus, grayscale, resolvedScheme));
+  const applySlotColors = useCallback(
+    (grayscale: boolean) => {
+      floorMeshesRef.current.forEach((floorMesh) => {
+        floorMesh.slotMeshes.forEach((mesh, index) => {
+          const slot = floorMesh.slotMap[index];
+          if (!slot) return;
+          const effectiveStatus = slotStatusOverrides[slot.id] ?? slot.status;
+          const material = mesh.material as THREE.MeshBasicMaterial;
+          material.color.set(statusColor(effectiveStatus, grayscale, resolvedScheme));
+        });
       });
-    });
-  }, [slotStatusOverrides, resolvedScheme]);
+    },
+    [slotStatusOverrides, resolvedScheme],
+  );
 
   const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
     const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
@@ -984,7 +970,7 @@ export default function ParkingMapScreen() {
       logarithmicDepthBuffer: false,
       alpha: false,
       antialias: true,
-      precision: 'highp',
+      precision: "highp",
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(1);
@@ -1000,7 +986,7 @@ export default function ParkingMapScreen() {
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.15, 400);
     cameraRef.current = camera;
-    updateFocus('all', 0);
+    updateFocus("all", 0);
     camera.position.copy(targetCamera.current);
     camera.lookAt(targetLookAt.current);
 
@@ -1039,7 +1025,7 @@ export default function ParkingMapScreen() {
 
       layout.slots.forEach((placement, slotIndex) => {
         const { x, z, row, aisle, side } = placement;
-        const sideIdx = side === 'L' ? 0 : 1;
+        const sideIdx = side === "L" ? 0 : 1;
         const status = hashSlotStatus(floorIndex, row, aisle, sideIdx);
         const id = `${config.id}-A${aisle + 1}-${side}${row + 1}`;
 
@@ -1131,8 +1117,7 @@ export default function ParkingMapScreen() {
         floorMesh.group.position.y += (target.y - floorMesh.group.position.y) * 0.12;
         floorMesh.group.position.z += (target.z - floorMesh.group.position.z) * 0.12;
         const nextOpacity =
-          floorMesh.baseMaterial.opacity +
-          (target.opacity - floorMesh.baseMaterial.opacity) * 0.12;
+          floorMesh.baseMaterial.opacity + (target.opacity - floorMesh.baseMaterial.opacity) * 0.12;
         floorMesh.baseMaterial.opacity = nextOpacity;
         floorMesh.group.visible = nextOpacity > FLOOR_VISIBLE_THRESHOLD;
       });
@@ -1161,28 +1146,23 @@ export default function ParkingMapScreen() {
       const mat = selectionFillRef.current.material as THREE.MeshBasicMaterial;
       mat.color.set(selectionAccentColor(resolvedScheme, isGrayscale));
     }
-  }, [
-    isGrayscale,
-    applySlotColors,
-    resolvedScheme,
-    DesignColors.canvas,
-  ]);
+  }, [isGrayscale, applySlotColors, resolvedScheme, DesignColors.canvas]);
 
   const focusFloor = (index: number) => {
     clearSelection();
     setActiveFloor(index);
-    setViewMode('single');
-    updateFocus('single', index);
+    setViewMode("single");
+    updateFocus("single", index);
   };
 
   const focusAll = () => {
     clearSelection();
-    setViewMode('all');
-    updateFocus('all', activeFloor);
+    setViewMode("all");
+    updateFocus("all", activeFloor);
   };
 
   const toggleInteractionMode = () => {
-    const nextMode = interactionModeRef.current === 'rotate' ? 'pan' : 'rotate';
+    const nextMode = interactionModeRef.current === "rotate" ? "pan" : "rotate";
     interactionModeRef.current = nextMode;
     setInteractionMode(nextMode);
   };
@@ -1229,10 +1209,10 @@ export default function ParkingMapScreen() {
             panRef.current.moved = true;
           }
 
-          if (interactionModeRef.current === 'pan') {
+          if (interactionModeRef.current === "pan") {
             applyPanByScreenDelta(dx, dy);
           } else {
-          orbitRef.current.theta += dx * 0.005;
+            orbitRef.current.theta += dx * 0.005;
             orbitRef.current.phi -= dy * 0.005;
             applyOrbitToCamera();
           }
@@ -1255,10 +1235,12 @@ export default function ParkingMapScreen() {
           const intersects: THREE.Intersection[] = [];
           floorMeshesRef.current.forEach((floorMesh, floorIndex) => {
             if (!floorMesh.group.visible) return;
-            if (viewModeRef.current === 'single' && floorIndex !== activeFloorRef.current) {
+            if (viewModeRef.current === "single" && floorIndex !== activeFloorRef.current) {
               return;
             }
-            intersects.push(...raycasterRef.current.intersectObjects(floorMesh.slotGroup.children, false));
+            intersects.push(
+              ...raycasterRef.current.intersectObjects(floorMesh.slotGroup.children, false),
+            );
           });
 
           if (!intersects.length) {
@@ -1270,7 +1252,9 @@ export default function ParkingMapScreen() {
           const [hit] = intersects;
           const hitMesh = hit.object as THREE.Mesh;
           const slotIndex = hitMesh.userData.slotIndex as number;
-          const floorIndex = floorMeshesRef.current.findIndex((item) => item.slotGroup === hitMesh.parent);
+          const floorIndex = floorMeshesRef.current.findIndex(
+            (item) => item.slotGroup === hitMesh.parent,
+          );
           const floorMesh = floorMeshesRef.current[floorIndex];
           if (!floorMesh || slotIndex < 0) return;
 
@@ -1286,18 +1270,18 @@ export default function ParkingMapScreen() {
   );
 
   const selectedSlotStatus = selectedSlot
-    ? slotStatusOverrides[selectedSlot.id] ?? selectedSlot.status
+    ? (slotStatusOverrides[selectedSlot.id] ?? selectedSlot.status)
     : null;
-  const legendStatuses: SlotStatus[] = ['empty', 'reserved', 'in-use', 'maintenance', 'locked'];
+  const legendStatuses: SlotStatus[] = ["empty", "reserved", "in-use", "maintenance", "locked"];
 
   const handleBookSlot = useCallback(() => {
     if (!selectedSlot) return;
     const effectiveStatus = slotStatusOverrides[selectedSlot.id] ?? selectedSlot.status;
-    if (effectiveStatus !== 'empty') return;
+    if (effectiveStatus !== "empty") return;
 
     setSlotStatusOverrides((prev) => ({
       ...prev,
-      [selectedSlot.id]: 'reserved',
+      [selectedSlot.id]: "reserved",
     }));
   }, [selectedSlot, slotStatusOverrides]);
 
@@ -1305,7 +1289,9 @@ export default function ParkingMapScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <ThemedText style={styles.title}>{t('Bản đồ hướng dẫn theo tầng', 'Floor guidance map')}</ThemedText>
+          <ThemedText style={styles.title}>
+            {t("Bản đồ hướng dẫn theo tầng", "Floor guidance map")}
+          </ThemedText>
         </View>
 
         <ScrollView
@@ -1317,14 +1303,14 @@ export default function ParkingMapScreen() {
             onPress={focusAll}
             style={({ pressed }) => [
               styles.floorTab,
-              viewMode === 'all' && styles.floorTabActive,
+              viewMode === "all" && styles.floorTabActive,
               pressed && styles.floorTabPressed,
             ]}
           >
             <ThemedText
-              style={viewMode === 'all' ? styles.floorTabTextActive : styles.floorTabText}
+              style={viewMode === "all" ? styles.floorTabTextActive : styles.floorTabText}
             >
-              {t('Tất cả', 'All')}
+              {t("Tất cả", "All")}
             </ThemedText>
           </Pressable>
           {FLOORS.map((floor, floorIndex) => (
@@ -1333,15 +1319,13 @@ export default function ParkingMapScreen() {
               onPress={() => focusFloor(floorIndex)}
               style={({ pressed }) => [
                 styles.floorTab,
-                viewMode === 'single' &&
-                  activeFloor === floorIndex &&
-                  styles.floorTabActive,
+                viewMode === "single" && activeFloor === floorIndex && styles.floorTabActive,
                 pressed && styles.floorTabPressed,
               ]}
             >
               <ThemedText
                 style={
-                  viewMode === 'single' && activeFloor === floorIndex
+                  viewMode === "single" && activeFloor === floorIndex
                     ? styles.floorTabTextActive
                     : styles.floorTabText
                 }
@@ -1352,26 +1336,26 @@ export default function ParkingMapScreen() {
           ))}
         </ScrollView>
 
-        {viewMode === 'single' && (
+        {viewMode === "single" && (
           <View style={styles.floorMeta}>
             <ThemedText style={styles.floorMetaTitle}>
-              {floorLabel(FLOORS[activeFloor], t)} · {vehicleTypeLabel(FLOORS[activeFloor], t)} ·{' '}
-              {countSlots(FLOORS[activeFloor])} {t('ô', 'slots')}
+              {floorLabel(FLOORS[activeFloor], t)} · {vehicleTypeLabel(FLOORS[activeFloor], t)} ·{" "}
+              {countSlots(FLOORS[activeFloor])} {t("ô", "slots")}
             </ThemedText>
           </View>
         )}
 
         <View style={styles.canvasCard}>
-        <View
+          <View
             style={styles.glTouchArea}
-          onLayout={(event) => {
-            viewportRef.current = {
-              width: event.nativeEvent.layout.width,
-              height: event.nativeEvent.layout.height,
-            };
-          }}
-          {...panResponder.panHandlers}
-        >
+            onLayout={(event) => {
+              viewportRef.current = {
+                width: event.nativeEvent.layout.width,
+                height: event.nativeEvent.layout.height,
+              };
+            }}
+            {...panResponder.panHandlers}
+          >
             <GLView
               key={`parking-map-${resolvedScheme}-${language}`}
               style={styles.glView}
@@ -1384,73 +1368,78 @@ export default function ParkingMapScreen() {
               onPress={toggleInteractionMode}
               style={({ pressed }) => [
                 styles.modeBtn,
-                interactionMode === 'pan' && styles.modeBtnActive,
+                interactionMode === "pan" && styles.modeBtnActive,
                 pressed && styles.zoomBtnPressed,
               ]}
-              accessibilityLabel={t('Chuyển chế độ điều khiển camera', 'Toggle camera control mode')}
+              accessibilityLabel={t(
+                "Chuyển chế độ điều khiển camera",
+                "Toggle camera control mode",
+              )}
             >
               <ThemedText style={styles.modeBtnText}>
-                {interactionMode === 'rotate' ? t('Xoay', 'Rotate') : t('Dời', 'Pan')}
+                {interactionMode === "rotate" ? t("Xoay", "Rotate") : t("Dời", "Pan")}
               </ThemedText>
             </Pressable>
             <Pressable
               onPress={() => adjustZoom(0.82)}
               style={({ pressed }) => [styles.zoomBtn, pressed && styles.zoomBtnPressed]}
-              accessibilityLabel={t('Phóng to', 'Zoom in')}
+              accessibilityLabel={t("Phóng to", "Zoom in")}
             >
               <ThemedText style={styles.zoomBtnText}>+</ThemedText>
             </Pressable>
             <Pressable
               onPress={resetZoom}
               style={({ pressed }) => [styles.zoomBtn, pressed && styles.zoomBtnPressed]}
-              accessibilityLabel={t('Đặt lại mức zoom', 'Reset zoom')}
+              accessibilityLabel={t("Đặt lại mức zoom", "Reset zoom")}
             >
               <ThemedText style={styles.zoomBtnTextReset}>◎</ThemedText>
             </Pressable>
             <Pressable
               onPress={() => adjustZoom(1.22)}
               style={({ pressed }) => [styles.zoomBtn, pressed && styles.zoomBtnPressed]}
-              accessibilityLabel={t('Thu nhỏ', 'Zoom out')}
+              accessibilityLabel={t("Thu nhỏ", "Zoom out")}
             >
               <ThemedText style={styles.zoomBtnText}>−</ThemedText>
             </Pressable>
           </View>
           <View style={styles.legendSection}>
             <ThemedText style={styles.legendTitle}>
-              {t('Chú thích màu trạng thái ô', 'Slot status color legend')}
+              {t("Chú thích màu trạng thái ô", "Slot status color legend")}
             </ThemedText>
             <ThemedText style={styles.legendHint}>
               {t(
-                'Mỗi màu tương ứng với trạng thái hiện tại của ô đỗ trong bãi.',
-                'Each color represents the current parking slot status.',
+                "Mỗi màu tương ứng với trạng thái hiện tại của ô đỗ trong bãi.",
+                "Each color represents the current parking slot status.",
               )}
             </ThemedText>
             <View style={styles.legendWrap}>
               {legendStatuses.map((status) => (
                 <View key={status} style={styles.legendItem}>
-                <View
-                  style={[
+                  <View
+                    style={[
                       styles.legendStatusDot,
                       { backgroundColor: statusColor(status, isGrayscale, resolvedScheme) },
-                  ]}
-                />
+                    ]}
+                  />
                   <ThemedText style={styles.legendStatusLabel}>{statusLabel(status, t)}</ThemedText>
-              </View>
-            ))}
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
           {selectedSlot && selectedSlotStatus && (
             <View style={styles.slotPopup}>
               <View style={styles.slotPopupHeader}>
-                <ThemedText style={styles.slotPopupTitle}>{t('Chi tiết ô đỗ', 'Slot details')}</ThemedText>
+                <ThemedText style={styles.slotPopupTitle}>
+                  {t("Chi tiết ô đỗ", "Slot details")}
+                </ThemedText>
                 <Pressable
                   onPress={clearSelection}
                   style={({ pressed }) => [
                     styles.slotPopupClose,
                     pressed && styles.slotPopupClosePressed,
                   ]}
-                  accessibilityLabel={t('Đóng chi tiết ô đỗ', 'Close slot details')}
+                  accessibilityLabel={t("Đóng chi tiết ô đỗ", "Close slot details")}
                 >
                   <ThemedText style={styles.slotPopupCloseText}>X</ThemedText>
                 </Pressable>
@@ -1458,25 +1447,22 @@ export default function ParkingMapScreen() {
 
               <ThemedText style={styles.slotPopupId}>{selectedSlot.id}</ThemedText>
               <ThemedText style={styles.slotPopupMeta}>
-                {t('Tầng', 'Floor')}: {floorLabel(FLOORS[selectedSlot.floor], t)}
+                {t("Tầng", "Floor")}: {floorLabel(FLOORS[selectedSlot.floor], t)}
               </ThemedText>
               <ThemedText style={styles.slotPopupMeta}>
-                {t('Loại xe', 'Vehicle')}: {vehicleTypeLabel(FLOORS[selectedSlot.floor], t)}
+                {t("Loại xe", "Vehicle")}: {vehicleTypeLabel(FLOORS[selectedSlot.floor], t)}
               </ThemedText>
               <ThemedText style={styles.slotPopupMeta}>
-                {t('Trạng thái', 'Status')}: {statusLabel(selectedSlotStatus, t)}
+                {t("Trạng thái", "Status")}: {statusLabel(selectedSlotStatus, t)}
               </ThemedText>
 
-              {selectedSlotStatus === 'empty' ? (
+              {selectedSlotStatus === "empty" ? (
                 <Pressable
                   onPress={handleBookSlot}
-                  style={({ pressed }) => [
-                    styles.bookButton,
-                    pressed && styles.bookButtonPressed,
-                  ]}
-                  accessibilityLabel={t('Đặt lịch ô đỗ', 'Book slot')}
+                  style={({ pressed }) => [styles.bookButton, pressed && styles.bookButtonPressed]}
+                  accessibilityLabel={t("Đặt lịch ô đỗ", "Book slot")}
                 >
-                  <ThemedText style={styles.bookButtonText}>{t('Đặt lịch', 'Book')}</ThemedText>
+                  <ThemedText style={styles.bookButtonText}>{t("Đặt lịch", "Book")}</ThemedText>
                 </Pressable>
               ) : (
                 <View style={styles.slotStatusBadge}>
@@ -1485,400 +1471,400 @@ export default function ParkingMapScreen() {
                   </ThemedText>
                 </View>
               )}
-              </View>
+            </View>
           )}
         </View>
-
       </View>
     </ThemedView>
   );
 }
 
-const createStyles = (DesignColors: DesignColorPalette) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: DesignColors.canvas,
-  },
-  content: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.md,
-    width: '100%',
-    maxWidth: MaxContentWidth,
-    alignSelf: 'center',
-  },
-  header: {
-    gap: Spacing.xs,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  backButtonPressed: {
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.surface2,
-  },
-  backButtonText: {
-    ...Typography.button,
-    color: DesignColors.ink,
-  },
-  eyebrow: {
-    ...Typography.eyebrow,
-    textTransform: 'uppercase',
-    color: DesignColors.inkSubtle,
-  },
-  title: {
-    ...Typography.displayMd,
-    color: DesignColors.ink,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: DesignColors.inkMuted,
-  },
-  floorTabs: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-  },
-  floorTab: {
-    minWidth: 52,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface1,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-  },
-  floorTabActive: {
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.surface2,
-  },
-  floorTabPressed: {
-    borderColor: DesignColors.hairlineStrong,
-  },
-  floorTabText: {
-    ...Typography.button,
-    color: DesignColors.inkSubtle,
-  },
-  floorTabTextActive: {
-    ...Typography.button,
-    color: DesignColors.ink,
-  },
-  floorMeta: {
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  floorMetaTitle: {
-    ...Typography.bodySm,
-    color: DesignColors.inkMuted,
-  },
-  canvasCard: {
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    padding: Spacing.xs,
-    overflow: 'hidden',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    position: 'relative',
-  },
-  zoomControls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.xxs,
-  },
-  modeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 0,
-  },
-  modeBtnActive: {
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.surface3,
-  },
-  modeBtnText: {
-    ...Typography.caption,
-    color: DesignColors.inkMuted,
-    fontSize: 10,
-    lineHeight: 12,
-    textAlign: 'center',
-  },
-  zoomBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zoomBtnPressed: {
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.surface3,
-  },
-  zoomBtnText: {
-    ...Typography.button,
-    fontSize: 20,
-    lineHeight: 22,
-    color: DesignColors.ink,
-  },
-  zoomBtnTextReset: {
-    ...Typography.caption,
-    color: DesignColors.inkMuted,
-  },
-  legendSection: {
-    width: '100%',
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface1,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  legendTitle: {
-    ...Typography.button,
-    color: DesignColors.ink,
-  },
-  legendHint: {
-    ...Typography.caption,
-    color: DesignColors.inkSubtle,
-  },
-  legendWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  legendStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: DesignColors.hairlineStrong,
-  },
-  legendStatusLabel: {
-    ...Typography.caption,
-    color: DesignColors.inkMuted,
-  },
-  slotPopup: {
-    position: 'absolute',
-    left: Spacing.sm,
-    right: Spacing.sm,
-    bottom: Spacing.sm,
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: DesignColors.hairlineStrong,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-    zIndex: 3,
-  },
-  slotPopupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  slotPopupTitle: {
-    ...Typography.eyebrow,
-    color: DesignColors.inkSubtle,
-    textTransform: 'uppercase',
-  },
-  slotPopupClose: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    backgroundColor: DesignColors.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotPopupClosePressed: {
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.surface3,
-  },
-  slotPopupCloseText: {
-    ...Typography.button,
-    color: DesignColors.inkMuted,
-  },
-  slotPopupId: {
-    ...Typography.cardTitle,
-    color: DesignColors.ink,
-  },
-  slotPopupMeta: {
-    ...Typography.bodySm,
-    color: DesignColors.inkMuted,
-  },
-  bookButton: {
-    marginTop: Spacing.xs,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.primary,
-    backgroundColor: DesignColors.primary,
-    paddingVertical: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookButtonPressed: {
-    opacity: 0.88,
-  },
-  bookButtonText: {
-    ...Typography.button,
-    color: DesignColors.canvas,
-  },
-  slotStatusBadge: {
-    marginTop: Spacing.xs,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairlineStrong,
-    backgroundColor: DesignColors.surface2,
-    paddingVertical: Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotStatusBadgeText: {
-    ...Typography.button,
-    color: DesignColors.ink,
-  },
-  guideCard: {
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  guideTitle: {
-    ...Typography.eyebrow,
-    textTransform: 'uppercase',
-    color: DesignColors.inkSubtle,
-  },
-  guideRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
-  guideSymbol: {
-    ...Typography.button,
-    color: DesignColors.primary,
-    width: 28,
-    textAlign: 'center',
-  },
-  guideCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  guideRowTitle: {
-    ...Typography.bodySm,
-    color: DesignColors.ink,
-  },
-  guideRowDesc: {
-    ...Typography.caption,
-    color: DesignColors.inkSubtle,
-  },
-  glTouchArea: {
-    width: '100%',
-  },
-  glView: {
-    height: Math.min(Dimensions.get('window').width - Spacing.sm * 2 - Spacing.xs * 2, 420),
-    width: '100%',
-    minHeight: 320,
-    aspectRatio: 1,
-  },
-  legendBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-  },
-  legendChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radius.pill,
-  },
-  legendChipText: {
-    ...Typography.caption,
-    color: DesignColors.inkSubtle,
-  },
-  selectionCard: {
-    backgroundColor: DesignColors.surface1,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: DesignColors.hairline,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  selectionTitle: {
-    ...Typography.eyebrow,
-    textTransform: 'uppercase',
-    color: DesignColors.inkSubtle,
-  },
-  selectionBody: {
-    gap: Spacing.xxs,
-  },
-  selectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  selectionId: {
-    ...Typography.cardTitle,
-    color: DesignColors.ink,
-    flexShrink: 1,
-  },
-  statusPill: {
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-  },
-  statusPillText: {
-    ...Typography.caption,
-  },
-  selectionMeta: {
-    ...Typography.caption,
-    color: DesignColors.inkSubtle,
-  },
-  selectionEmpty: {
-    ...Typography.bodySm,
-    color: DesignColors.inkSubtle,
-  },
-});
+const createStyles = (DesignColors: DesignColorPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: DesignColors.canvas,
+    },
+    content: {
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.lg,
+      gap: Spacing.md,
+      width: "100%",
+      maxWidth: MaxContentWidth,
+      alignSelf: "center",
+    },
+    header: {
+      gap: Spacing.xs,
+    },
+    backButton: {
+      alignSelf: "flex-start",
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+    },
+    backButtonPressed: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface2,
+    },
+    backButtonText: {
+      ...Typography.button,
+      color: DesignColors.ink,
+    },
+    eyebrow: {
+      ...Typography.eyebrow,
+      textTransform: "uppercase",
+      color: DesignColors.inkSubtle,
+    },
+    title: {
+      ...Typography.displayMd,
+      color: DesignColors.ink,
+    },
+    subtitle: {
+      ...Typography.body,
+      color: DesignColors.inkMuted,
+    },
+    floorTabs: {
+      flexDirection: "row",
+      gap: Spacing.xs,
+      paddingVertical: Spacing.xxs,
+    },
+    floorTab: {
+      minWidth: 52,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.sm,
+      alignItems: "center",
+    },
+    floorTabActive: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface2,
+    },
+    floorTabPressed: {
+      borderColor: DesignColors.hairlineStrong,
+    },
+    floorTabText: {
+      ...Typography.button,
+      color: DesignColors.inkSubtle,
+    },
+    floorTabTextActive: {
+      ...Typography.button,
+      color: DesignColors.ink,
+    },
+    floorMeta: {
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+    },
+    floorMetaTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
+    },
+    canvasCard: {
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.xl,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      padding: Spacing.xs,
+      overflow: "hidden",
+      alignItems: "center",
+      gap: Spacing.xs,
+      position: "relative",
+    },
+    zoomControls: {
+      flexDirection: "row",
+      justifyContent: "center",
+      flexWrap: "wrap",
+      gap: Spacing.xs,
+      marginTop: Spacing.xs,
+      marginBottom: Spacing.xxs,
+    },
+    modeBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 0,
+    },
+    modeBtnActive: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface3,
+    },
+    modeBtnText: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontSize: 10,
+      lineHeight: 12,
+      textAlign: "center",
+    },
+    zoomBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    zoomBtnPressed: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface3,
+    },
+    zoomBtnText: {
+      ...Typography.button,
+      fontSize: 20,
+      lineHeight: 22,
+      color: DesignColors.ink,
+    },
+    zoomBtnTextReset: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+    },
+    legendSection: {
+      width: "100%",
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      gap: Spacing.xs,
+    },
+    legendTitle: {
+      ...Typography.button,
+      color: DesignColors.ink,
+    },
+    legendHint: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    legendWrap: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: Spacing.sm,
+    },
+    legendItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.xxs,
+    },
+    legendStatusDot: {
+      width: 10,
+      height: 10,
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+    },
+    legendStatusLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+    },
+    slotPopup: {
+      position: "absolute",
+      left: Spacing.sm,
+      right: Spacing.sm,
+      bottom: Spacing.sm,
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      padding: Spacing.md,
+      gap: Spacing.xs,
+      zIndex: 3,
+    },
+    slotPopupHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    slotPopupTitle: {
+      ...Typography.eyebrow,
+      color: DesignColors.inkSubtle,
+      textTransform: "uppercase",
+    },
+    slotPopupClose: {
+      width: 28,
+      height: 28,
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    slotPopupClosePressed: {
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.surface3,
+    },
+    slotPopupCloseText: {
+      ...Typography.button,
+      color: DesignColors.inkMuted,
+    },
+    slotPopupId: {
+      ...Typography.cardTitle,
+      color: DesignColors.ink,
+    },
+    slotPopupMeta: {
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
+    },
+    bookButton: {
+      marginTop: Spacing.xs,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.primary,
+      backgroundColor: DesignColors.primary,
+      paddingVertical: Spacing.xs,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bookButtonPressed: {
+      opacity: 0.88,
+    },
+    bookButtonText: {
+      ...Typography.button,
+      color: DesignColors.canvas,
+    },
+    slotStatusBadge: {
+      marginTop: Spacing.xs,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      paddingVertical: Spacing.xs,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    slotStatusBadgeText: {
+      ...Typography.button,
+      color: DesignColors.ink,
+    },
+    guideCard: {
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      padding: Spacing.md,
+      gap: Spacing.sm,
+    },
+    guideTitle: {
+      ...Typography.eyebrow,
+      textTransform: "uppercase",
+      color: DesignColors.inkSubtle,
+    },
+    guideRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: Spacing.sm,
+    },
+    guideSymbol: {
+      ...Typography.button,
+      color: DesignColors.primary,
+      width: 28,
+      textAlign: "center",
+    },
+    guideCopy: {
+      flex: 1,
+      gap: 2,
+    },
+    guideRowTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+    },
+    guideRowDesc: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    glTouchArea: {
+      width: "100%",
+    },
+    glView: {
+      height: Math.min(Dimensions.get("window").width - Spacing.sm * 2 - Spacing.xs * 2, 420),
+      width: "100%",
+      minHeight: 320,
+      aspectRatio: 1,
+    },
+    legendBar: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.xs,
+      paddingVertical: Spacing.xxs,
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+    },
+    legendChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: Spacing.xxs,
+    },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: Radius.pill,
+    },
+    legendChipText: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    selectionCard: {
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      padding: Spacing.md,
+      gap: Spacing.xs,
+    },
+    selectionTitle: {
+      ...Typography.eyebrow,
+      textTransform: "uppercase",
+      color: DesignColors.inkSubtle,
+    },
+    selectionBody: {
+      gap: Spacing.xxs,
+    },
+    selectionRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: Spacing.sm,
+    },
+    selectionId: {
+      ...Typography.cardTitle,
+      color: DesignColors.ink,
+      flexShrink: 1,
+    },
+    statusPill: {
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 2,
+    },
+    statusPillText: {
+      ...Typography.caption,
+    },
+    selectionMeta: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    selectionEmpty: {
+      ...Typography.bodySm,
+      color: DesignColors.inkSubtle,
+    },
+  });

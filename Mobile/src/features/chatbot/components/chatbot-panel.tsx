@@ -1,5 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect, useMemo, useState } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -9,20 +9,20 @@ import {
   StyleSheet,
   useWindowDimensions,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { ChatComposer } from '@/features/chatbot/components/chat-composer';
-import { ChatMessageList } from '@/features/chatbot/components/chat-message-list';
-import { ChatQuickPrompts } from '@/features/chatbot/components/chat-quick-prompts';
-import { ChatSessionList } from '@/features/chatbot/components/chat-session-list';
-import type { ChatMessage, ChatSession } from '@/features/chatbot/api/types';
-import type { ChatbotRolePresentation } from '@/features/chatbot/lib/role-config';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { ChatComposer } from "@/features/chatbot/components/chat-composer";
+import { ChatMessageList } from "@/features/chatbot/components/chat-message-list";
+import { ChatQuickPrompts } from "@/features/chatbot/components/chat-quick-prompts";
+import { ChatSessionList } from "@/features/chatbot/components/chat-session-list";
+import type { ChatMessage, ChatSession } from "@/features/chatbot/api/types";
+import type { ChatbotRolePresentation } from "@/features/chatbot/lib/role-config";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
-type PanelView = 'chat' | 'history';
+type PanelView = "chat" | "history";
 
 type ChatbotPanelProps = {
   visible: boolean;
@@ -71,11 +71,11 @@ export function ChatbotPanel({
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const [panelView, setPanelView] = useState<PanelView>('chat');
+  const [panelView, setPanelView] = useState<PanelView>("chat");
 
   useEffect(() => {
     if (!visible) {
-      setPanelView('chat');
+      setPanelView("chat");
     }
   }, [visible]);
 
@@ -85,29 +85,30 @@ export function ChatbotPanel({
   const composerDisabled =
     isUnavailable || !activeSessionId || isLoadingSessions || isCreatingSession || isDeleting;
 
-  const hasUserMessages = messages.some((message) => message.role === 'user');
+  const hasUserMessages = messages.some((message) => message.role === "user");
   const showQuickPrompts = !isUnavailable && !hasUserMessages;
 
   function handleClose() {
-    setPanelView('chat');
+    setPanelView("chat");
     onClose();
   }
 
   function handleSelectSession(sessionId: string) {
     onSelectSession(sessionId);
-    setPanelView('chat');
+    setPanelView("chat");
   }
 
   function handleNewSession() {
     onNewSession();
-    setPanelView('chat');
+    setPanelView("chat");
   }
 
   return (
     <Modal animationType="slide" onRequestClose={handleClose} transparent visible={visible}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}>
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.overlay}
+      >
         <Pressable style={styles.backdrop} onPress={handleClose} />
         <View
           style={[
@@ -116,32 +117,35 @@ export function ChatbotPanel({
               height: sheetHeight,
               paddingBottom: insets.bottom + Spacing.sm,
             },
-          ]}>
+          ]}
+        >
           <View style={styles.handle} />
 
-          {panelView === 'history' ? (
+          {panelView === "history" ? (
             <>
               <View style={styles.header}>
                 <Pressable
-                  onPress={() => setPanelView('chat')}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  onPress={() => setPanelView("chat")}
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   <Ionicons color={DesignColors.ink} name="arrow-back" size={22} />
                 </Pressable>
                 <View style={styles.headerText}>
                   <ThemedText style={styles.title}>
-                    {t('Lịch sử hội thoại', 'Conversation history')}
+                    {t("Lịch sử hội thoại", "Conversation history")}
                   </ThemedText>
                   <ThemedText style={styles.subtitle}>
                     {t(
                       `${sessions.length} cuộc trò chuyện`,
-                      `${sessions.length} conversation${sessions.length === 1 ? '' : 's'}`,
+                      `${sessions.length} conversation${sessions.length === 1 ? "" : "s"}`,
                     )}
                   </ThemedText>
                 </View>
                 <Pressable
                   disabled={isCreatingSession || isUnavailable}
                   onPress={handleNewSession}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   {isCreatingSession ? (
                     <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
                   ) : (
@@ -150,7 +154,8 @@ export function ChatbotPanel({
                 </Pressable>
                 <Pressable
                   onPress={handleClose}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   <Ionicons color={DesignColors.ink} name="close" size={22} />
                 </Pressable>
               </View>
@@ -171,22 +176,22 @@ export function ChatbotPanel({
             <>
               <View style={styles.header}>
                 <Pressable
-                  onPress={() => setPanelView('history')}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  onPress={() => setPanelView("history")}
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   <Ionicons color={DesignColors.ink} name="time-outline" size={22} />
                 </Pressable>
                 <View style={styles.headerText}>
                   <ThemedText style={styles.title}>{presentation.panelTitle}</ThemedText>
                   <ThemedText numberOfLines={1} style={styles.subtitle}>
-                    {activeSession?.title
-                      ? activeSession.title
-                      : presentation.panelSubtitle}
+                    {activeSession?.title ? activeSession.title : presentation.panelSubtitle}
                   </ThemedText>
                 </View>
                 <Pressable
                   disabled={isCreatingSession || isUnavailable}
                   onPress={handleNewSession}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   {isCreatingSession ? (
                     <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
                   ) : (
@@ -195,20 +200,25 @@ export function ChatbotPanel({
                 </Pressable>
                 <Pressable
                   onPress={handleClose}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+                >
                   <Ionicons color={DesignColors.ink} name="close" size={22} />
                 </Pressable>
               </View>
 
               {sessions.length > 0 ? (
                 <Pressable
-                  onPress={() => setPanelView('history')}
-                  style={({ pressed }) => [styles.historyHint, pressed && styles.historyHintPressed]}>
+                  onPress={() => setPanelView("history")}
+                  style={({ pressed }) => [
+                    styles.historyHint,
+                    pressed && styles.historyHintPressed,
+                  ]}
+                >
                   <Ionicons color={DesignColors.primaryFocus} name="layers-outline" size={16} />
                   <ThemedText style={styles.historyHintText}>
                     {t(
                       `${sessions.length} hội thoại · Xem lịch sử`,
-                      `${sessions.length} chat${sessions.length === 1 ? '' : 's'} · View history`,
+                      `${sessions.length} chat${sessions.length === 1 ? "" : "s"} · View history`,
                     )}
                   </ThemedText>
                   <Ionicons color={DesignColors.inkSubtle} name="chevron-forward" size={16} />
@@ -218,7 +228,8 @@ export function ChatbotPanel({
               {isUnavailable ? (
                 <View style={styles.errorBanner}>
                   <ThemedText style={styles.errorText}>
-                    {unavailableMessage ?? t('Trợ lý AI chưa sẵn sàng.', 'AI assistant is unavailable.')}
+                    {unavailableMessage ??
+                      t("Trợ lý AI chưa sẵn sàng.", "AI assistant is unavailable.")}
                   </ThemedText>
                 </View>
               ) : null}
@@ -245,18 +256,19 @@ export function ChatbotPanel({
                   disabled={composerDisabled}
                   isSending={isSending}
                   onSend={onSendMessage}
-                  placeholder={t('Nhập câu hỏi…', 'Type a question…')}
+                  placeholder={t("Nhập câu hỏi…", "Type a question…")}
                 />
 
                 {activeSessionId && !isUnavailable ? (
                   <Pressable
                     disabled={isDeleting}
                     onPress={onDeleteSession}
-                    style={styles.deleteLink}>
+                    style={styles.deleteLink}
+                  >
                     <ThemedText style={styles.deleteText}>
                       {isDeleting
-                        ? t('Đang xóa…', 'Deleting…')
-                        : t('Xóa hội thoại', 'Delete conversation')}
+                        ? t("Đang xóa…", "Deleting…")
+                        : t("Xóa hội thoại", "Delete conversation")}
                     </ThemedText>
                   </Pressable>
                 ) : null}
@@ -273,11 +285,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      justifyContent: 'flex-end',
+      justifyContent: "flex-end",
     },
     backdrop: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      backgroundColor: "rgba(0,0,0,0.45)",
     },
     sheet: {
       backgroundColor: DesignColors.canvas,
@@ -285,10 +297,10 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderTopRightRadius: Radius.xl,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     handle: {
-      alignSelf: 'center',
+      alignSelf: "center",
       width: 44,
       height: 4,
       borderRadius: 2,
@@ -297,8 +309,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       marginBottom: Spacing.xs,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
       paddingHorizontal: Spacing.md,
       paddingBottom: Spacing.sm,
@@ -310,7 +322,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     title: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 17,
     },
     subtitle: {
@@ -322,8 +334,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       width: 38,
       height: 38,
       borderRadius: 19,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.surface2,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -332,8 +344,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       opacity: 0.88,
     },
     historyHint: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
       marginHorizontal: Spacing.md,
       marginBottom: Spacing.sm,
@@ -352,7 +364,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.inkMuted,
       fontSize: 12,
       flex: 1,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     errorBanner: {
       marginHorizontal: Spacing.md,
@@ -379,7 +391,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       backgroundColor: DesignColors.surface1,
     },
     deleteLink: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: 4,
     },
     deleteText: {

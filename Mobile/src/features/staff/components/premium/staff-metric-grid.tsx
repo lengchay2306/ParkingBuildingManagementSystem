@@ -1,17 +1,17 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 export type StaffMetricItem = {
   id: string;
   icon: keyof typeof Ionicons.glyphMap;
   value: string | number;
   label: string;
-  tone?: 'default' | 'success' | 'warning' | 'info';
+  tone?: "default" | "success" | "warning" | "info";
 };
 
 type StaffMetricGridProps = {
@@ -26,11 +26,11 @@ export function StaffMetricGrid({ items }: StaffMetricGridProps) {
     <View style={styles.grid}>
       {items.map((item) => {
         const toneColor =
-          item.tone === 'success'
+          item.tone === "success"
             ? DesignColors.accentEmerald
-            : item.tone === 'warning'
+            : item.tone === "warning"
               ? DesignColors.accentAmber
-              : item.tone === 'info'
+              : item.tone === "info"
                 ? DesignColors.accentSky
                 : DesignColors.primary;
 
@@ -51,12 +51,12 @@ export function StaffMetricGrid({ items }: StaffMetricGridProps) {
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     grid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.sm,
     },
     cell: {
-      width: '47%',
+      width: "47%",
       flexGrow: 1,
       backgroundColor: DesignColors.surface2,
       borderRadius: Radius.lg,
@@ -69,8 +69,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       width: 32,
       height: 32,
       borderRadius: Radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       marginBottom: 4,
     },
     value: {

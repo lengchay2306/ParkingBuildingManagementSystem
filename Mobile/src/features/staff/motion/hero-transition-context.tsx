@@ -6,8 +6,8 @@ import React, {
   useRef,
   useState,
   type ReactNode,
-} from 'react';
-import { StyleSheet, View } from 'react-native';
+} from "react";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   interpolate,
@@ -16,7 +16,7 @@ import Animated, {
   useSharedValue,
   withTiming,
   type WithTimingConfig,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 export type HeroBounds = {
   x: number;
@@ -78,13 +78,13 @@ function HeroTransitionOverlay({
   }, [from, onFinished, progress, to]);
 
   const overlayStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
+    position: "absolute",
     left: interpolate(progress.value, [0, 1], [from.x, to.x]),
     top: interpolate(progress.value, [0, 1], [from.y, to.y]),
     width: interpolate(progress.value, [0, 1], [from.width, to.width]),
     height: interpolate(progress.value, [0, 1], [from.height, to.height]),
     borderRadius: interpolate(progress.value, [0, 1], [from.borderRadius, to.borderRadius]),
-    overflow: 'hidden',
+    overflow: "hidden",
     zIndex: 9999,
   }));
 
@@ -119,10 +119,7 @@ export function HeroTransitionProvider({ children }: { children: ReactNode }) {
     finishHero();
   }, [finishHero]);
 
-  const isHeroHidden = useCallback(
-    (id: string) => transition?.payload.id === id,
-    [transition],
-  );
+  const isHeroHidden = useCallback((id: string) => transition?.payload.id === id, [transition]);
 
   const value = useMemo(
     () => ({
@@ -153,7 +150,7 @@ export function HeroTransitionProvider({ children }: { children: ReactNode }) {
 export function useHeroTransition() {
   const context = useContext(HeroTransitionContext);
   if (!context) {
-    throw new Error('useHeroTransition must be used within HeroTransitionProvider');
+    throw new Error("useHeroTransition must be used within HeroTransitionProvider");
   }
   return context;
 }

@@ -1,26 +1,20 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { cropImageToViewfinder } from '@/features/staff/lib/crop-plate-image';
-import { extractLicensePlateFromOcrText } from '@/features/staff/lib/license-plate-ocr';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { cropImageToViewfinder } from "@/features/staff/lib/crop-plate-image";
+import { extractLicensePlateFromOcrText } from "@/features/staff/lib/license-plate-ocr";
 import {
   canRunCloudOcrNow,
   getCloudOcrCooldownRemainingMs,
@@ -28,14 +22,14 @@ import {
   isCloudOcrManualOnly,
   isOcrReady,
   recognizePlateText,
-} from '@/features/staff/lib/ocr-runtime';
+} from "@/features/staff/lib/ocr-runtime";
 import {
   PLATE_VIEWFINDER,
   getPlateViewfinderFrameBottom,
   getPlateViewfinderMarginTop,
   getPlateViewfinderScanBandBottom,
-} from '@/features/staff/lib/plate-scanner-viewfinder';
-import { useDesignColors } from '@/hooks/use-design-colors';
+} from "@/features/staff/lib/plate-scanner-viewfinder";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 const CAMERA_WARMUP_MS = 1200;
 
@@ -44,10 +38,10 @@ const SCAN_INTERVAL_MS = {
   cloud: 5000,
 } as const;
 
-const OVERLAY_DIM = 'rgba(8,12,20,0.38)';
+const OVERLAY_DIM = "rgba(8,12,20,0.38)";
 const CORNER_SIZE = 26;
 const CORNER_STROKE = 3;
-const APP_BRAND_NAME = 'PARKOS';
+const APP_BRAND_NAME = "PARKOS";
 
 type StaffPlateScannerModalProps = {
   visible: boolean;
@@ -77,7 +71,7 @@ function ViewfinderCorners({
   };
 
   const cornerBase = {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     width: CORNER_SIZE,
     height: CORNER_SIZE,
     borderColor: accentColor,
@@ -88,19 +82,37 @@ function ViewfinderCorners({
       <View
         style={[
           cornerBase,
-          { top: 0, left: 0, borderTopWidth: CORNER_STROKE, borderLeftWidth: CORNER_STROKE, borderTopLeftRadius: 10 },
+          {
+            top: 0,
+            left: 0,
+            borderTopWidth: CORNER_STROKE,
+            borderLeftWidth: CORNER_STROKE,
+            borderTopLeftRadius: 10,
+          },
         ]}
       />
       <View
         style={[
           cornerBase,
-          { top: 0, right: 0, borderTopWidth: CORNER_STROKE, borderRightWidth: CORNER_STROKE, borderTopRightRadius: 10 },
+          {
+            top: 0,
+            right: 0,
+            borderTopWidth: CORNER_STROKE,
+            borderRightWidth: CORNER_STROKE,
+            borderTopRightRadius: 10,
+          },
         ]}
       />
       <View
         style={[
           cornerBase,
-          { bottom: 0, left: 0, borderBottomWidth: CORNER_STROKE, borderLeftWidth: CORNER_STROKE, borderBottomLeftRadius: 10 },
+          {
+            bottom: 0,
+            left: 0,
+            borderBottomWidth: CORNER_STROKE,
+            borderLeftWidth: CORNER_STROKE,
+            borderBottomLeftRadius: 10,
+          },
         ]}
       />
       <View
@@ -143,7 +155,9 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: `${marginTop * 100}%` }]} />
+      <View
+        style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: `${marginTop * 100}%` }]}
+      />
       {gapBandHeight > 0 ? (
         <View
           style={[
@@ -199,18 +213,18 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 
 const overlayStyles = StyleSheet.create({
   dim: {
-    position: 'absolute',
+    position: "absolute",
     backgroundColor: OVERLAY_DIM,
   },
   dimSoft: {
-    position: 'absolute',
-    backgroundColor: 'rgba(8,12,20,0.18)',
+    position: "absolute",
+    backgroundColor: "rgba(8,12,20,0.18)",
   },
   frameHost: {
-    position: 'absolute',
+    position: "absolute",
   },
   scanLine: {
-    position: 'absolute',
+    position: "absolute",
     height: 1.5,
     borderRadius: 1,
   },
@@ -240,7 +254,7 @@ export function StaffPlateScannerModal({
 
   const ocrMode = getOcrMode();
   const ocrAvailable = isOcrReady();
-  const isCloudOcr = ocrMode === 'cloud';
+  const isCloudOcr = ocrMode === "cloud";
   const manualCloudScan = isCloudOcrManualOnly();
   const scanIntervalMs = isCloudOcr ? SCAN_INTERVAL_MS.cloud : SCAN_INTERVAL_MS.native;
   const scanBlockedByCooldown = isCloudOcr && cooldownSeconds > 0;
@@ -301,7 +315,7 @@ export function StaffPlateScannerModal({
       setStatusMessage(
         waitSec > 0
           ? t(`Giới hạn OCR — đợi ${waitSec}s`, `OCR limit — wait ${waitSec}s`)
-          : t('Giới hạn OCR — thử lại sau vài giây', 'OCR limit — try again in a few seconds'),
+          : t("Giới hạn OCR — thử lại sau vài giây", "OCR limit — try again in a few seconds"),
       );
       return;
     }
@@ -317,34 +331,27 @@ export function StaffPlateScannerModal({
       });
 
       if (!photo?.uri) {
-        setStatusMessage(t('Không chụp được khung hình', 'Could not capture frame'));
+        setStatusMessage(t("Không chụp được khung hình", "Could not capture frame"));
         return;
       }
 
-      const ocrUri = await cropImageToViewfinder(
-        photo.uri,
-        photo.width ?? 0,
-        photo.height ?? 0,
-      );
+      const ocrUri = await cropImageToViewfinder(photo.uri, photo.width ?? 0, photo.height ?? 0);
 
       const result = await recognizePlateText(ocrUri);
       if (!result.ok) {
         consecutiveFailuresRef.current += 1;
-        if (result.code === 'rate_limited') {
+        if (result.code === "rate_limited") {
           setStatusMessage(
-            t(
-              `OCR bị giới hạn — ${result.message}`,
-              `OCR rate limited — ${result.message}`,
-            ),
+            t(`OCR bị giới hạn — ${result.message}`, `OCR rate limited — ${result.message}`),
           );
-        } else if (result.code === 'network' || result.code === 'api_error') {
+        } else if (result.code === "network" || result.code === "api_error") {
           setStatusMessage(
             isCloudOcr
               ? t(`OCR lỗi: ${result.message}`, `OCR error: ${result.message}`)
-              : t('Lỗi nhận diện — thử lại', 'Recognition error — try again'),
+              : t("Lỗi nhận diện — thử lại", "Recognition error — try again"),
           );
         } else if (consecutiveFailuresRef.current > 2) {
-          setStatusMessage(t('Đang tìm biển số trong khung…', 'Looking for plate in frame…'));
+          setStatusMessage(t("Đang tìm biển số trong khung…", "Looking for plate in frame…"));
         }
         return;
       }
@@ -352,7 +359,7 @@ export function StaffPlateScannerModal({
       consecutiveFailuresRef.current = 0;
       const plate = extractLicensePlateFromOcrText(result.text);
       if (!plate) {
-        setStatusMessage(t('Chưa thấy biển số hợp lệ trong khung', 'No valid plate in frame yet'));
+        setStatusMessage(t("Chưa thấy biển số hợp lệ trong khung", "No valid plate in frame yet"));
         return;
       }
 
@@ -360,7 +367,7 @@ export function StaffPlateScannerModal({
       onPlateDetected(plate);
       onClose();
     } catch {
-      setStatusMessage(t('Quét thất bại — thử lại', 'Scan failed — try again'));
+      setStatusMessage(t("Quét thất bại — thử lại", "Scan failed — try again"));
     } finally {
       isScanningRef.current = false;
       if (!detectedRef.current) {
@@ -370,13 +377,7 @@ export function StaffPlateScannerModal({
   }, [cameraReady, isCloudOcr, ocrAvailable, onClose, onPlateDetected, scanEnabled, t]);
 
   useEffect(() => {
-    if (
-      !visible ||
-      !scanEnabled ||
-      !permission?.granted ||
-      !ocrAvailable ||
-      manualCloudScan
-    ) {
+    if (!visible || !scanEnabled || !permission?.granted || !ocrAvailable || manualCloudScan) {
       return;
     }
 
@@ -413,7 +414,7 @@ export function StaffPlateScannerModal({
         <View style={styles.centered}>
           <Ionicons color={DesignColors.accentAmber} name="globe-outline" size={48} />
           <ThemedText style={styles.permissionTitle}>
-            {t('OCR không khả dụng', 'OCR unavailable')}
+            {t("OCR không khả dụng", "OCR unavailable")}
           </ThemedText>
         </View>
       );
@@ -424,7 +425,7 @@ export function StaffPlateScannerModal({
         <View style={styles.centered}>
           <Ionicons color={DesignColors.accentAmber} name="warning-outline" size={48} />
           <ThemedText style={styles.permissionTitle}>
-            {t('Không mở được camera', 'Camera failed to start')}
+            {t("Không mở được camera", "Camera failed to start")}
           </ThemedText>
           <ThemedText style={styles.permissionHint}>{cameraError}</ThemedText>
         </View>
@@ -436,11 +437,11 @@ export function StaffPlateScannerModal({
         <View style={styles.centered}>
           <Ionicons color={DesignColors.accentViolet} name="camera-outline" size={48} />
           <ThemedText style={styles.permissionTitle}>
-            {t('Cho phép camera', 'Allow camera access')}
+            {t("Cho phép camera", "Allow camera access")}
           </ThemedText>
           <Pressable onPress={handleRequestPermission} style={styles.permissionButton}>
             <ThemedText style={styles.permissionButtonText}>
-              {t('Cấp quyền', 'Grant permission')}
+              {t("Cấp quyền", "Grant permission")}
             </ThemedText>
           </Pressable>
         </View>
@@ -475,8 +476,9 @@ export function StaffPlateScannerModal({
             {
               top: `${(getPlateViewfinderFrameBottom() + 0.012) * 100}%` as `${number}%`,
             },
-          ]}>
-          {t('Đặt biển số vào khung', 'Align plate inside frame')}
+          ]}
+        >
+          {t("Đặt biển số vào khung", "Align plate inside frame")}
         </ThemedText>
 
         <View style={[styles.hud, { paddingBottom: insets.bottom + Spacing.md }]}>
@@ -488,7 +490,7 @@ export function StaffPlateScannerModal({
               <View style={styles.brandCopy}>
                 <ThemedText style={styles.brandName}>{APP_BRAND_NAME}</ThemedText>
                 <ThemedText style={styles.brandTagline}>
-                  {t('Hệ thống quản lý bãi xe', 'Parking management system')}
+                  {t("Hệ thống quản lý bãi xe", "Parking management system")}
                 </ThemedText>
               </View>
               {!scanEnabled || isProcessing ? (
@@ -497,25 +499,35 @@ export function StaffPlateScannerModal({
             </View>
             <ThemedText style={styles.hudHint}>
               {!scanEnabled
-                ? t('Đang khởi động camera…', 'Starting camera…')
+                ? t("Đang khởi động camera…", "Starting camera…")
                 : manualCloudScan
-                  ? t('Căn biển số vào khung, rồi chạm Quét ngay', 'Align the plate in the frame, then tap Scan now')
-                  : t('Giữ ổn định — tự nhận diện khi thấy biển số', 'Hold steady — auto-detects when a plate is found')}
+                  ? t(
+                      "Căn biển số vào khung, rồi chạm Quét ngay",
+                      "Align the plate in the frame, then tap Scan now",
+                    )
+                  : t(
+                      "Giữ ổn định — tự nhận diện khi thấy biển số",
+                      "Hold steady — auto-detects when a plate is found",
+                    )}
             </ThemedText>
-            {statusMessage ? <ThemedText style={styles.hudStatus}>{statusMessage}</ThemedText> : null}
+            {statusMessage ? (
+              <ThemedText style={styles.hudStatus}>{statusMessage}</ThemedText>
+            ) : null}
             <Pressable
               disabled={!scanEnabled || isProcessing || scanBlockedByCooldown}
               onPress={() => void runScanTick()}
               style={({ pressed }) => [
                 styles.captureButton,
                 pressed && styles.captureButtonPressed,
-                (!scanEnabled || isProcessing || scanBlockedByCooldown) && styles.captureButtonDisabled,
-              ]}>
+                (!scanEnabled || isProcessing || scanBlockedByCooldown) &&
+                  styles.captureButtonDisabled,
+              ]}
+            >
               <Ionicons color={DesignColors.onPrimary} name="scan" size={20} />
               <ThemedText style={styles.captureButtonLabel}>
                 {scanBlockedByCooldown
                   ? t(`Đợi ${cooldownSeconds}s`, `Wait ${cooldownSeconds}s`)
-                  : t('Quét ngay', 'Scan now')}
+                  : t("Quét ngay", "Scan now")}
               </ThemedText>
             </Pressable>
           </View>
@@ -534,20 +546,24 @@ export function StaffPlateScannerModal({
       navigationBarTranslucent
       onRequestClose={onClose}
       statusBarTranslucent
-      visible>
+      visible
+    >
       <View style={styles.root}>
         <View style={styles.cameraHost}>{renderBody()}</View>
 
         <View style={[styles.floatingTopBar, { paddingTop: insets.top + Spacing.sm }]}>
           <Pressable
-            accessibilityLabel={t('Đóng', 'Close')}
+            accessibilityLabel={t("Đóng", "Close")}
             hitSlop={12}
             onPress={onClose}
-            style={styles.closeButton}>
+            style={styles.closeButton}
+          >
             <Ionicons color="#F8FAFC" name="close" size={22} />
           </Pressable>
           <View style={styles.titlePill}>
-            <ThemedText style={styles.topTitle}>{t('Quét biển số', 'Scan license plate')}</ThemedText>
+            <ThemedText style={styles.topTitle}>
+              {t("Quét biển số", "Scan license plate")}
+            </ThemedText>
           </View>
           <View style={styles.topSpacer} />
         </View>
@@ -560,15 +576,15 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: "#000",
     },
     floatingTopBar: {
-      position: 'absolute',
+      position: "absolute",
       top: 0,
       left: 0,
       right: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingHorizontal: Spacing.md,
       paddingBottom: Spacing.sm,
       zIndex: 20,
@@ -577,23 +593,23 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       width: 40,
       height: 40,
       borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.45)",
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.14)',
+      borderColor: "rgba(255,255,255,0.14)",
     },
     titlePill: {
       flex: 1,
-      alignItems: 'center',
+      alignItems: "center",
       paddingHorizontal: Spacing.sm,
     },
     topTitle: {
       ...Typography.bodySm,
-      color: '#F1F5F9',
-      fontWeight: '600',
+      color: "#F1F5F9",
+      fontWeight: "600",
       fontSize: 15,
-      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowColor: "rgba(0,0,0,0.5)",
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 4,
     },
@@ -602,28 +618,28 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     cameraHost: {
       flex: 1,
-      backgroundColor: '#000',
-      overflow: 'hidden',
+      backgroundColor: "#000",
+      overflow: "hidden",
     },
     cameraFeed: {
       ...StyleSheet.absoluteFillObject,
       transform: [{ scale: 1.06 }],
     },
     frameHint: {
-      position: 'absolute',
+      position: "absolute",
       left: Spacing.lg,
       right: Spacing.lg,
       ...Typography.caption,
-      color: 'rgba(241,245,249,0.82)',
-      textAlign: 'center',
+      color: "rgba(241,245,249,0.82)",
+      textAlign: "center",
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: "500",
       letterSpacing: 0.2,
     },
     centered: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       padding: Spacing.lg,
       gap: Spacing.md,
       backgroundColor: DesignColors.surface1,
@@ -631,12 +647,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     permissionTitle: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      textAlign: 'center',
+      textAlign: "center",
     },
     permissionHint: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
     },
     permissionButton: {
       marginTop: Spacing.sm,
@@ -648,10 +664,10 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     permissionButtonText: {
       ...Typography.button,
       color: DesignColors.onPrimary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     hud: {
-      position: 'absolute',
+      position: "absolute",
       left: 0,
       right: 0,
       bottom: 0,
@@ -659,29 +675,29 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       paddingTop: Spacing.sm,
     },
     hudCard: {
-      alignItems: 'stretch',
+      alignItems: "stretch",
       gap: Spacing.xs,
       borderRadius: Radius.xl,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
-      backgroundColor: 'rgba(12,16,26,0.82)',
+      backgroundColor: "rgba(12,16,26,0.82)",
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.08)',
+      borderColor: "rgba(255,255,255,0.08)",
     },
     brandRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     brandMark: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(99,102,241,0.18)',
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(99,102,241,0.18)",
       borderWidth: 1,
-      borderColor: 'rgba(99,102,241,0.35)',
+      borderColor: "rgba(99,102,241,0.35)",
     },
     brandCopy: {
       flex: 1,
@@ -689,49 +705,49 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     brandName: {
       ...Typography.bodySm,
-      color: '#F8FAFC',
-      fontWeight: '800',
+      color: "#F8FAFC",
+      fontWeight: "800",
       fontSize: 16,
       letterSpacing: 1.4,
     },
     brandTagline: {
       ...Typography.caption,
-      color: 'rgba(226,232,240,0.62)',
+      color: "rgba(226,232,240,0.62)",
       fontSize: 11,
     },
     hudHint: {
       ...Typography.caption,
-      color: 'rgba(226,232,240,0.72)',
-      textAlign: 'center',
+      color: "rgba(226,232,240,0.72)",
+      textAlign: "center",
       lineHeight: 18,
       fontSize: 12,
     },
     hudStatus: {
       ...Typography.caption,
-      color: '#93C5FD',
-      textAlign: 'center',
+      color: "#93C5FD",
+      textAlign: "center",
       lineHeight: 18,
       fontSize: 12,
     },
     captureButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: Spacing.xs,
       borderRadius: Radius.pill,
       paddingHorizontal: Spacing.xl,
       paddingVertical: 12,
       minHeight: 48,
-      alignSelf: 'center',
-      minWidth: '72%',
+      alignSelf: "center",
+      minWidth: "72%",
       backgroundColor: DesignColors.primaryFocus,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.16)',
+      borderColor: "rgba(255,255,255,0.16)",
     },
     captureButtonLabel: {
       ...Typography.button,
       color: DesignColors.onPrimary,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 15,
     },
     captureButtonPressed: {

@@ -1,31 +1,25 @@
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 export type OcrRecognitionResult = {
   text: string;
 };
 
 export type OcrScanErrorCode =
-  | 'unavailable'
-  | 'network'
-  | 'empty'
-  | 'api_error'
-  | 'rate_limited'
-  | 'native_error';
+  "unavailable" | "network" | "empty" | "api_error" | "rate_limited" | "native_error";
 
 export type OcrScanResult =
-  | { ok: true; text: string }
-  | { ok: false; code: OcrScanErrorCode; message: string };
+  { ok: true; text: string } | { ok: false; code: OcrScanErrorCode; message: string };
 
-export type OcrMode = 'native' | 'cloud' | 'none';
+export type OcrMode = "native" | "cloud" | "none";
 
 type OcrModule = {
   isSupported: () => boolean;
   recognizeText: (uri: string) => Promise<OcrRecognitionResult>;
 };
 
-const OCR_SPACE_ENDPOINT = 'https://api.ocr.space/parse/image';
-const DEFAULT_CLOUD_KEY = '337599973a88957';
+const OCR_SPACE_ENDPOINT = "https://api.ocr.space/parse/image";
+const DEFAULT_CLOUD_KEY = "337599973a88957";
 
 /** Shared free key: ~1 req/s and easily hits 429 when auto-scanning. */
 const CLOUD_MIN_INTERVAL_MS = {
@@ -36,7 +30,7 @@ const CLOUD_MIN_INTERVAL_MS = {
 const CLOUD_COOLDOWN_INITIAL_MS = 20_000;
 const CLOUD_COOLDOWN_MAX_MS = 90_000;
 
-let nativeLoadState: 'idle' | 'loaded' | 'unavailable' = 'idle';
+let nativeLoadState: "idle" | "loaded" | "unavailable" = "idle";
 let nativeModuleRef: OcrModule | null = null;
 
 let lastCloudRequestAt = 0;
@@ -44,28 +38,28 @@ let cloudCooldownUntil = 0;
 let cloudBackoffMs = CLOUD_COOLDOWN_INITIAL_MS;
 
 function isExpoGo(): boolean {
-  return Constants.appOwnership === 'expo';
+  return Constants.appOwnership === "expo";
 }
 
 function tryLoadNativeOcrModule(): OcrModule | null {
-  if (Platform.OS === 'web' || isExpoGo()) {
+  if (Platform.OS === "web" || isExpoGo()) {
     return null;
   }
-  if (nativeLoadState === 'loaded') {
+  if (nativeLoadState === "loaded") {
     return nativeModuleRef;
   }
-  if (nativeLoadState === 'unavailable') {
+  if (nativeLoadState === "unavailable") {
     return null;
   }
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('expo-mlkit-ocr') as OcrModule;
+    const mod = require("expo-mlkit-ocr") as OcrModule;
     nativeModuleRef = mod;
-    nativeLoadState = 'loaded';
+    nativeLoadState = "loaded";
     return mod;
   } catch {
-    nativeLoadState = 'unavailable';
+    nativeLoadState = "unavailable";
     nativeModuleRef = null;
     return null;
   }
@@ -94,7 +88,7 @@ export function usesDefaultCloudOcrKey(): boolean {
 
 /** Expo Go + default key: auto-scan will spam 429 — manual scan only. */
 export function isCloudOcrManualOnly(): boolean {
-  return getOcrMode() === 'cloud' && usesDefaultCloudOcrKey();
+  return getOcrMode() === "cloud" && usesDefaultCloudOcrKey();
 }
 
 export function getCloudOcrCooldownRemainingMs(): number {
@@ -102,9 +96,7 @@ export function getCloudOcrCooldownRemainingMs(): number {
 }
 
 function getCloudMinIntervalMs(): number {
-  return usesDefaultCloudOcrKey()
-    ? CLOUD_MIN_INTERVAL_MS.default
-    : CLOUD_MIN_INTERVAL_MS.custom;
+  return usesDefaultCloudOcrKey() ? CLOUD_MIN_INTERVAL_MS.default : CLOUD_MIN_INTERVAL_MS.custom;
 }
 
 export function canRunCloudOcrNow(): boolean {
@@ -120,11 +112,11 @@ function waitSeconds(ms: number): number {
 }
 
 function normalizeFileUri(uri: string): string {
-  if (Platform.OS === 'android' && !uri.startsWith('file://')) {
+  if (Platform.OS === "android" && !uri.startsWith("file://")) {
     return `file://${uri}`;
   }
-  if (Platform.OS === 'ios') {
-    return uri.replace('file://', '');
+  if (Platform.OS === "ios") {
+    return uri.replace("file://", "");
   }
   return uri;
 }
@@ -135,7 +127,7 @@ function registerCloudRateLimitHit(): OcrScanResult {
   const seconds = waitSeconds(cloudBackoffMs);
   return {
     ok: false,
-    code: 'rate_limited',
+    code: "rate_limited",
     message: `HTTP 429 — đợi ${seconds}s`,
   };
 }
@@ -146,7 +138,7 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
   if (cooldownRemaining > 0) {
     return {
       ok: false,
-      code: 'rate_limited',
+      code: "rate_limited",
       message: `Đợi ${waitSeconds(cooldownRemaining)}s`,
     };
   }
@@ -156,7 +148,7 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
   if (sinceLast < minInterval) {
     return {
       ok: false,
-      code: 'rate_limited',
+      code: "rate_limited",
       message: `Đợi ${waitSeconds(minInterval - sinceLast)}s`,
     };
   }
@@ -165,20 +157,20 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
 
   try {
     const formData = new FormData();
-    formData.append('apikey', getCloudApiKey());
-    formData.append('language', 'eng');
-    formData.append('OCREngine', '2');
-    formData.append('isOverlayRequired', 'false');
-    formData.append('detectOrientation', 'true');
-    formData.append('scale', 'true');
-    formData.append('file', {
+    formData.append("apikey", getCloudApiKey());
+    formData.append("language", "eng");
+    formData.append("OCREngine", "2");
+    formData.append("isOverlayRequired", "false");
+    formData.append("detectOrientation", "true");
+    formData.append("scale", "true");
+    formData.append("file", {
       uri: normalizeFileUri(uri),
-      type: 'image/jpeg',
-      name: 'plate.jpg',
+      type: "image/jpeg",
+      name: "plate.jpg",
     } as unknown as Blob);
 
     const response = await fetch(OCR_SPACE_ENDPOINT, {
-      method: 'POST',
+      method: "POST",
       body: formData,
     });
 
@@ -189,7 +181,7 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
     if (!response.ok) {
       return {
         ok: false,
-        code: 'network',
+        code: "network",
         message: `HTTP ${response.status}`,
       };
     }
@@ -202,21 +194,23 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
 
     if (payload.IsErroredOnProcessing) {
       const message = Array.isArray(payload.ErrorMessage)
-        ? payload.ErrorMessage.join(', ')
-        : (payload.ErrorMessage ?? 'Cloud OCR failed');
+        ? payload.ErrorMessage.join(", ")
+        : (payload.ErrorMessage ?? "Cloud OCR failed");
 
       if (/429|rate|limit|maximum/i.test(message)) {
         return registerCloudRateLimitHit();
       }
 
-      return { ok: false, code: 'api_error', message };
+      return { ok: false, code: "api_error", message };
     }
 
     const text =
-      payload.ParsedResults?.map((item) => item.ParsedText ?? '').join('\n').trim() ?? '';
+      payload.ParsedResults?.map((item) => item.ParsedText ?? "")
+        .join("\n")
+        .trim() ?? "";
 
     if (!text) {
-      return { ok: false, code: 'empty', message: 'Empty OCR result' };
+      return { ok: false, code: "empty", message: "Empty OCR result" };
     }
 
     cloudBackoffMs = CLOUD_COOLDOWN_INITIAL_MS;
@@ -224,8 +218,8 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
   } catch (error) {
     return {
       ok: false,
-      code: 'network',
-      message: error instanceof Error ? error.message : 'Network error',
+      code: "network",
+      message: error instanceof Error ? error.message : "Network error",
     };
   }
 }
@@ -233,39 +227,39 @@ async function recognizeCloud(uri: string): Promise<OcrScanResult> {
 async function recognizeNative(uri: string): Promise<OcrScanResult> {
   const mod = tryLoadNativeOcrModule();
   if (!mod || !nativeIsSupported()) {
-    return { ok: false, code: 'native_error', message: 'Native OCR unavailable' };
+    return { ok: false, code: "native_error", message: "Native OCR unavailable" };
   }
 
   try {
     const result = await mod.recognizeText(uri);
     if (!result.text?.trim()) {
-      return { ok: false, code: 'empty', message: 'Empty OCR result' };
+      return { ok: false, code: "empty", message: "Empty OCR result" };
     }
     return { ok: true, text: result.text };
   } catch (error) {
     return {
       ok: false,
-      code: 'native_error',
-      message: error instanceof Error ? error.message : 'Native OCR failed',
+      code: "native_error",
+      message: error instanceof Error ? error.message : "Native OCR failed",
     };
   }
 }
 
 export function getOcrMode(): OcrMode {
-  if (Platform.OS === 'web') {
-    return 'none';
+  if (Platform.OS === "web") {
+    return "none";
   }
   if (isExpoGo()) {
-    return 'cloud';
+    return "cloud";
   }
   if (tryLoadNativeOcrModule() && nativeIsSupported()) {
-    return 'native';
+    return "native";
   }
-  return 'cloud';
+  return "cloud";
 }
 
 export function isOcrReady(): boolean {
-  return getOcrMode() !== 'none';
+  return getOcrMode() !== "none";
 }
 
 export function isRunningInExpoGo(): boolean {
@@ -274,11 +268,11 @@ export function isRunningInExpoGo(): boolean {
 
 export async function recognizePlateText(uri: string): Promise<OcrScanResult> {
   const mode = getOcrMode();
-  if (mode === 'none') {
-    return { ok: false, code: 'unavailable', message: 'OCR unavailable' };
+  if (mode === "none") {
+    return { ok: false, code: "unavailable", message: "OCR unavailable" };
   }
 
-  if (mode === 'native') {
+  if (mode === "native") {
     return recognizeNative(uri);
   }
   return recognizeCloud(uri);

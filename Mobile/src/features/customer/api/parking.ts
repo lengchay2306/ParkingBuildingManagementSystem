@@ -1,10 +1,10 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
-export type ParkingSlotApiStatus = 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE' | 'CURRENTLY-IN-USED';
+export type ParkingSlotApiStatus = "AVAILABLE" | "RESERVED" | "UNAVAILABLE" | "CURRENTLY-IN-USED";
 
 export type ParkingSlotStatus = ParkingSlotApiStatus | string;
 
-export type ParkingVehicleType = 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP';
+export type ParkingVehicleType = "SEDAN" | "SUV" | "MPV" | "PICKUP";
 
 export type ParkingSlot = {
   _id: string;
@@ -40,7 +40,7 @@ type ApiEnvelope<T> = {
 async function parseParkingResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? "Request failed");
   }
   return payload ?? {};
 }
@@ -72,7 +72,9 @@ export async function getActiveUserParkingSession(
 ): Promise<CustomerParkingSession | null> {
   try {
     const response = await authenticatedFetch(`/parking/active-user-parking-session/${vehicleId}`);
-    const payload = await parseParkingResponse<{ parkingSession?: CustomerParkingSession }>(response);
+    const payload = await parseParkingResponse<{ parkingSession?: CustomerParkingSession }>(
+      response,
+    );
     return payload.data?.parkingSession ?? null;
   } catch {
     return null;
@@ -82,17 +84,17 @@ export async function getActiveUserParkingSession(
 export async function getParkingSlots(filters: ParkingSlotFilters = {}): Promise<ParkingFloor[]> {
   const params = new URLSearchParams();
   if (filters.vehicleType) {
-    params.set('vehicleType', filters.vehicleType);
+    params.set("vehicleType", filters.vehicleType);
   }
   if (filters.floorId) {
-    params.set('floorId', filters.floorId);
+    params.set("floorId", filters.floorId);
   }
   if (filters.status) {
-    params.set('status', filters.status);
+    params.set("status", filters.status);
   }
 
   const query = params.toString();
-  const response = await authenticatedFetch(`/parking/slots${query ? `?${query}` : ''}`);
+  const response = await authenticatedFetch(`/parking/slots${query ? `?${query}` : ""}`);
   const payload = await parseParkingResponse<{ floors?: ParkingFloor[] }>(response);
   return payload.data?.floors ?? [];
 }

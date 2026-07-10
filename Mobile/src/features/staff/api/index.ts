@@ -17,7 +17,7 @@ export {
   type ParkingSlotStatus,
   type ParkingVehicleType,
   type StaffActiveParkingSession,
-} from './parking';
+} from "./parking";
 
 export {
   getVehicleByLicensePlate,
@@ -28,6 +28,10 @@ export {
   type StaffVehicle,
   type VehicleOwnerProfile,
   type VehicleType,
-} from './vehicles';
+} from "./vehicles";
 
-export { deleteManagedReservation, getReservationsByLicensePlate, type Reservation } from './reservations';
+export {
+  deleteManagedReservation,
+  getReservationsByLicensePlate,
+  type Reservation,
+} from "./reservations";

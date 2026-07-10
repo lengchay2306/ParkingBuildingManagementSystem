@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffScreenHeaderProps = {
   title: string;
@@ -31,7 +31,8 @@ export function StaffScreenHeader({
       {onProfilePress ? (
         <Pressable
           onPress={onProfilePress}
-          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}>
+          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}
+        >
           <Ionicons color={DesignColors.ink} name="person-circle-outline" size={28} />
           {rightLabel ? <ThemedText style={styles.rightLabel}>{rightLabel}</ThemedText> : null}
         </Pressable>
@@ -43,9 +44,9 @@ export function StaffScreenHeader({
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
       gap: Spacing.md,
     },
     textBlock: {
@@ -55,7 +56,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     title: {
       ...Typography.pageTitle,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 26,
     },
     subtitle: {
@@ -63,7 +64,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.inkMuted,
     },
     profileBtn: {
-      alignItems: 'center',
+      alignItems: "center",
       gap: 2,
     },
     rightLabel: {

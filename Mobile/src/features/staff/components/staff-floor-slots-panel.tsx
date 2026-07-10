@@ -1,29 +1,21 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from "@/components/themed-text";
 import {
   SLOT_CELL_BORDER_RADIUS,
   SlotHeroVisual,
-} from '@/features/staff/components/slot-hero-visual';
-import type { ParkingFloor, ParkingSlot } from '@/features/staff/api';
-import { useHeroTransition } from '@/features/staff/motion/hero-transition-context';
-import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import {
-  resolveFloorPresentation,
-  sortFloorsLikeParkingMap,
-} from '@/lib/parking-floor-config';
+} from "@/features/staff/components/slot-hero-visual";
+import type { ParkingFloor, ParkingSlot } from "@/features/staff/api";
+import { useHeroTransition } from "@/features/staff/motion/hero-transition-context";
+import { createStaffStyles } from "@/features/staff/styles/common";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { resolveFloorPresentation, sortFloorsLikeParkingMap } from "@/lib/parking-floor-config";
 
 type StaffFloorSlotsPanelProps = {
   floors: ParkingFloor[];
   t: (vi: string, en: string) => string;
-  onOpenSlot: (
-    slot: ParkingSlot,
-    floorId: string,
-    floorName: string,
-    ref: View,
-  ) => void;
+  onOpenSlot: (slot: ParkingSlot, floorId: string, floorName: string, ref: View) => void;
 };
 
 type SlotCellProps = {
@@ -31,7 +23,7 @@ type SlotCellProps = {
   floorId: string;
   floorName: string;
   styles: ReturnType<typeof createStaffStyles>;
-  onOpen: StaffFloorSlotsPanelProps['onOpenSlot'];
+  onOpen: StaffFloorSlotsPanelProps["onOpenSlot"];
 };
 
 function SlotCell({ slot, floorId, floorName, styles, onOpen }: SlotCellProps) {
@@ -46,11 +38,13 @@ function SlotCell({ slot, floorId, floorName, styles, onOpen }: SlotCellProps) {
         if (ref.current) {
           onOpen(slot, floorId, floorName, ref.current);
         }
-      }}>
+      }}
+    >
       <View
         ref={ref}
         collapsable={false}
-        style={[styles.slotCellInner, hidden && styles.slotHeroHidden]}>
+        style={[styles.slotCellInner, hidden && styles.slotHeroHidden]}
+      >
         <SlotHeroVisual slotNumber={slot.slotNumber} status={slot.status} variant="cell" fill />
       </View>
     </Pressable>
@@ -88,7 +82,9 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
   );
 
   if (orderedFloors.length === 0) {
-    return <ThemedText style={styles.hint}>{t('Không có dữ liệu tầng', 'No floor data')}</ThemedText>;
+    return (
+      <ThemedText style={styles.hint}>{t("Không có dữ liệu tầng", "No floor data")}</ThemedText>
+    );
   }
 
   return (
@@ -96,7 +92,8 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
       <ScrollView
         horizontal
         contentContainerStyle={styles.floorTabs}
-        showsHorizontalScrollIndicator={false}>
+        showsHorizontalScrollIndicator={false}
+      >
         {orderedFloors.map((floor) => {
           const active = floor._id === activeFloor?._id;
           const { tabLabel } = resolveFloorPresentation(floor, t);
@@ -108,7 +105,8 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
                 styles.floorTab,
                 active && styles.floorTabActive,
                 pressed && styles.floorTabPressed,
-              ]}>
+              ]}
+            >
               <ThemedText style={active ? styles.floorTabTextActive : styles.floorTabText}>
                 {tabLabel}
               </ThemedText>
@@ -123,18 +121,18 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
             <ThemedText style={styles.floorMetaTitle}>{activePresentation.metaTitle}</ThemedText>
             <View style={styles.floorMetaRow}>
               <ThemedText style={styles.floorMetaStats}>
-                {activePresentation.available} / {activePresentation.total} {t('trống', 'free')}
+                {activePresentation.available} / {activePresentation.total} {t("trống", "free")}
               </ThemedText>
               <ThemedText style={styles.floorMetaStatsMuted}>
-                {t('Đang gửi', 'In use')}: {activePresentation.inUsed}
+                {t("Đang gửi", "In use")}: {activePresentation.inUsed}
               </ThemedText>
             </View>
             {activePresentation.designSlotCount !== null &&
             activePresentation.designSlotCount !== activePresentation.total ? (
               <ThemedText style={styles.floorMetaSub}>
-                {t('Bản đồ 3D', '3D map')}: {activePresentation.designSlotCount}{' '}
-                {t('ô thiết kế', 'design slots')} · {t('Hệ thống', 'System')}:{' '}
-                {activePresentation.total} {t('ô', 'slots')}
+                {t("Bản đồ 3D", "3D map")}: {activePresentation.designSlotCount}{" "}
+                {t("ô thiết kế", "design slots")} · {t("Hệ thống", "System")}:{" "}
+                {activePresentation.total} {t("ô", "slots")}
               </ThemedText>
             ) : null}
           </View>
@@ -142,22 +140,22 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot }: StaffFloorSlotsP
           <View style={styles.legendRow}>
             <LegendItem
               color={DesignColors.accentEmerald}
-              label={t('Trống', 'Available')}
+              label={t("Trống", "Available")}
               styles={styles}
             />
             <LegendItem
               color={DesignColors.accentAmber}
-              label={t('Đang gửi', 'In use')}
+              label={t("Đang gửi", "In use")}
               styles={styles}
             />
             <LegendItem
               color={DesignColors.accentAmber}
-              label={t('Đã đặt', 'Reserved')}
+              label={t("Đã đặt", "Reserved")}
               styles={styles}
             />
             <LegendItem
               color={DesignColors.inkSubtle}
-              label={t('Không dùng', 'Unavailable')}
+              label={t("Không dùng", "Unavailable")}
               styles={styles}
             />
           </View>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { AccessibilityInfo, Platform } from 'react-native';
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, Platform } from "react-native";
 
 /**
  * Detects whether the device is in grayscale / "color inversion" accessibility mode.
@@ -14,7 +14,7 @@ export function useGrayscale(): boolean {
 
   useEffect(() => {
     // Check initial state
-    if (typeof AccessibilityInfo.isGrayscaleEnabled === 'function') {
+    if (typeof AccessibilityInfo.isGrayscaleEnabled === "function") {
       AccessibilityInfo.isGrayscaleEnabled().then((enabled) => {
         setIsGrayscale(enabled);
       });
@@ -22,7 +22,7 @@ export function useGrayscale(): boolean {
 
     // Listen for changes
     const subscription = AccessibilityInfo.addEventListener(
-      'grayscaleChanged' as any,
+      "grayscaleChanged" as any,
       (enabled: boolean) => {
         setIsGrayscale(enabled);
       },
@@ -30,11 +30,11 @@ export function useGrayscale(): boolean {
 
     // Also listen for invertColors changes — some devices route B&W through inversion
     const invertSubscription = AccessibilityInfo.addEventListener(
-      'invertColorsChanged' as any,
+      "invertColorsChanged" as any,
       (_inverted: boolean) => {
         // Re-check grayscale when inversion toggles, since some UI overlays
         // combine the two accessibility settings.
-        if (typeof AccessibilityInfo.isGrayscaleEnabled === 'function') {
+        if (typeof AccessibilityInfo.isGrayscaleEnabled === "function") {
           AccessibilityInfo.isGrayscaleEnabled().then(setIsGrayscale);
         }
       },
@@ -43,15 +43,12 @@ export function useGrayscale(): boolean {
     // For Android: also poll reduceMotion as a proxy signal when the
     // grayscale listener isn't available (pre-API 29).
     let reduceSubscription: ReturnType<typeof AccessibilityInfo.addEventListener> | null = null;
-    if (Platform.OS === 'android') {
-      reduceSubscription = AccessibilityInfo.addEventListener(
-        'reduceMotionChanged',
-        () => {
-          if (typeof AccessibilityInfo.isGrayscaleEnabled === 'function') {
-            AccessibilityInfo.isGrayscaleEnabled().then(setIsGrayscale);
-          }
-        },
-      );
+    if (Platform.OS === "android") {
+      reduceSubscription = AccessibilityInfo.addEventListener("reduceMotionChanged", () => {
+        if (typeof AccessibilityInfo.isGrayscaleEnabled === "function") {
+          AccessibilityInfo.isGrayscaleEnabled().then(setIsGrayscale);
+        }
+      });
     }
 
     return () => {

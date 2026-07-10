@@ -1,22 +1,22 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { AppToastProvider } from '@/components/app-toast';
-import { Typography } from '@/constants/design';
-import { MobileChatbotWidget } from '@/features/chatbot/components/mobile-chatbot-widget';
-import { StaffTabIcon } from '@/features/staff/components/staff-tab-icon';
-import { StaffWorkspaceProvider } from '@/features/staff/context/staff-workspace-context';
-import { useAndroidAuthenticatedBack } from '@/hooks/use-android-authenticated-back';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { LanguagePreferenceProvider, useLanguagePreference } from '@/hooks/language-preference';
-import { SessionRoleProvider, useSessionRole } from '@/hooks/session-role';
-import { ThemePreferenceProvider, useThemePreference } from '@/hooks/theme-preference';
+import { AnimatedSplashOverlay } from "@/components/animated-icon";
+import { AppToastProvider } from "@/components/app-toast";
+import { Typography } from "@/constants/design";
+import { MobileChatbotWidget } from "@/features/chatbot/components/mobile-chatbot-widget";
+import { StaffTabIcon } from "@/features/staff/components/staff-tab-icon";
+import { StaffWorkspaceProvider } from "@/features/staff/context/staff-workspace-context";
+import { useAndroidAuthenticatedBack } from "@/hooks/use-android-authenticated-back";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { LanguagePreferenceProvider, useLanguagePreference } from "@/hooks/language-preference";
+import { SessionRoleProvider, useSessionRole } from "@/hooks/session-role";
+import { ThemePreferenceProvider, useThemePreference } from "@/hooks/theme-preference";
 
 export default function TabLayout() {
   return (
@@ -40,12 +40,11 @@ function RootNavigator() {
   const DesignColors = useDesignColors();
   const insets = useSafeAreaInsets();
   const { role, isAuthenticated, isLoading: isRoleLoading } = useSessionRole();
-  const isStaff = role === 'STAFF';
+  const isStaff = role === "STAFF";
 
   useAndroidAuthenticatedBack(isAuthenticated);
 
-  const tabBarBottomInset =
-    insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 32 : 0;
+  const tabBarBottomInset = insets.bottom > 0 ? insets.bottom : Platform.OS === "android" ? 32 : 0;
   const tabBarContentHeight = 52;
   const tabBarVerticalPadding = 6;
 
@@ -87,10 +86,10 @@ function RootNavigator() {
   const staffTabBarInactiveTintColor = DesignColors.inkSubtle;
 
   return (
-    <ThemeProvider value={resolvedScheme === 'dark' ? darkTheme : lightTheme}>
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: DesignColors.canvas }}>
+    <ThemeProvider value={resolvedScheme === "dark" ? darkTheme : lightTheme}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: DesignColors.canvas }}>
         <StatusBar
-          style={resolvedScheme === 'dark' ? 'light' : 'dark'}
+          style={resolvedScheme === "dark" ? "light" : "dark"}
           backgroundColor={DesignColors.canvas}
           translucent={false}
         />
@@ -100,37 +99,65 @@ function RootNavigator() {
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarActiveTintColor: isStaff ? staffTabBarActiveTintColor : DesignColors.ink,
-              tabBarInactiveTintColor: isStaff ? staffTabBarInactiveTintColor : DesignColors.inkSubtle,
+              tabBarInactiveTintColor: isStaff
+                ? staffTabBarInactiveTintColor
+                : DesignColors.inkSubtle,
               tabBarShowLabel: true,
               tabBarStyle,
               tabBarLabelStyle: {
                 ...Typography.caption,
                 fontSize: 10,
                 marginTop: 2,
-                fontWeight: '500',
+                fontWeight: "500",
               },
               tabBarIcon: ({ color, size, focused }) => {
                 const iconSize = size + 1;
-                if (route.name === '(customer)/home') {
-                  return <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize} color={color} />;
-                }
-                if (route.name === '(customer)/parking-map') {
-                  return <Ionicons name={focused ? 'map' : 'map-outline'} size={iconSize} color={color} />;
-                }
-                if (route.name === '(customer)/reservations') {
+                if (route.name === "(customer)/home") {
                   return (
-                    <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={iconSize} color={color} />
+                    <Ionicons
+                      name={focused ? "home" : "home-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
                   );
                 }
-                if (route.name === '(customer)/profile') {
-                  return <Ionicons name={focused ? 'person' : 'person-outline'} size={iconSize} color={color} />;
-                }
-                if (route.name === '(customer)/settings') {
+                if (route.name === "(customer)/parking-map") {
                   return (
-                    <Ionicons name={focused ? 'settings' : 'settings-outline'} size={iconSize} color={color} />
+                    <Ionicons
+                      name={focused ? "map" : "map-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
                   );
                 }
-                if (route.name === '(staff)/staff-home') {
+                if (route.name === "(customer)/reservations") {
+                  return (
+                    <Ionicons
+                      name={focused ? "calendar" : "calendar-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
+                  );
+                }
+                if (route.name === "(customer)/profile") {
+                  return (
+                    <Ionicons
+                      name={focused ? "person" : "person-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
+                  );
+                }
+                if (route.name === "(customer)/settings") {
+                  return (
+                    <Ionicons
+                      name={focused ? "settings" : "settings-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
+                  );
+                }
+                if (route.name === "(staff)/staff-home") {
                   return (
                     <StaffTabIcon
                       color={color}
@@ -141,7 +168,7 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-slots') {
+                if (route.name === "(staff)/staff-slots") {
                   return (
                     <StaffTabIcon
                       color={color}
@@ -152,7 +179,7 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-check-in') {
+                if (route.name === "(staff)/staff-check-in") {
                   return (
                     <StaffTabIcon
                       color={color}
@@ -163,7 +190,7 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-sessions') {
+                if (route.name === "(staff)/staff-sessions") {
                   return (
                     <StaffTabIcon
                       color={color}
@@ -174,7 +201,7 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-profile') {
+                if (route.name === "(staff)/staff-profile") {
                   return (
                     <StaffTabIcon
                       color={color}
@@ -185,51 +212,63 @@ function RootNavigator() {
                     />
                   );
                 }
-                if (route.name === '(staff)/staff-settings') {
+                if (route.name === "(staff)/staff-settings") {
                   return (
-                    <Ionicons name={focused ? 'settings' : 'settings-outline'} size={iconSize} color={color} />
+                    <Ionicons
+                      name={focused ? "settings" : "settings-outline"}
+                      size={iconSize}
+                      color={color}
+                    />
                   );
                 }
                 return <Ionicons name="ellipse-outline" size={iconSize} color={color} />;
               },
             })}
           >
-            <Tabs.Screen name="index" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+            <Tabs.Screen name="index" options={{ href: null, tabBarStyle: { display: "none" } }} />
             <Tabs.Screen
               name="(auth)/sign-platform"
-              options={{ href: null, tabBarStyle: { display: 'none' } }}
+              options={{ href: null, tabBarStyle: { display: "none" } }}
+            />
+            <Tabs.Screen
+              name="(auth)/forgot-password"
+              options={{ href: null, tabBarStyle: { display: "none" } }}
+            />
+            <Tabs.Screen
+              name="(auth)/reset-password"
+              options={{ href: null, tabBarStyle: { display: "none" } }}
             />
             <Tabs.Screen
               name="(admin)/dashboard"
-              options={{ href: null, tabBarStyle: { display: 'none' } }}
+              options={{ href: null, tabBarStyle: { display: "none" } }}
             />
 
             <Tabs.Screen
               name="(customer)/home"
               options={{
-                title: t('Trang chủ', 'Home'),
-                href: isStaff ? null : '/home',
+                title: t("Trang chủ", "Home"),
+                href: isStaff ? null : "/home",
               }}
             />
             <Tabs.Screen
               name="(customer)/parking-map"
               options={{
-                title: t('Bản đồ', 'Map'),
-                href: isStaff ? null : '/parking-map',
+                title: t("Bản đồ", "Map"),
+                href: isStaff ? null : "/parking-map",
               }}
             />
             <Tabs.Screen
               name="(customer)/reservations"
               options={{
-                title: t('Đặt chỗ', 'Reservations'),
-                href: isStaff ? null : '/reservations',
+                title: t("Đặt chỗ", "Reservations"),
+                href: isStaff ? null : "/reservations",
               }}
             />
             <Tabs.Screen
               name="(customer)/profile"
               options={{
-                title: t('Hồ sơ', 'Profile'),
-                href: isStaff ? null : '/profile',
+                title: t("Hồ sơ", "Profile"),
+                href: isStaff ? null : "/profile",
               }}
             />
             <Tabs.Screen name="(customer)/settings" options={{ href: null }} />
@@ -240,29 +279,29 @@ function RootNavigator() {
             <Tabs.Screen
               name="(staff)/staff-home"
               options={{
-                title: t('Dashboard', 'Dashboard'),
-                href: isStaff || isRoleLoading ? '/staff-home' : null,
+                title: t("Dashboard", "Dashboard"),
+                href: isStaff || isRoleLoading ? "/staff-home" : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-slots"
               options={{
-                title: t('Spots', 'Spots'),
-                href: isStaff || isRoleLoading ? '/staff-slots' : null,
+                title: t("Spots", "Spots"),
+                href: isStaff || isRoleLoading ? "/staff-slots" : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-check-in"
               options={{
-                title: t('Check-in', 'Check-in'),
-                href: isStaff || isRoleLoading ? '/staff-check-in' : null,
+                title: t("Check-in", "Check-in"),
+                href: isStaff || isRoleLoading ? "/staff-check-in" : null,
               }}
             />
             <Tabs.Screen
               name="(staff)/staff-sessions"
               options={{
-                title: t('Sessions', 'Sessions'),
-                href: isStaff || isRoleLoading ? '/staff-sessions' : null,
+                title: t("Sessions", "Sessions"),
+                href: isStaff || isRoleLoading ? "/staff-sessions" : null,
               }}
             />
             <Tabs.Screen name="(staff)/staff-operations" options={{ href: null }} />

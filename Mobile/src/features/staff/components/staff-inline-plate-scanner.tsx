@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { CameraView } from 'expo-camera';
-import React, { useMemo } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { CameraView } from "expo-camera";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,28 +8,26 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
-} from 'react-native';
+} from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import {
-  CHECKIN_CAMERA_OVERLAY_INSET,
-} from '@/features/staff/components/staff-check-in-layout';
-import { usePlateScanner } from '@/features/staff/hooks/use-plate-scanner';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { CHECKIN_CAMERA_OVERLAY_INSET } from "@/features/staff/components/staff-check-in-layout";
+import { usePlateScanner } from "@/features/staff/hooks/use-plate-scanner";
 import {
   PLATE_VIEWFINDER,
   getPlateViewfinderFrameBottom,
   getPlateViewfinderMarginTop,
   getPlateViewfinderScanBandBottom,
-} from '@/features/staff/lib/plate-scanner-viewfinder';
-import { useDesignColors } from '@/hooks/use-design-colors';
+} from "@/features/staff/lib/plate-scanner-viewfinder";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffInlinePlateScannerProps = {
   active: boolean;
@@ -121,20 +119,20 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 
 const overlayStyles = StyleSheet.create({
   dim: {
-    position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.45)",
   },
   dimSoft: {
-    position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.16)',
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.16)",
   },
   frame: {
-    position: 'absolute',
+    position: "absolute",
     borderRadius: Radius.md,
     borderWidth: 2,
   },
   scanLine: {
-    position: 'absolute',
+    position: "absolute",
     height: 2,
     opacity: 0.9,
   },
@@ -183,9 +181,9 @@ export function StaffInlinePlateScanner({
   if (!ocrAvailable) {
     return (
       <View style={[rootStyle, styles.centered]}>
-        <ThemedText style={styles.hint}>{t('OCR không khả dụng', 'OCR unavailable')}</ThemedText>
+        <ThemedText style={styles.hint}>{t("OCR không khả dụng", "OCR unavailable")}</ThemedText>
         <Pressable onPress={onCancel} style={styles.floatingCancelBtn}>
-          <ThemedText style={styles.cancelText}>{t('Hủy', 'Cancel')}</ThemedText>
+          <ThemedText style={styles.cancelText}>{t("Hủy", "Cancel")}</ThemedText>
         </Pressable>
       </View>
     );
@@ -194,10 +192,12 @@ export function StaffInlinePlateScanner({
   if (cameraError) {
     return (
       <View style={[rootStyle, styles.centered]}>
-        <ThemedText style={styles.hint}>{t('Không mở được camera', 'Camera failed to start')}</ThemedText>
+        <ThemedText style={styles.hint}>
+          {t("Không mở được camera", "Camera failed to start")}
+        </ThemedText>
         <ThemedText style={styles.subHint}>{cameraError}</ThemedText>
         <Pressable onPress={onCancel} style={styles.floatingCancelBtn}>
-          <ThemedText style={styles.cancelText}>{t('Quay lại', 'Go back')}</ThemedText>
+          <ThemedText style={styles.cancelText}>{t("Quay lại", "Go back")}</ThemedText>
         </Pressable>
       </View>
     );
@@ -206,9 +206,11 @@ export function StaffInlinePlateScanner({
   if (!permission.granted) {
     return (
       <View style={[rootStyle, styles.centered]}>
-        <ThemedText style={styles.hint}>{t('Cần quyền camera để quét', 'Camera permission required')}</ThemedText>
+        <ThemedText style={styles.hint}>
+          {t("Cần quyền camera để quét", "Camera permission required")}
+        </ThemedText>
         <Pressable onPress={onCancel} style={styles.floatingCancelBtn}>
-          <ThemedText style={styles.cancelText}>{t('Quay lại', 'Go back')}</ThemedText>
+          <ThemedText style={styles.cancelText}>{t("Quay lại", "Go back")}</ThemedText>
         </Pressable>
       </View>
     );
@@ -237,14 +239,17 @@ export function StaffInlinePlateScanner({
       </View>
 
       <Pressable
-        accessibilityLabel={t('Đóng', 'Close')}
+        accessibilityLabel={t("Đóng", "Close")}
         hitSlop={12}
         onPress={onCancel}
-        style={styles.closeBtn}>
+        style={styles.closeBtn}
+      >
         <Ionicons color={DesignColors.ink} name="close" size={20} />
       </Pressable>
 
-      <ThemedText style={styles.alignLabel}>{t('CĂN CHỈNH BIỂN SỐ...', 'ALIGNING PLATE...')}</ThemedText>
+      <ThemedText style={styles.alignLabel}>
+        {t("CĂN CHỈNH BIỂN SỐ...", "ALIGNING PLATE...")}
+      </ThemedText>
 
       <View style={styles.liveBadgeAnchor}>
         <View style={styles.liveBadge}>
@@ -255,10 +260,10 @@ export function StaffInlinePlateScanner({
           )}
           <ThemedText style={styles.liveText}>
             {!scanEnabled
-              ? t('Đang khởi động…', 'Starting…')
+              ? t("Đang khởi động…", "Starting…")
               : manualCloudScan
-                ? t('Chạm Quét ngay', 'Tap Scan now')
-                : t('Đang quét', 'Scanning')}
+                ? t("Chạm Quét ngay", "Tap Scan now")
+                : t("Đang quét", "Scanning")}
           </ThemedText>
         </View>
       </View>
@@ -277,12 +282,13 @@ export function StaffInlinePlateScanner({
             styles.scanBtn,
             pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
             (!scanEnabled || isProcessing || scanBlockedByCooldown) && styles.scanBtnDisabled,
-          ]}>
+          ]}
+        >
           <Ionicons color={DesignColors.onPrimary} name="scan" size={18} />
           <ThemedText style={styles.scanBtnText}>
             {scanBlockedByCooldown
               ? t(`Đợi ${cooldownSeconds}s`, `Wait ${cooldownSeconds}s`)
-              : t('Quét ngay', 'Scan now')}
+              : t("Quét ngay", "Scan now")}
           </ThemedText>
         </Pressable>
       </View>
@@ -297,23 +303,23 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      width: '100%',
-      height: '100%',
-      position: 'relative',
+      width: "100%",
+      height: "100%",
+      position: "relative",
     },
     cameraClip: {
       ...StyleSheet.absoluteFillObject,
-      overflow: 'hidden',
-      backgroundColor: '#000',
+      overflow: "hidden",
+      backgroundColor: "#000",
     },
     cameraFeed: {
       ...StyleSheet.absoluteFillObject,
-      width: '100%',
-      height: '100%',
+      width: "100%",
+      height: "100%",
     },
     centered: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       gap: Spacing.sm,
       padding: Spacing.md,
       backgroundColor: DesignColors.surface3,
@@ -321,70 +327,70 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     hint: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      textAlign: 'center',
-      fontWeight: '600',
+      textAlign: "center",
+      fontWeight: "600",
     },
     subHint: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
     },
     floatingCancelBtn: {
       paddingHorizontal: Spacing.md,
       paddingVertical: 8,
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(0,0,0,0.55)',
+      backgroundColor: "rgba(0,0,0,0.55)",
       borderWidth: 1,
       borderColor: DesignColors.hairline,
     },
     cancelText: {
       ...Typography.caption,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     closeBtn: {
-      position: 'absolute',
+      position: "absolute",
       top: overlayInset,
       left: overlayInset,
       zIndex: 20,
       width: closeBtnSize,
       height: closeBtnSize,
       borderRadius: closeBtnSize / 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.62)',
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.62)",
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: "rgba(255,255,255,0.12)",
     },
     alignLabel: {
-      position: 'absolute',
+      position: "absolute",
       top: overlayInset + 4,
       left: overlayInset,
       right: overlayInset,
       zIndex: 10,
       ...Typography.caption,
       color: DesignColors.primaryFocus,
-      fontWeight: '700',
+      fontWeight: "700",
       letterSpacing: 1.1,
       fontSize: 11,
-      textAlign: 'center',
+      textAlign: "center",
     },
     liveBadgeAnchor: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 58,
       left: overlayInset,
       right: overlayInset,
       zIndex: 10,
-      alignItems: 'center',
+      alignItems: "center",
     },
     liveBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: "rgba(0,0,0,0.5)",
       borderWidth: 1,
       borderColor: `${DesignColors.neonSuccess}44`,
     },
@@ -398,47 +404,47 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       ...Typography.caption,
       color: DesignColors.neonSuccess,
       fontSize: 10,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     statusAnchor: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 88,
       left: overlayInset,
       right: overlayInset,
       zIndex: 10,
-      alignItems: 'center',
+      alignItems: "center",
     },
     status: {
       ...Typography.caption,
       color: DesignColors.accentSky,
       fontSize: 10,
-      textAlign: 'center',
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      textAlign: "center",
+      backgroundColor: "rgba(0,0,0,0.45)",
       paddingVertical: 4,
       paddingHorizontal: 8,
       borderRadius: Radius.md,
-      overflow: 'hidden',
-      maxWidth: '100%',
+      overflow: "hidden",
+      maxWidth: "100%",
     },
     scanBtnAnchor: {
-      position: 'absolute',
+      position: "absolute",
       bottom: overlayInset,
       left: overlayInset,
       right: overlayInset,
       zIndex: 20,
-      alignItems: 'center',
+      alignItems: "center",
     },
     scanBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: 8,
       paddingHorizontal: 20,
       paddingVertical: 11,
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(79, 70, 229, 0.92)',
+      backgroundColor: "rgba(79, 70, 229, 0.92)",
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: "rgba(255,255,255,0.18)",
       shadowColor: DesignColors.primaryFocus,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.45,
@@ -451,7 +457,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     scanBtnText: {
       ...Typography.caption,
       color: DesignColors.onPrimary,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 13,
     },
   });

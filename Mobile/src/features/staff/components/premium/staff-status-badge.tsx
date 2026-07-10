@@ -1,30 +1,30 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffStatusBadgeProps = {
   label: string;
-  tone?: 'active' | 'available' | 'occupied' | 'exited' | 'neutral';
+  tone?: "active" | "available" | "occupied" | "exited" | "neutral";
 };
 
-export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgeProps) {
+export function StaffStatusBadge({ label, tone = "neutral" }: StaffStatusBadgeProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const palette =
-    tone === 'active' || tone === 'available'
+    tone === "active" || tone === "available"
       ? {
-          bg: 'rgba(52,211,153,0.12)',
-          border: 'rgba(52,211,153,0.35)',
+          bg: "rgba(52,211,153,0.12)",
+          border: "rgba(52,211,153,0.35)",
           text: DesignColors.accentEmerald,
         }
-      : tone === 'occupied' || tone === 'exited'
+      : tone === "occupied" || tone === "exited"
         ? {
-            bg: 'rgba(251,146,60,0.12)',
-            border: 'rgba(251,146,60,0.35)',
+            bg: "rgba(251,146,60,0.12)",
+            border: "rgba(251,146,60,0.35)",
             text: DesignColors.accentAmber,
           }
         : {
@@ -50,8 +50,8 @@ function createStyles(_DesignColors: ReturnType<typeof useDesignColors>) {
     },
     text: {
       ...Typography.caption,
-      fontWeight: '700',
-      textTransform: 'uppercase',
+      fontWeight: "700",
+      textTransform: "uppercase",
       letterSpacing: 0.6,
       fontSize: 10,
     },

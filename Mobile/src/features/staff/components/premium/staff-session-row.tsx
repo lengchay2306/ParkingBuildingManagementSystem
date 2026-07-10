@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { StaffStatusBadge } from '@/features/staff/components/premium/staff-status-badge';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { StaffStatusBadge } from "@/features/staff/components/premium/staff-status-badge";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffSessionRowProps = {
   plate: string;
@@ -24,13 +24,14 @@ export function StaffSessionRow({
 }: StaffSessionRowProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const isActive = status.toUpperCase() === 'ACTIVE';
+  const isActive = status.toUpperCase() === "ACTIVE";
 
   return (
     <Pressable
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
+      style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}
+    >
       <View style={styles.left}>
         <ThemedText style={styles.plate}>{plate}</ThemedText>
         <View style={styles.metaRow}>
@@ -43,7 +44,7 @@ export function StaffSessionRow({
         </View>
       </View>
       <View style={styles.right}>
-        <StaffStatusBadge label={status} tone={isActive ? 'active' : 'exited'} />
+        <StaffStatusBadge label={status} tone={isActive ? "active" : "exited"} />
         <ThemedText style={styles.time}>{timeLabel}</ThemedText>
       </View>
     </Pressable>
@@ -53,9 +54,9 @@ export function StaffSessionRow({
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.md,
       backgroundColor: DesignColors.surface1,
       borderRadius: Radius.lg,
@@ -74,12 +75,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     plate: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       letterSpacing: 0.5,
     },
     metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
     },
     slot: {
@@ -87,7 +88,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.inkMuted,
     },
     right: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
       gap: 6,
     },
     time: {

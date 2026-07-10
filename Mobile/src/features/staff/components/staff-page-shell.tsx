@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -6,13 +6,13 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
-} from 'react-native';
+} from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth } from '@/constants/theme';
-import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { MaxContentWidth } from "@/constants/theme";
+import { createStaffStyles } from "@/features/staff/styles/common";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffPageShellProps = {
   header?: React.ReactNode;
@@ -43,13 +43,22 @@ export function StaffPageShell({
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={[shellStyles.content, footer ? shellStyles.contentWithFooter : null, contentStyle]}
+        contentContainerStyle={[
+          shellStyles.content,
+          footer ? shellStyles.contentWithFooter : null,
+          contentStyle,
+        ]}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing ?? false} onRefresh={onRefresh} tintColor={DesignColors.primary} />
+            <RefreshControl
+              refreshing={refreshing ?? false}
+              onRefresh={onRefresh}
+              tintColor={DesignColors.primary}
+            />
           ) : undefined
         }
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         {header ??
           (title ? (
             <View style={styles.header}>
@@ -70,9 +79,9 @@ const shellStyles = StyleSheet.create({
     gap: 20,
     paddingHorizontal: 16,
     paddingVertical: 20,
-    width: '100%',
+    width: "100%",
     maxWidth: MaxContentWidth,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   contentWithFooter: {
     paddingBottom: 100,

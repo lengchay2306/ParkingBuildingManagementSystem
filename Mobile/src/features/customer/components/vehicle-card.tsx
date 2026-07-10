@@ -1,34 +1,34 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
-import { ActivityIndicator, Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React from "react";
+import { ActivityIndicator, Pressable, View, type TextStyle, type ViewStyle } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette } from '@/constants/design';
-import type { UserVehicle } from '@/lib/auth-api';
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette } from "@/constants/design";
+import type { UserVehicle } from "@/lib/auth-api";
 
 function formatDate(value: string | undefined) {
   if (!value) {
-    return '—';
+    return "—";
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return '—';
+    return "—";
   }
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 }
 
 function statusTone(status: string | undefined, DesignColors: DesignColorPalette) {
   const normalized = status?.toUpperCase();
-  if (normalized === 'ACTIVE') {
+  if (normalized === "ACTIVE") {
     return { label: normalized, color: DesignColors.semanticSuccess };
   }
-  if (normalized === 'LOCKED') {
-    return { label: normalized, color: '#ef4444' };
+  if (normalized === "LOCKED") {
+    return { label: normalized, color: "#ef4444" };
   }
-  return { label: normalized ?? '—', color: DesignColors.inkSubtle };
+  return { label: normalized ?? "—", color: DesignColors.inkSubtle };
 }
 
 export type VehicleCardStyles = {
@@ -73,12 +73,12 @@ export function VehicleCard({
   isBuyingMonthlyCard?: boolean;
 }) {
   const card = vehicle.monthlyCardId;
-  const vehicleType = vehicle.vehicleTypeId?.type ?? '—';
+  const vehicleType = vehicle.vehicleTypeId?.type ?? "—";
   const cardStatus = statusTone(card?.status, DesignColors);
   const hasActiveCard =
     Boolean(card) &&
-    (typeof card === 'object'
-      ? card?.status?.toUpperCase() === 'ACTIVE' || Boolean(card?._id)
+    (typeof card === "object"
+      ? card?.status?.toUpperCase() === "ACTIVE" || Boolean(card?._id)
       : true);
 
   return (
@@ -92,7 +92,7 @@ export function VehicleCard({
             onPress={onEdit}
             disabled={isDeleting || isBuyingMonthlyCard}
             style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
-            accessibilityLabel={t('Sửa xe', 'Edit vehicle')}
+            accessibilityLabel={t("Sửa xe", "Edit vehicle")}
           >
             <Ionicons name="create-outline" size={16} color={DesignColors.primary} />
           </Pressable>
@@ -100,7 +100,7 @@ export function VehicleCard({
             onPress={onDelete}
             disabled={isDeleting || isBuyingMonthlyCard}
             style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
-            accessibilityLabel={t('Xóa xe', 'Delete vehicle')}
+            accessibilityLabel={t("Xóa xe", "Delete vehicle")}
           >
             {isDeleting ? (
               <ActivityIndicator color={DesignColors.inkMuted} size="small" />
@@ -110,40 +110,40 @@ export function VehicleCard({
           </Pressable>
           <View style={[styles.statusPill, { borderColor: cardStatus.color }]}>
             <ThemedText style={[styles.statusPillText, { color: cardStatus.color }]}>
-              {vehicle.status ?? '—'}
+              {vehicle.status ?? "—"}
             </ThemedText>
           </View>
         </View>
       </View>
 
       <View style={styles.infoRow}>
-        <ThemedText style={styles.infoLabel}>{t('Loại xe', 'Vehicle type')}</ThemedText>
+        <ThemedText style={styles.infoLabel}>{t("Loại xe", "Vehicle type")}</ThemedText>
         <ThemedText style={styles.infoValue}>{vehicleType}</ThemedText>
       </View>
 
-      {hasActiveCard && typeof card === 'object' && card ? (
+      {hasActiveCard && typeof card === "object" && card ? (
         <>
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>{t('Thẻ tháng', 'Monthly card')}</ThemedText>
-            <ThemedText style={styles.infoValueMono}>{card.cardCode ?? '—'}</ThemedText>
+            <ThemedText style={styles.infoLabel}>{t("Thẻ tháng", "Monthly card")}</ThemedText>
+            <ThemedText style={styles.infoValueMono}>{card.cardCode ?? "—"}</ThemedText>
           </View>
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>{t('Hiệu lực', 'Valid period')}</ThemedText>
+            <ThemedText style={styles.infoLabel}>{t("Hiệu lực", "Valid period")}</ThemedText>
             <ThemedText style={styles.infoValue}>
               {formatDate(card.startDate)} - {formatDate(card.endDate)}
             </ThemedText>
           </View>
           <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>{t('Trạng thái thẻ', 'Card status')}</ThemedText>
+            <ThemedText style={styles.infoLabel}>{t("Trạng thái thẻ", "Card status")}</ThemedText>
             <ThemedText style={[styles.infoValue, { color: cardStatus.color }]}>
-              {card.status ?? '—'}
+              {card.status ?? "—"}
             </ThemedText>
           </View>
         </>
       ) : (
         <>
           <ThemedText style={styles.noCardText}>
-            {t('Chưa có thẻ tháng', 'No monthly card linked')}
+            {t("Chưa có thẻ tháng", "No monthly card linked")}
           </ThemedText>
           {onBuyMonthlyCard ? (
             <Pressable
@@ -159,7 +159,7 @@ export function VehicleCard({
                 <ActivityIndicator color={DesignColors.onPrimary} size="small" />
               ) : (
                 <ThemedText style={[styles.buyCardButtonText, { color: DesignColors.onPrimary }]}>
-                  {t('Mua thẻ tháng', 'Buy monthly card')}
+                  {t("Mua thẻ tháng", "Buy monthly card")}
                 </ThemedText>
               )}
             </Pressable>

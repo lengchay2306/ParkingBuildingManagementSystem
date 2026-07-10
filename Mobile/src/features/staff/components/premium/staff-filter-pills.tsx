@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo } from "react";
+import { Pressable, ScrollView, StyleSheet } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 export type StaffFilterOption<T extends string> = {
   id: T;
@@ -28,7 +28,8 @@ export function StaffFilterPills<T extends string>({
     <ScrollView
       contentContainerStyle={styles.row}
       horizontal
-      showsHorizontalScrollIndicator={false}>
+      showsHorizontalScrollIndicator={false}
+    >
       {options.map((option) => {
         const active = option.id === value;
         return (
@@ -39,7 +40,8 @@ export function StaffFilterPills<T extends string>({
               styles.pill,
               active && styles.pillActive,
               pressed && styles.pillPressed,
-            ]}>
+            ]}
+          >
             <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
               {option.label}
             </ThemedText>
@@ -53,7 +55,7 @@ export function StaffFilterPills<T extends string>({
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     row: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.xs,
       paddingVertical: 2,
     },
@@ -75,11 +77,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     pillText: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      fontWeight: '500',
+      fontWeight: "500",
     },
     pillTextActive: {
       color: DesignColors.primary,
-      fontWeight: '700',
+      fontWeight: "700",
     },
   });
 }

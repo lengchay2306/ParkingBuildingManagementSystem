@@ -1,17 +1,22 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
-import type { ParkingFloor, Reservation, StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
-import { resolveVehicleTypeLabel } from '@/features/staff/api';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { StaffCheckInSlotPicker } from "@/features/staff/components/staff-check-in-slot-picker";
+import type {
+  ParkingFloor,
+  Reservation,
+  StaffVehicle,
+  VehicleOwnerProfile,
+} from "@/features/staff/api";
+import { resolveVehicleTypeLabel } from "@/features/staff/api";
 import {
   formatReservationSlotLabel,
   getReservationDriverName,
-} from '@/features/staff/lib/reservation-helpers';
-import { useDesignColors } from '@/hooks/use-design-colors';
+} from "@/features/staff/lib/reservation-helpers";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffCheckInConfirmStepProps = {
   vehicle: StaffVehicle;
@@ -50,12 +55,16 @@ export function StaffCheckInConfirmStep({
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const hasActiveConflict = !!activeSessionSlotLabel;
   const ticketLabel = vehicle.monthlyCardId
-    ? t('Vé tháng', 'Monthly pass')
-    : t('Vé ngày', 'Daily pass');
+    ? t("Vé tháng", "Monthly pass")
+    : t("Vé ngày", "Daily pass");
   const vehicleType = resolveVehicleTypeLabel(vehicle.vehicleTypeId);
   const showPhoneInput = !hasActiveConflict && !ownerProfile?.phone;
-  const reservationDriverName = pendingReservation ? getReservationDriverName(pendingReservation) : undefined;
-  const reservationSlotLabel = pendingReservation ? formatReservationSlotLabel(pendingReservation) : null;
+  const reservationDriverName = pendingReservation
+    ? getReservationDriverName(pendingReservation)
+    : undefined;
+  const reservationSlotLabel = pendingReservation
+    ? formatReservationSlotLabel(pendingReservation)
+    : null;
   const lockSlotSelection = !!pendingReservation && !hasActiveConflict;
 
   return (
@@ -64,11 +73,14 @@ export function StaffCheckInConfirmStep({
         <Pressable
           disabled={isDisabled}
           onPress={onBack}
-          style={({ pressed }) => [styles.backBtn, pressed && styles.btnPressed]}>
+          style={({ pressed }) => [styles.backBtn, pressed && styles.btnPressed]}
+        >
           <Ionicons color={DesignColors.ink} name="arrow-back" size={22} />
         </Pressable>
         <View style={styles.topText}>
-          <ThemedText style={styles.topTitle}>{t('Xác nhận check-in', 'Confirm check-in')}</ThemedText>
+          <ThemedText style={styles.topTitle}>
+            {t("Xác nhận check-in", "Confirm check-in")}
+          </ThemedText>
           <ThemedText style={styles.topSubtitle}>{vehicle.licensePlate}</ThemedText>
         </View>
       </View>
@@ -78,13 +90,13 @@ export function StaffCheckInConfirmStep({
           <Ionicons color={DesignColors.accentAmber} name="warning-outline" size={22} />
           <View style={styles.conflictBody}>
             <ThemedText style={styles.conflictTitle}>
-              {t('Xe đang gửi trong bãi', 'Vehicle is already parked')}
+              {t("Xe đang gửi trong bãi", "Vehicle is already parked")}
             </ThemedText>
             <ThemedText style={styles.conflictMeta}>{activeSessionSlotLabel}</ThemedText>
             {onViewActiveSession ? (
               <Pressable onPress={onViewActiveSession} style={styles.conflictLink}>
                 <ThemedText style={styles.conflictLinkText}>
-                  {t('Xem phiên → Checkout', 'View session → Checkout')}
+                  {t("Xem phiên → Checkout", "View session → Checkout")}
                 </ThemedText>
               </Pressable>
             ) : null}
@@ -97,13 +109,11 @@ export function StaffCheckInConfirmStep({
           <Ionicons color={DesignColors.primaryFocus} name="bookmark-outline" size={22} />
           <View style={styles.reservationBody}>
             <ThemedText style={styles.reservationTitle}>
-              {t('Có đặt chỗ PENDING', 'PENDING reservation')}
+              {t("Có đặt chỗ PENDING", "PENDING reservation")}
             </ThemedText>
             <ThemedText style={styles.reservationMeta}>{reservationSlotLabel}</ThemedText>
             {reservationDriverName ? (
-              <ThemedText style={styles.reservationDriver}>
-                {reservationDriverName}
-              </ThemedText>
+              <ThemedText style={styles.reservationDriver}>{reservationDriverName}</ThemedText>
             ) : null}
           </View>
         </View>
@@ -123,18 +133,22 @@ export function StaffCheckInConfirmStep({
         <View style={styles.ownerRow}>
           <Ionicons color={DesignColors.inkMuted} name="person-outline" size={18} />
           <ThemedText style={styles.ownerValue}>
-            {reservationDriverName ?? ownerProfile?.fullName ?? t('Chưa có tên chủ xe', 'Owner name unavailable')}
+            {reservationDriverName ??
+              ownerProfile?.fullName ??
+              t("Chưa có tên chủ xe", "Owner name unavailable")}
           </ThemedText>
         </View>
 
         {showPhoneInput ? (
           <View style={styles.phoneField}>
-            <ThemedText style={styles.phoneLabel}>{t('Số điện thoại khách', 'Customer phone')}</ThemedText>
+            <ThemedText style={styles.phoneLabel}>
+              {t("Số điện thoại khách", "Customer phone")}
+            </ThemedText>
             <TextInput
               editable={!isDisabled}
               keyboardType="phone-pad"
               onChangeText={onPhoneChange}
-              placeholder={t('SĐT KHÁCH (10 SỐ)', 'CUSTOMER PHONE (10 DIGITS)')}
+              placeholder={t("SĐT KHÁCH (10 SỐ)", "CUSTOMER PHONE (10 DIGITS)")}
               placeholderTextColor={DesignColors.placeholder}
               style={styles.phoneInput}
               value={phone}
@@ -143,7 +157,7 @@ export function StaffCheckInConfirmStep({
         ) : (
           <View style={styles.ownerRow}>
             <Ionicons color={DesignColors.inkMuted} name="call-outline" size={18} />
-            <ThemedText style={styles.ownerPhone}>{phone || ownerProfile?.phone || '—'}</ThemedText>
+            <ThemedText style={styles.ownerPhone}>{phone || ownerProfile?.phone || "—"}</ThemedText>
           </View>
         )}
       </View>
@@ -168,8 +182,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.lg,
     },
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     backBtn: {
@@ -179,8 +193,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     topText: {
       flex: 1,
@@ -189,7 +203,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     topTitle: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 18,
     },
     topSubtitle: {
@@ -202,8 +216,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       opacity: 0.85,
     },
     conflictCard: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      alignItems: "flex-start",
       gap: Spacing.sm,
       backgroundColor: `${DesignColors.accentAmber}14`,
       borderRadius: Radius.xl,
@@ -218,7 +232,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     conflictTitle: {
       ...Typography.bodySm,
       color: DesignColors.accentAmber,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     conflictMeta: {
       ...Typography.caption,
@@ -231,12 +245,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     conflictLinkText: {
       ...Typography.caption,
       color: DesignColors.primaryFocus,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 12,
     },
     reservationCard: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      alignItems: "flex-start",
       gap: Spacing.sm,
       backgroundColor: `${DesignColors.primaryFocus}12`,
       borderRadius: Radius.xl,
@@ -251,13 +265,13 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     reservationTitle: {
       ...Typography.bodySm,
       color: DesignColors.primaryFocus,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     reservationMeta: {
       ...Typography.caption,
       color: DesignColors.ink,
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     reservationDriver: {
       ...Typography.caption,
@@ -273,16 +287,16 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.sm,
     },
     plateRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
     },
     plate: {
       ...Typography.mono,
       color: DesignColors.ink,
       fontSize: 22,
-      fontWeight: '700',
+      fontWeight: "700",
       letterSpacing: 1,
     },
     typePill: {
@@ -296,13 +310,13 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     typePillText: {
       ...Typography.caption,
       color: DesignColors.primaryFocus,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 11,
     },
     ticketLabel: {
       ...Typography.caption,
       color: DesignColors.neonSuccess,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 12,
     },
     divider: {
@@ -311,20 +325,20 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       marginVertical: 4,
     },
     ownerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     ownerValue: {
       ...Typography.body,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
       flex: 1,
     },
     ownerPhone: {
       ...Typography.body,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 16,
       letterSpacing: 0.3,
       flex: 1,
@@ -336,9 +350,9 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     phoneLabel: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       fontSize: 10,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     phoneInput: {
       ...Typography.body,

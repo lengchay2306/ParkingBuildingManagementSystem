@@ -1,26 +1,26 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-import { useAppToast } from '@/components/app-toast';
-import { DisplaySettingsContent } from '@/components/display-settings-content';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/design';
+import { useAppToast } from "@/components/app-toast";
+import { DisplaySettingsContent } from "@/components/display-settings-content";
+import { ThemedText } from "@/components/themed-text";
+import { Spacing } from "@/constants/design";
 import {
   buildProfileUpdatePayload,
   getMyProfile,
   updateMyProfile,
   validateProfileUpdate,
-} from '@/features/customer/api/profile';
-import { StaffActionButton } from '@/features/staff/components/staff-action-button';
-import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
-import { StaffTextInput } from '@/features/staff/components/staff-text-input';
-import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
-import { normalizeStaffPhone } from '@/features/staff/lib/session-validation';
-import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import type { UserProfile } from '@/lib/auth-api';
+} from "@/features/customer/api/profile";
+import { StaffActionButton } from "@/features/staff/components/staff-action-button";
+import { StaffPageShell } from "@/features/staff/components/staff-page-shell";
+import { StaffTextInput } from "@/features/staff/components/staff-text-input";
+import { useStaffRoleGuard } from "@/features/staff/hooks/use-staff-role-guard";
+import { normalizeStaffPhone } from "@/features/staff/lib/session-validation";
+import { createStaffStyles } from "@/features/staff/styles/common";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import type { UserProfile } from "@/lib/auth-api";
 
 export default function StaffSettingsScreen() {
   useStaffRoleGuard();
@@ -31,8 +31,8 @@ export default function StaffSettingsScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const loadProfile = useCallback(async () => {
@@ -40,12 +40,12 @@ export default function StaffSettingsScreen() {
     try {
       const user = await getMyProfile();
       setProfile(user);
-      setFullName(user.fullName ?? '');
-      setPhone(user.phone ?? '');
+      setFullName(user.fullName ?? "");
+      setPhone(user.phone ?? "");
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Không tải được hồ sơ', 'Cannot load profile'),
-        'error',
+        error instanceof Error ? error.message : t("Không tải được hồ sơ", "Cannot load profile"),
+        "error",
       );
     } finally {
       setIsLoadingProfile(false);
@@ -66,7 +66,7 @@ export default function StaffSettingsScreen() {
     const payload = buildProfileUpdatePayload(profile, fullName, phone);
     const validationError = validateProfileUpdate(payload, t);
     if (validationError) {
-      showToast(validationError, 'error');
+      showToast(validationError, "error");
       return;
     }
 
@@ -75,13 +75,15 @@ export default function StaffSettingsScreen() {
       await updateMyProfile(payload);
       const refreshed = await getMyProfile();
       setProfile(refreshed);
-      setFullName(refreshed.fullName ?? '');
-      setPhone(refreshed.phone ?? '');
-      showToast(t('Đã cập nhật hồ sơ', 'Profile updated'), 'success');
+      setFullName(refreshed.fullName ?? "");
+      setPhone(refreshed.phone ?? "");
+      showToast(t("Đã cập nhật hồ sơ", "Profile updated"), "success");
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Không thể cập nhật hồ sơ', 'Could not update profile'),
-        'error',
+        error instanceof Error
+          ? error.message
+          : t("Không thể cập nhật hồ sơ", "Could not update profile"),
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -90,19 +92,20 @@ export default function StaffSettingsScreen() {
 
   return (
     <StaffPageShell
-      eyebrow={t('Cài đặt', 'Settings')}
-      title={t('Hồ sơ & hiển thị', 'Profile & display')}
+      eyebrow={t("Cài đặt", "Settings")}
+      title={t("Hồ sơ & hiển thị", "Profile & display")}
       subtitle={t(
-        'Cập nhật họ tên, số điện thoại và tùy chọn giao diện cho màn hình nhân viên.',
-        'Update your name, phone, and display preferences for staff screens.',
-      )}>
+        "Cập nhật họ tên, số điện thoại và tùy chọn giao diện cho màn hình nhân viên.",
+        "Update your name, phone, and display preferences for staff screens.",
+      )}
+    >
       <View style={localStyles.panel}>
         <View style={styles.card}>
-          <ThemedText style={styles.eyebrow}>{t('Hồ sơ cá nhân', 'Personal profile')}</ThemedText>
+          <ThemedText style={styles.eyebrow}>{t("Hồ sơ cá nhân", "Personal profile")}</ThemedText>
           <ThemedText style={styles.hint}>
             {t(
-              'Thông tin dùng cho tài khoản đăng nhập của bạn.',
-              'Information tied to your login account.',
+              "Thông tin dùng cho tài khoản đăng nhập của bạn.",
+              "Information tied to your login account.",
             )}
           </ThemedText>
 
@@ -111,35 +114,35 @@ export default function StaffSettingsScreen() {
           ) : (
             <>
               <View style={localStyles.field}>
-                <ThemedText style={styles.eyebrow}>{t('Họ tên', 'Full name')}</ThemedText>
+                <ThemedText style={styles.eyebrow}>{t("Họ tên", "Full name")}</ThemedText>
                 <StaffTextInput
                   editable={!isSaving}
                   onChangeText={setFullName}
-                  placeholder={t('Nhập họ tên', 'Enter full name')}
+                  placeholder={t("Nhập họ tên", "Enter full name")}
                   value={fullName}
                 />
               </View>
 
               <View style={localStyles.field}>
-                <ThemedText style={styles.eyebrow}>{t('Số điện thoại', 'Phone')}</ThemedText>
+                <ThemedText style={styles.eyebrow}>{t("Số điện thoại", "Phone")}</ThemedText>
                 <StaffTextInput
                   editable={!isSaving}
                   keyboardType="phone-pad"
                   onChangeText={(text) => setPhone(normalizeStaffPhone(text))}
-                  placeholder={t('10 chữ số', '10 digits')}
+                  placeholder={t("10 chữ số", "10 digits")}
                   value={phone}
                 />
               </View>
 
               {profile?.email ? (
                 <ThemedText style={styles.hint}>
-                  {t('Email', 'Email')}: {profile.email}
+                  {t("Email", "Email")}: {profile.email}
                 </ThemedText>
               ) : null}
 
               <StaffActionButton
                 disabled={isSaving || isLoadingProfile}
-                label={t('Lưu hồ sơ', 'Save profile')}
+                label={t("Lưu hồ sơ", "Save profile")}
                 loading={isSaving}
                 onPress={() => void handleSaveProfile()}
                 style={styles.fullWidthButton}
@@ -149,7 +152,9 @@ export default function StaffSettingsScreen() {
         </View>
 
         <View style={styles.card}>
-          <ThemedText style={styles.eyebrow}>{t('Hiển thị & ngôn ngữ', 'Display & language')}</ThemedText>
+          <ThemedText style={styles.eyebrow}>
+            {t("Hiển thị & ngôn ngữ", "Display & language")}
+          </ThemedText>
           <DisplaySettingsContent />
         </View>
       </View>

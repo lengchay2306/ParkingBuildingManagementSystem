@@ -1,12 +1,8 @@
-import { useCallback } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 
-import {
-  getStoredPostLoginRoute,
-  refreshSession,
-  resolveRoleAfterLogin,
-} from '@/lib/auth-api';
-import { resolvePostLoginRoute } from '@/roles';
+import { getStoredPostLoginRoute, refreshSession, resolveRoleAfterLogin } from "@/lib/auth-api";
+import { resolvePostLoginRoute } from "@/roles";
 
 /**
  * Auth screens only: if the session is still valid, redirect to the role home

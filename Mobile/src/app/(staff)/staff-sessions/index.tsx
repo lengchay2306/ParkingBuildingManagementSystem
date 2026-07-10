@@ -1,3 +1,3 @@
-import StaffSessionsScreen from '@/features/staff/pages/staff-sessions';
+import StaffSessionsScreen from "@/features/staff/pages/staff-sessions";
 
 export default StaffSessionsScreen;

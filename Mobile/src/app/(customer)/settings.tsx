@@ -1,3 +1,3 @@
-import SettingsScreen from '@/features/customer/pages/settings';
+import SettingsScreen from "@/features/customer/pages/settings";
 
 export default SettingsScreen;

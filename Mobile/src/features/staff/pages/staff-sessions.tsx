@@ -1,32 +1,32 @@
-import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useFocusEffect, useRouter, type Href } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from "@/components/themed-text";
 import {
   StaffFilterPills,
   StaffScreenHeader,
   StaffSessionRow,
   type StaffFilterOption,
-} from '@/features/staff/components/premium';
-import { StaffActionButton } from '@/features/staff/components/staff-action-button';
-import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
-import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
-import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
-import { createStaffStyles } from '@/features/staff/styles/common';
-import type { StaffCheckInRecord } from '@/features/staff/lib/utils';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { STAFF_ROUTES, staffSessionDetailPath } from '@/roles';
+} from "@/features/staff/components/premium";
+import { StaffActionButton } from "@/features/staff/components/staff-action-button";
+import { StaffPageShell } from "@/features/staff/components/staff-page-shell";
+import { useStaffWorkspace } from "@/features/staff/context/staff-workspace-context";
+import { useStaffRoleGuard } from "@/features/staff/hooks/use-staff-role-guard";
+import { createStaffStyles } from "@/features/staff/styles/common";
+import type { StaffCheckInRecord } from "@/features/staff/lib/utils";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { STAFF_ROUTES, staffSessionDetailPath } from "@/roles";
 
-type SessionFilter = 'ALL' | 'ACTIVE' | 'COMPLETED';
+type SessionFilter = "ALL" | "ACTIVE" | "COMPLETED";
 
-function resolveStatusQuery(filter: SessionFilter): 'ACTIVE' | 'COMPLETED' | undefined {
-  if (filter === 'ACTIVE') {
-    return 'ACTIVE';
+function resolveStatusQuery(filter: SessionFilter): "ACTIVE" | "COMPLETED" | undefined {
+  if (filter === "ACTIVE") {
+    return "ACTIVE";
   }
-  if (filter === 'COMPLETED') {
-    return 'COMPLETED';
+  if (filter === "COMPLETED") {
+    return "COMPLETED";
   }
   return undefined;
 }
@@ -44,7 +44,7 @@ export default function StaffSessionsScreen() {
     loadParkingSessions,
     refreshWorkspace,
   } = useStaffWorkspace();
-  const [filter, setFilter] = useState<SessionFilter>('ALL');
+  const [filter, setFilter] = useState<SessionFilter>("ALL");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const reloadSessions = useCallback(
@@ -62,9 +62,9 @@ export default function StaffSessionsScreen() {
 
   const filterOptions = useMemo<StaffFilterOption<SessionFilter>[]>(
     () => [
-      { id: 'ALL', label: t('Tất cả', 'All') },
-      { id: 'ACTIVE', label: t('Đang hoạt động', 'Active') },
-      { id: 'COMPLETED', label: t('Đã kết thúc', 'Completed') },
+      { id: "ALL", label: t("Tất cả", "All") },
+      { id: "ACTIVE", label: t("Đang hoạt động", "Active") },
+      { id: "COMPLETED", label: t("Đã kết thúc", "Completed") },
     ],
     [t],
   );
@@ -97,15 +97,16 @@ export default function StaffSessionsScreen() {
     <StaffPageShell
       header={
         <StaffScreenHeader
-          subtitle={t('Phiên gửi xe hôm nay từ hệ thống', "Today's sessions from the system")}
-          title={t('Sessions', 'Sessions')}
+          subtitle={t("Phiên gửi xe hôm nay từ hệ thống", "Today's sessions from the system")}
+          title={t("Sessions", "Sessions")}
         />
       }
       onRefresh={() => void handleRefresh()}
-      refreshing={isRefreshing}>
+      refreshing={isRefreshing}
+    >
       <StaffActionButton
         compact
-        label={t('Ra cổng & ngoại lệ', 'Exit & exceptions')}
+        label={t("Ra cổng & ngoại lệ", "Exit & exceptions")}
         onPress={() => router.push(STAFF_ROUTES.operations as never)}
         style={styles.fullWidthButton}
         variant="secondary"
@@ -119,15 +120,15 @@ export default function StaffSessionsScreen() {
         <View style={styles.card}>
           <ThemedText style={styles.hint}>{sessionsError}</ThemedText>
           <StaffActionButton
-            label={t('Thử lại', 'Retry')}
+            label={t("Thử lại", "Retry")}
             onPress={() => void reloadSessions(filter)}
             style={styles.fullWidthButton}
             variant="secondary"
           />
         </View>
       ) : parkingSessions.length === 0 ? (
-        <ThemedText style={{ color: DesignColors.inkMuted, textAlign: 'center', marginTop: 24 }}>
-          {t('Chưa có phiên nào hôm nay.', 'No sessions for today yet.')}
+        <ThemedText style={{ color: DesignColors.inkMuted, textAlign: "center", marginTop: 24 }}>
+          {t("Chưa có phiên nào hôm nay.", "No sessions for today yet.")}
         </ThemedText>
       ) : (
         <View style={{ gap: 10 }}>

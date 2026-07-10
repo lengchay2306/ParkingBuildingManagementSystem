@@ -1,12 +1,12 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
 import type {
   ChatMessage,
   ChatPagination,
   ChatSession,
   SendChatMessageResult,
-} from '@/features/chatbot/api/types';
-import { ChatbotApiError } from '@/features/chatbot/lib/chatbot-errors';
+} from "@/features/chatbot/api/types";
+import { ChatbotApiError } from "@/features/chatbot/lib/chatbot-errors";
 
 type ApiEnvelope<T> = {
   status?: string;
@@ -26,9 +26,9 @@ export async function createChatSession(title?: string): Promise<{
   session: ChatSession;
   messages: ChatMessage[];
 }> {
-  const response = await authenticatedFetch('/chatbot/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authenticatedFetch("/chatbot/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(title?.trim() ? { title: title.trim() } : {}),
   });
 
@@ -43,7 +43,7 @@ export async function createChatSession(title?: string): Promise<{
 
   const session = payload?.data?.session;
   if (!session) {
-    throw new ChatbotApiError(response.status, 'Chat session response is missing data');
+    throw new ChatbotApiError(response.status, "Chat session response is missing data");
   }
   return { session, messages: payload?.data?.messages ?? [] };
 }
@@ -90,7 +90,7 @@ export async function getChatSession(sessionId: string): Promise<{
   );
   const session = result.data?.session;
   if (!session) {
-    throw new ChatbotApiError(response.status, 'Chat session response is missing data');
+    throw new ChatbotApiError(response.status, "Chat session response is missing data");
   }
   return { session, messages: result.data?.messages ?? [] };
 }
@@ -102,14 +102,14 @@ export async function sendChatSessionMessage(
   const response = await authenticatedFetch(
     `/chatbot/sessions/${encodeURIComponent(sessionId.trim())}/messages`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: message.trim() }),
     },
   );
   const result = await parseChatbotResponse<SendChatMessageResult>(response);
   if (!result.data?.session || !result.data.userMessage || !result.data.assistantMessage) {
-    throw new ChatbotApiError(response.status, 'Send message response is missing data');
+    throw new ChatbotApiError(response.status, "Send message response is missing data");
   }
   return result.data;
 }
@@ -117,7 +117,7 @@ export async function sendChatSessionMessage(
 export async function deleteChatSession(sessionId: string): Promise<ChatSession | null> {
   const response = await authenticatedFetch(
     `/chatbot/sessions/${encodeURIComponent(sessionId.trim())}`,
-    { method: 'DELETE' },
+    { method: "DELETE" },
   );
   const result = await parseChatbotResponse<{ session?: ChatSession }>(response);
   return result.data?.session ?? null;

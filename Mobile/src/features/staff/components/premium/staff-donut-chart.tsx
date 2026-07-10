@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
-import { ThemedText } from '@/components/themed-text';
-import { Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffDonutChartProps = {
   value: number;
@@ -64,25 +64,25 @@ export function StaffDonutChart({
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     wrap: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     center: {
       ...StyleSheet.absoluteFillObject,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       gap: 2,
     },
     value: {
       ...Typography.metricValue,
       color: DesignColors.ink,
       fontSize: 32,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     label: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 1,
       fontSize: 10,
     },
@@ -90,7 +90,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       ...Typography.caption,
       color: DesignColors.accentEmerald,
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: "600",
     },
   });
 }

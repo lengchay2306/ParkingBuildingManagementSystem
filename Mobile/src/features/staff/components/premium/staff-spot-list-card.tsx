@@ -1,17 +1,17 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffSpotListCardProps = {
   title: string;
   subtitle: string;
   statusLabel: string;
   timestamp?: string;
-  tone: 'available' | 'occupied' | 'unavailable';
+  tone: "available" | "occupied" | "unavailable";
   onPress?: () => void;
 };
 
@@ -27,14 +27,18 @@ export function StaffSpotListCard({
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const dotColor =
-    tone === 'available'
+    tone === "available"
       ? DesignColors.accentEmerald
-      : tone === 'occupied'
+      : tone === "occupied"
         ? DesignColors.accentAmber
         : DesignColors.inkSubtle;
 
   const accentBorder =
-    tone === 'available' ? DesignColors.accentEmerald : tone === 'occupied' ? DesignColors.accentAmber : 'transparent';
+    tone === "available"
+      ? DesignColors.accentEmerald
+      : tone === "occupied"
+        ? DesignColors.accentAmber
+        : "transparent";
 
   return (
     <Pressable
@@ -44,7 +48,8 @@ export function StaffSpotListCard({
         styles.card,
         { borderLeftColor: accentBorder },
         pressed && onPress && styles.pressed,
-      ]}>
+      ]}
+    >
       <View style={styles.left}>
         <ThemedText style={styles.title}>{title}</ThemedText>
         <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
@@ -63,9 +68,9 @@ export function StaffSpotListCard({
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     card: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.md,
       backgroundColor: DesignColors.surface1,
       borderRadius: Radius.lg,
@@ -85,7 +90,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     title: {
       ...Typography.body,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 17,
       letterSpacing: 0.3,
     },
@@ -94,17 +99,17 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.inkMuted,
     },
     right: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
       gap: 4,
     },
     statusRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
     },
     status: {
       ...Typography.caption,
-      fontWeight: '600',
+      fontWeight: "600",
       fontSize: 11,
     },
     time: {

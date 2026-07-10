@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ChatbotFabProps = {
   label: string;
@@ -24,11 +24,15 @@ export function ChatbotFab({ label, isOpen, onPress, tabBarOffset = 72 }: Chatbo
   }
 
   return (
-    <View pointerEvents="box-none" style={[styles.host, { bottom: tabBarOffset + insets.bottom + 12 }]}>
+    <View
+      pointerEvents="box-none"
+      style={[styles.host, { bottom: tabBarOffset + insets.bottom + 12 }]}
+    >
       <Pressable
         accessibilityLabel={label}
         onPress={onPress}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}>
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      >
         <Ionicons color={DesignColors.onPrimary} name="chatbubble-ellipses" size={22} />
         <ThemedText style={styles.fabLabel}>{label}</ThemedText>
       </Pressable>
@@ -39,13 +43,13 @@ export function ChatbotFab({ label, isOpen, onPress, tabBarOffset = 72 }: Chatbo
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     host: {
-      position: 'absolute',
+      position: "absolute",
       right: Spacing.md,
       zIndex: 40,
     },
     fab: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 8,
       borderRadius: Radius.pill,
       paddingHorizontal: 14,
@@ -66,7 +70,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     fabLabel: {
       ...Typography.caption,
       color: DesignColors.onPrimary,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 12,
     },
   });

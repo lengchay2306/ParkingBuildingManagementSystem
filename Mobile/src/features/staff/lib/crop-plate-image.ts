@@ -1,6 +1,6 @@
-import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImageManipulator from "expo-image-manipulator";
 
-import { resolveViewfinderCrop } from '@/features/staff/lib/plate-scanner-viewfinder';
+import { resolveViewfinderCrop } from "@/features/staff/lib/plate-scanner-viewfinder";
 
 export async function cropImageToViewfinder(
   uri: string,
@@ -17,11 +17,10 @@ export async function cropImageToViewfinder(
       return uri;
     }
 
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ crop }],
-      { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
-    );
+    const result = await ImageManipulator.manipulateAsync(uri, [{ crop }], {
+      compress: 0.85,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
     return result.uri;
   } catch {
     return uri;

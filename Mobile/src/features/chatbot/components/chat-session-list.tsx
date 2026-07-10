@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import type { ChatSession } from '@/features/chatbot/api/types';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import type { ChatSession } from "@/features/chatbot/api/types";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ChatSessionListProps = {
   sessions: ChatSession[];
@@ -19,12 +19,12 @@ type ChatSessionListProps = {
 
 function formatSessionTime(iso: string | undefined, t: (vi: string, en: string) => string): string {
   if (!iso) {
-    return '';
+    return "";
   }
 
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return "";
   }
 
   const now = new Date();
@@ -34,7 +34,7 @@ function formatSessionTime(iso: string | undefined, t: (vi: string, en: string) 
   const diffDays = Math.floor(diffMs / 86_400_000);
 
   if (diffMins < 1) {
-    return t('Vừa xong', 'Just now');
+    return t("Vừa xong", "Just now");
   }
   if (diffMins < 60) {
     return t(`${diffMins} phút trước`, `${diffMins}m ago`);
@@ -46,7 +46,7 @@ function formatSessionTime(iso: string | undefined, t: (vi: string, en: string) 
     return t(`${diffDays} ngày trước`, `${diffDays}d ago`);
   }
 
-  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+  return date.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
 }
 
 export function ChatSessionList({
@@ -88,22 +88,23 @@ export function ChatSessionList({
         <View style={styles.empty}>
           <Ionicons color={DesignColors.inkSubtle} name="chatbubbles-outline" size={40} />
           <ThemedText style={styles.emptyTitle}>
-            {t('Chưa có hội thoại', 'No conversations yet')}
+            {t("Chưa có hội thoại", "No conversations yet")}
           </ThemedText>
           <ThemedText style={styles.emptySubtitle}>
-            {t('Bắt đầu cuộc trò chuyện mới với trợ lý AI', 'Start a new chat with the assistant')}
+            {t("Bắt đầu cuộc trò chuyện mới với trợ lý AI", "Start a new chat with the assistant")}
           </ThemedText>
           <Pressable
             disabled={isCreatingSession}
             onPress={onNewSession}
-            style={({ pressed }) => [styles.emptyBtn, pressed && styles.emptyBtnPressed]}>
+            style={({ pressed }) => [styles.emptyBtn, pressed && styles.emptyBtnPressed]}
+          >
             {isCreatingSession ? (
               <ActivityIndicator color={DesignColors.onPrimary} size="small" />
             ) : (
               <>
                 <Ionicons color={DesignColors.onPrimary} name="add" size={18} />
                 <ThemedText style={styles.emptyBtnText}>
-                  {t('Hội thoại mới', 'New chat')}
+                  {t("Hội thoại mới", "New chat")}
                 </ThemedText>
               </>
             )}
@@ -122,7 +123,8 @@ export function ChatSessionList({
               styles.card,
               active && styles.cardActive,
               pressed && styles.cardPressed,
-            ]}>
+            ]}
+          >
             <View style={[styles.cardIcon, active && styles.cardIconActive]}>
               <Ionicons
                 color={active ? DesignColors.primaryFocus : DesignColors.inkMuted}
@@ -132,12 +134,13 @@ export function ChatSessionList({
             </View>
             <View style={styles.cardBody}>
               <View style={styles.cardTopRow}>
-                <ThemedText numberOfLines={1} style={[styles.cardTitle, active && styles.cardTitleActive]}>
-                  {item.title || t('Hội thoại mới', 'New chat')}
+                <ThemedText
+                  numberOfLines={1}
+                  style={[styles.cardTitle, active && styles.cardTitleActive]}
+                >
+                  {item.title || t("Hội thoại mới", "New chat")}
                 </ThemedText>
-                {timeLabel ? (
-                  <ThemedText style={styles.cardTime}>{timeLabel}</ThemedText>
-                ) : null}
+                {timeLabel ? <ThemedText style={styles.cardTime}>{timeLabel}</ThemedText> : null}
               </View>
               <View style={styles.cardMetaRow}>
                 {count > 0 ? (
@@ -146,14 +149,12 @@ export function ChatSessionList({
                   </ThemedText>
                 ) : (
                   <ThemedText style={styles.cardMeta}>
-                    {t('Chưa có tin nhắn', 'No messages yet')}
+                    {t("Chưa có tin nhắn", "No messages yet")}
                   </ThemedText>
                 )}
                 {active ? (
                   <View style={styles.activeBadge}>
-                    <ThemedText style={styles.activeBadgeText}>
-                      {t('Đang mở', 'Active')}
-                    </ThemedText>
+                    <ThemedText style={styles.activeBadgeText}>{t("Đang mở", "Active")}</ThemedText>
                   </View>
                 ) : null}
               </View>
@@ -171,8 +172,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     loading: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     listContent: {
       paddingHorizontal: Spacing.md,
@@ -183,8 +184,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     empty: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       paddingVertical: Spacing.xl,
       gap: Spacing.sm,
     },
@@ -197,12 +198,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     emptySubtitle: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
       paddingHorizontal: Spacing.xl,
     },
     emptyBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
       marginTop: Spacing.md,
       paddingHorizontal: Spacing.lg,
@@ -216,11 +217,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     emptyBtnText: {
       ...Typography.bodySm,
       color: DesignColors.onPrimary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     card: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       padding: Spacing.md,
       borderRadius: Radius.lg,
@@ -239,8 +240,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       width: 42,
       height: 42,
       borderRadius: 21,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.surface2,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -254,14 +255,14 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: 4,
     },
     cardTopRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
     },
     cardTitle: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
       flex: 1,
     },
     cardTitleActive: {
@@ -273,8 +274,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       fontSize: 10,
     },
     cardMetaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
     },
     cardMeta: {
@@ -293,7 +294,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       ...Typography.caption,
       color: DesignColors.primaryFocus,
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: "700",
     },
   });
 }

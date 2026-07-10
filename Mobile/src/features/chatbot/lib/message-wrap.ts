@@ -1,5 +1,5 @@
-export const USER_QUESTION_MARKER = '[CÂU HỎI]';
-export const CONTEXT_BLOCK_MARKER = '[DỮ LIỆU THỰC TẾ';
+export const USER_QUESTION_MARKER = "[CÂU HỎI]";
+export const CONTEXT_BLOCK_MARKER = "[DỮ LIỆU THỰC TẾ";
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_CONTEXT_CHARS = 1200;
@@ -16,7 +16,7 @@ export function wrapMessageWithContext(context: string, userQuestion: string): s
   if (wrapped.length > MAX_MESSAGE_CHARS) {
     const budget = MAX_MESSAGE_CHARS - question.length - USER_QUESTION_MARKER.length - 80;
     const trimmedContext =
-      budget > 200 ? contextBlock.slice(0, budget) : 'Dữ liệu quá dài, trả lời theo câu hỏi chung.';
+      budget > 200 ? contextBlock.slice(0, budget) : "Dữ liệu quá dài, trả lời theo câu hỏi chung.";
     wrapped = `${CONTEXT_BLOCK_MARKER}]\n${trimmedContext}\n${USER_QUESTION_MARKER}\n${question}`;
   }
 

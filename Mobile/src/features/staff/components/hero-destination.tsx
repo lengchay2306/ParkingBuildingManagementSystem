@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { View, type StyleProp, type ViewStyle } from "react-native";
 
-import { useHeroTransition } from '@/features/staff/motion/hero-transition-context';
-import { measureHeroBounds } from '@/features/staff/motion/measure-hero-bounds';
+import { useHeroTransition } from "@/features/staff/motion/hero-transition-context";
+import { measureHeroBounds } from "@/features/staff/motion/measure-hero-bounds";
 
 type HeroDestinationProps = {
   heroId: string;

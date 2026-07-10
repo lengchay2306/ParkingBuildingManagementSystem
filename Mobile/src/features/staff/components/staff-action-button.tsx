@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -6,19 +6,19 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
-} from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+} from "react-native";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffActionButtonProps = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
@@ -28,28 +28,26 @@ export function StaffActionButton({
   onPress,
   disabled = false,
   loading = false,
-  variant = 'primary',
+  variant = "primary",
   compact = false,
   style,
 }: StaffActionButtonProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createButtonStyles(DesignColors), [DesignColors]);
-  const isPrimary = variant === 'primary' || variant === 'danger';
+  const isPrimary = variant === "primary" || variant === "danger";
 
   const textStyle =
-    variant === 'secondary' || variant === 'ghost'
-      ? styles.secondaryText
-      : styles.primaryText;
+    variant === "secondary" || variant === "ghost" ? styles.secondaryText : styles.primaryText;
 
   const gradientStops =
-    variant === 'danger'
+    variant === "danger"
       ? [
-          { offset: '0%', color: '#EF4444' },
-          { offset: '100%', color: '#F97316' },
+          { offset: "0%", color: "#EF4444" },
+          { offset: "100%", color: "#F97316" },
         ]
       : [
-          { offset: '0%', color: DesignColors.primary },
-          { offset: '100%', color: DesignColors.primaryFocus },
+          { offset: "0%", color: DesignColors.primary },
+          { offset: "100%", color: DesignColors.primaryFocus },
         ];
 
   return (
@@ -59,12 +57,13 @@ export function StaffActionButton({
       style={({ pressed }) => [
         styles.base,
         compact && styles.compact,
-        variant === 'secondary' && styles.secondary,
-        variant === 'ghost' && styles.ghost,
+        variant === "secondary" && styles.secondary,
+        variant === "ghost" && styles.ghost,
         (disabled || loading) && styles.disabled,
         pressed && !disabled && styles.pressed,
         style,
-      ]}>
+      ]}
+    >
       {isPrimary ? (
         <View style={[styles.gradientShell, compact && styles.compactGradient]}>
           <Svg height="100%" style={StyleSheet.absoluteFill} width="100%">
@@ -102,7 +101,7 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     base: {
       borderRadius: Radius.lg,
-      overflow: 'hidden',
+      overflow: "hidden",
       minHeight: 48,
     },
     compact: {
@@ -115,7 +114,7 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     gradientShell: {
       height: 48,
       borderRadius: Radius.lg,
-      overflow: 'hidden',
+      overflow: "hidden",
       shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
@@ -123,12 +122,12 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       elevation: 6,
     },
     secondary: {
-      backgroundColor: 'rgba(255,255,255,0.04)',
+      backgroundColor: "rgba(255,255,255,0.04)",
       borderWidth: 1,
       borderColor: DesignColors.hairlineStrong,
     },
     ghost: {
-      backgroundColor: 'transparent',
+      backgroundColor: "transparent",
       borderWidth: 1,
       borderColor: DesignColors.hairline,
     },
@@ -141,8 +140,8 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     labelWrap: {
       minHeight: 48,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.sm,
     },
@@ -153,12 +152,12 @@ function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     primaryText: {
       ...Typography.button,
       color: DesignColors.onPrimary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     secondaryText: {
       ...Typography.button,
       color: DesignColors.ink,
-      fontWeight: '500',
+      fontWeight: "500",
     },
   });
 }

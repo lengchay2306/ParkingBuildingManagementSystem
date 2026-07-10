@@ -1,10 +1,10 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React from "react";
+import { StyleSheet, View } from "react-native";
 
-import { DisplaySettingsContent } from '@/components/display-settings-content';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/design';
-import { MaxContentWidth } from '@/constants/theme';
+import { DisplaySettingsContent } from "@/components/display-settings-content";
+import { ThemedView } from "@/components/themed-view";
+import { Spacing } from "@/constants/design";
+import { MaxContentWidth } from "@/constants/theme";
 
 export default function SettingsScreen() {
   return (
@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.md,
     padding: Spacing.md,
-    width: '100%',
+    width: "100%",
     maxWidth: MaxContentWidth,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
 });

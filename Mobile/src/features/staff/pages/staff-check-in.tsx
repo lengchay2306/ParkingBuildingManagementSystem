@@ -1,11 +1,11 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 
-import { useAppToast } from '@/components/app-toast';
-import { StaffCheckInConfirmBar } from '@/features/staff/components/staff-check-in-confirm-bar';
-import { StaffCheckInConfirmStep } from '@/features/staff/components/staff-check-in-confirm-step';
-import { StaffCheckInPlateStep } from '@/features/staff/components/staff-check-in-plate-step';
-import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
+import { useAppToast } from "@/components/app-toast";
+import { StaffCheckInConfirmBar } from "@/features/staff/components/staff-check-in-confirm-bar";
+import { StaffCheckInConfirmStep } from "@/features/staff/components/staff-check-in-confirm-step";
+import { StaffCheckInPlateStep } from "@/features/staff/components/staff-check-in-plate-step";
+import { StaffPageShell } from "@/features/staff/components/staff-page-shell";
 import {
   createParkingSession,
   getActiveUserParkingSession,
@@ -19,41 +19,47 @@ import {
   type StaffActiveParkingSession,
   type StaffVehicle,
   type VehicleOwnerProfile,
-} from '@/features/staff/api';
-import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
-import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
-import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
+} from "@/features/staff/api";
+import { useStaffWorkspace } from "@/features/staff/context/staff-workspace-context";
+import { useStaffRoleGuard } from "@/features/staff/hooks/use-staff-role-guard";
+import { formatLicensePlateForApi } from "@/features/staff/lib/license-plate-ocr";
 import {
   findStaffRelevantReservation,
   formatReservationSlotLabel,
   getReservationDriverPhone,
   getReservationSlotId,
-} from '@/features/staff/lib/reservation-helpers';
-import { formatTimeLabel, resolveSlotLabel } from '@/features/staff/lib/utils';
+} from "@/features/staff/lib/reservation-helpers";
+import { formatTimeLabel, resolveSlotLabel } from "@/features/staff/lib/utils";
 import {
   staffPhoneErrorMessage,
   validateStaffPhoneInput,
-} from '@/features/staff/lib/session-validation';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { STAFF_ROUTES, staffSessionDetailPath } from '@/roles';
+} from "@/features/staff/lib/session-validation";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { STAFF_ROUTES, staffSessionDetailPath } from "@/roles";
 
-type CheckInStep = 'plate' | 'confirm';
+type CheckInStep = "plate" | "confirm";
 
 export default function StaffCheckInScreen() {
   useStaffRoleGuard();
   const router = useRouter();
   const { showToast } = useAppToast();
   const { t } = useLanguagePreference();
-  const { floors, isLoadingSlots, loadParkingSlots, loadParkingSessions, loadActiveSlotSessions, recordCheckIn } =
-    useStaffWorkspace();
+  const {
+    floors,
+    isLoadingSlots,
+    loadParkingSlots,
+    loadParkingSessions,
+    loadActiveSlotSessions,
+    recordCheckIn,
+  } = useStaffWorkspace();
 
-  const [step, setStep] = useState<CheckInStep>('plate');
-  const [plateQuery, setPlateQuery] = useState('');
+  const [step, setStep] = useState<CheckInStep>("plate");
+  const [plateQuery, setPlateQuery] = useState("");
   const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
   const [foundVehicle, setFoundVehicle] = useState<StaffVehicle | null>(null);
   const [pendingReservation, setPendingReservation] = useState<Reservation | null>(null);
   const [activeSession, setActiveSession] = useState<StaffActiveParkingSession | null>(null);
-  const [checkInPhone, setCheckInPhone] = useState('');
+  const [checkInPhone, setCheckInPhone] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
 
@@ -61,7 +67,7 @@ export default function StaffCheckInScreen() {
     if (!activeSession) {
       return null;
     }
-    return resolveSlotLabel(activeSession.parkingSlotId as ParkingSession['parkingSlotId'], floors);
+    return resolveSlotLabel(activeSession.parkingSlotId as ParkingSession["parkingSlotId"], floors);
   }, [activeSession, floors]);
 
   const ownerProfile = useMemo<VehicleOwnerProfile | null>(() => {
@@ -81,12 +87,12 @@ export default function StaffCheckInScreen() {
     setFoundVehicle(null);
     setPendingReservation(null);
     setActiveSession(null);
-    setCheckInPhone('');
+    setCheckInPhone("");
     setSelectedSlotId(null);
   }, []);
 
   const handleBackToPlate = useCallback(() => {
-    setStep('plate');
+    setStep("plate");
     resetConfirmState();
   }, [resetConfirmState]);
 
@@ -94,15 +100,15 @@ export default function StaffCheckInScreen() {
     async (plateOverride?: string) => {
       const rawPlate = (plateOverride ?? plateQuery).trim();
       if (!rawPlate) {
-        showToast(t('Nhập biển số để tra cứu', 'Enter a license plate to search'), 'error');
+        showToast(t("Nhập biển số để tra cứu", "Enter a license plate to search"), "error");
         return;
       }
 
       const plate = formatLicensePlateForApi(rawPlate);
       if (!plate) {
         showToast(
-          t('Biển số phải đúng định dạng 51A-123.45', 'License plate must match format 51A-123.45'),
-          'error',
+          t("Biển số phải đúng định dạng 51A-123.45", "License plate must match format 51A-123.45"),
+          "error",
         );
         return;
       }
@@ -111,13 +117,15 @@ export default function StaffCheckInScreen() {
       try {
         const [vehicle, reservationLookup] = await Promise.all([
           getVehicleByLicensePlate(plate),
-          getReservationsByLicensePlate(plate, 'PENDING').catch(() => null),
+          getReservationsByLicensePlate(plate, "PENDING").catch(() => null),
         ]);
         const existingSession = await getActiveUserParkingSession(vehicle._id);
         const relevantReservation = reservationLookup
           ? findStaffRelevantReservation(reservationLookup.reservations)
           : null;
-        const reservedSlotId = relevantReservation ? getReservationSlotId(relevantReservation) : null;
+        const reservedSlotId = relevantReservation
+          ? getReservationSlotId(relevantReservation)
+          : null;
         const reservationPhone = relevantReservation
           ? getReservationDriverPhone(relevantReservation)
           : undefined;
@@ -126,15 +134,13 @@ export default function StaffCheckInScreen() {
         setPendingReservation(relevantReservation);
         setPlateQuery(vehicle.licensePlate);
         setActiveSession(existingSession);
-        setCheckInPhone(
-          reservationPhone || resolveVehicleOwnerPhone(vehicle, existingSession),
-        );
+        setCheckInPhone(reservationPhone || resolveVehicleOwnerPhone(vehicle, existingSession));
         setSelectedSlotId(reservedSlotId);
-        setStep('confirm');
+        setStep("confirm");
 
         if (existingSession) {
           const slotLabel = resolveSlotLabel(
-            existingSession.parkingSlotId as ParkingSession['parkingSlotId'],
+            existingSession.parkingSlotId as ParkingSession["parkingSlotId"],
             floors,
           );
           showToast(
@@ -142,7 +148,7 @@ export default function StaffCheckInScreen() {
               `Xe đang gửi tại ${slotLabel}. Vui lòng checkout trước.`,
               `Vehicle is parked at ${slotLabel}. Checkout first.`,
             ),
-            'error',
+            "error",
           );
           return;
         }
@@ -153,17 +159,20 @@ export default function StaffCheckInScreen() {
               `Có đặt chỗ tại ${formatReservationSlotLabel(relevantReservation)}`,
               `Reservation found at ${formatReservationSlotLabel(relevantReservation)}`,
             ),
-            'success',
+            "success",
           );
           return;
         }
 
-        showToast(t('Không có đặt chỗ — chọn ô trống', 'No reservation — select an available spot'), 'success');
+        showToast(
+          t("Không có đặt chỗ — chọn ô trống", "No reservation — select an available spot"),
+          "success",
+        );
       } catch (error) {
         resetConfirmState();
         showToast(
-          error instanceof Error ? error.message : t('Không tìm thấy xe', 'Vehicle not found'),
-          'error',
+          error instanceof Error ? error.message : t("Không tìm thấy xe", "Vehicle not found"),
+          "error",
         );
       } finally {
         setIsSearchingVehicle(false);
@@ -175,7 +184,7 @@ export default function StaffCheckInScreen() {
   const handlePlateScanned = useCallback(
     (plate: string) => {
       setPlateQuery(plate);
-      showToast(t('Đã quét biển số', 'Plate scanned'), 'success');
+      showToast(t("Đã quét biển số", "Plate scanned"), "success");
       void resolveVehicle(plate);
     },
     [resolveVehicle, showToast, t],
@@ -192,25 +201,28 @@ export default function StaffCheckInScreen() {
   async function handleCheckIn() {
     if (activeSession) {
       showToast(
-        t('Xe đang có phiên ACTIVE. Hãy checkout trước.', 'Vehicle has an active session. Checkout first.'),
-        'error',
+        t(
+          "Xe đang có phiên ACTIVE. Hãy checkout trước.",
+          "Vehicle has an active session. Checkout first.",
+        ),
+        "error",
       );
       return;
     }
 
     const phoneResult = validateStaffPhoneInput(checkInPhone, t);
     if (!phoneResult.ok) {
-      showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), 'error');
+      showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), "error");
       return;
     }
 
     if (!foundVehicle) {
-      showToast(t('Không tìm thấy thông tin xe', 'Vehicle details are missing'), 'error');
+      showToast(t("Không tìm thấy thông tin xe", "Vehicle details are missing"), "error");
       return;
     }
 
     if (!selectedSlotId) {
-      showToast(t('Chọn ô trống', 'Select an available spot'), 'error');
+      showToast(t("Chọn ô trống", "Select an available spot"), "error");
       return;
     }
 
@@ -220,8 +232,11 @@ export default function StaffCheckInScreen() {
       if (existingSession) {
         setActiveSession(existingSession);
         showToast(
-          t('Xe vừa được check-in. Không thể tạo phiên mới.', 'Vehicle was just checked in. Cannot create a new session.'),
-          'error',
+          t(
+            "Xe vừa được check-in. Không thể tạo phiên mới.",
+            "Vehicle was just checked in. Cannot create a new session.",
+          ),
+          "error",
         );
         return;
       }
@@ -248,14 +263,14 @@ export default function StaffCheckInScreen() {
       void loadParkingSessions({}, refreshedFloors ?? floors).catch(() => undefined);
       void loadActiveSlotSessions(refreshedFloors ?? floors).catch(() => undefined);
 
-      setStep('plate');
-      setPlateQuery('');
+      setStep("plate");
+      setPlateQuery("");
       resetConfirmState();
-      showToast(t('Check-in thành công', 'Check-in successful'), 'success');
+      showToast(t("Check-in thành công", "Check-in successful"), "success");
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Check-in thất bại', 'Check-in failed'),
-        'error',
+        error instanceof Error ? error.message : t("Check-in thất bại", "Check-in failed"),
+        "error",
       );
     } finally {
       setIsCheckingIn(false);
@@ -267,16 +282,17 @@ export default function StaffCheckInScreen() {
   return (
     <StaffPageShell
       footer={
-        step === 'confirm' && !activeSession ? (
+        step === "confirm" && !activeSession ? (
           <StaffCheckInConfirmBar
             disabled={!canSubmit}
-            label={t('Xác nhận vào bãi', 'Confirm Entry')}
+            label={t("Xác nhận vào bãi", "Confirm Entry")}
             loading={isCheckingIn}
             onPress={handleCheckIn}
           />
         ) : undefined
-      }>
-      {step === 'plate' ? (
+      }
+    >
+      {step === "plate" ? (
         <StaffCheckInPlateStep
           isSearching={isSearchingVehicle}
           onPlateChange={setPlateQuery}

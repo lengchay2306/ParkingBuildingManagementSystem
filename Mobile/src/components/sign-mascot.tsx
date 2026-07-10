@@ -1,20 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
-export type SignMascotPose = 'idle' | 'watching' | 'shy' | 'busy' | 'welcome';
-export type EyeCoverMode = 'open' | 'covered' | 'peek';
+export type SignMascotPose = "idle" | "watching" | "shy" | "busy" | "welcome";
+export type EyeCoverMode = "open" | "covered" | "peek";
 
 export const SIGN_MASCOT_COLORS = {
-  accent: '#2563eb',
-  body: '#eef2ff',
-  pupil: '#1e3a8a',
-  eye: '#ffffff',
+  accent: "#2563eb",
+  body: "#eef2ff",
+  pupil: "#1e3a8a",
+  eye: "#ffffff",
 } as const;
 
 export const SIGN_MASCOT_FRAME = {
   border: SIGN_MASCOT_COLORS.accent,
-  background: '#ffffff',
+  background: "#ffffff",
 } as const;
 
 export const SIGN_MASCOT_STAGE = {
@@ -57,7 +57,7 @@ const TORSO_W = 136;
 const TORSO_LEFT = (STAGE_W - TORSO_W) / 2;
 
 /** Idle — hands lower (larger BELOW_EYE = further down). */
-const PALM_REST_BELOW_EYE =120;
+const PALM_REST_BELOW_EYE = 120;
 const PALM_REST_Y_OFFSET = 0;
 const PALM_REST_INSET_X = 4;
 
@@ -138,7 +138,7 @@ function lerpPoint(a: Point, b: Point, t: number): Point {
 }
 
 function finite(n: number, fallback: number): number {
-  return typeof n === 'number' && Number.isFinite(n) ? n : fallback;
+  return typeof n === "number" && Number.isFinite(n) ? n : fallback;
 }
 
 function finitePoint(p: Point, fallback: Point): Point {
@@ -152,10 +152,10 @@ function clamp01(t: number): number {
 
 function readAnimatedScalar(value: Animated.Value): number {
   const animated = value as Animated.Value & { __getValue?: () => number };
-  return typeof animated.__getValue === 'function' ? animated.__getValue() : 0;
+  return typeof animated.__getValue === "function" ? animated.__getValue() : 0;
 }
 
-function elbowPoint(shoulder: Point, palm: Point, side: 'left' | 'right'): Point {
+function elbowPoint(shoulder: Point, palm: Point, side: "left" | "right"): Point {
   const t = 0.58;
   const mx = shoulder.x + (palm.x - shoulder.x) * t;
   const my = shoulder.y + (palm.y - shoulder.y) * t;
@@ -164,7 +164,7 @@ function elbowPoint(shoulder: Point, palm: Point, side: 'left' | 'right'): Point
   const len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len;
   const ny = dx / len;
-  const sign = side === 'left' ? -1 : 1;
+  const sign = side === "left" ? -1 : 1;
   return { x: mx + sign * nx * ARM_BULGE, y: my + sign * ny * ARM_BULGE };
 }
 
@@ -180,7 +180,7 @@ type ArmGeom = {
 function buildArmGeom(
   shoulder: Point,
   palm: Point,
-  side: 'left' | 'right',
+  side: "left" | "right",
   fallback: { shoulder: Point; palm: Point },
 ): ArmGeom {
   const s = finitePoint(shoulder, fallback.shoulder);
@@ -198,7 +198,7 @@ type ArmProps = {
   restPalm: Point;
   coverPalm: Point;
   peekPalm: Point;
-  side: 'left' | 'right';
+  side: "left" | "right";
   coverReach: Animated.Value;
   peekTilt: Animated.Value;
   wave?: Animated.Value;
@@ -268,13 +268,22 @@ function Arm({
       if (waveId !== undefined) wave?.removeListener(waveId);
       if (waveRaisedId !== undefined) waveRaised?.removeListener(waveRaisedId);
     };
-  }, [coverReach, peekTilt, wave, waveRaised, coverPalm, peekPalm, wavePalmCenter, waveSwingX, restPalm, shoulder, side]);
+  }, [
+    coverReach,
+    peekTilt,
+    wave,
+    waveRaised,
+    coverPalm,
+    peekPalm,
+    wavePalmCenter,
+    waveSwingX,
+    restPalm,
+    shoulder,
+    side,
+  ]);
 
   return (
-    <Svg
-      pointerEvents="none"
-      style={StyleSheet.absoluteFill}
-      viewBox={ARM_SVG_VIEWBOX}>
+    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={ARM_SVG_VIEWBOX}>
       <Path
         d={geom.d}
         stroke={accentColor}
@@ -314,8 +323,13 @@ export function SignMascotDisplay(props: SignMascotProps) {
   );
 }
 
-export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: SignMascotProps) {
-  const { accent: accentColor, body: bodyColor, pupil: eyeColor, eye: eyeWhite } = SIGN_MASCOT_COLORS;
+export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = "open" }: SignMascotProps) {
+  const {
+    accent: accentColor,
+    body: bodyColor,
+    pupil: eyeColor,
+    eye: eyeWhite,
+  } = SIGN_MASCOT_COLORS;
   const bob = useRef(new Animated.Value(0)).current;
   const blink = useRef(new Animated.Value(1)).current;
   const lookXAnim = useRef(new Animated.Value(0)).current;
@@ -326,7 +340,7 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
   const wave = useRef(new Animated.Value(0)).current;
   const waveRaised = useRef(new Animated.Value(0)).current;
 
-  const handsOnFace = eyeCover === 'covered' || eyeCover === 'peek';
+  const handsOnFace = eyeCover === "covered" || eyeCover === "peek";
 
   useEffect(() => {
     const bobLoop = Animated.loop(
@@ -362,14 +376,13 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
   }, [blink]);
 
   useEffect(() => {
-    const poseLookX =
-      pose === 'watching' ? 5 : pose === 'welcome' ? -3 : pose === 'busy' ? 2 : 0;
-    const targetX = eyeCover === 'open' ? lookX : eyeCover === 'peek' ? lookX * 0.15 : 0;
-    const targetY = eyeCover === 'peek' ? lookY : pose === 'watching' ? 1 : 0;
+    const poseLookX = pose === "watching" ? 5 : pose === "welcome" ? -3 : pose === "busy" ? 2 : 0;
+    const targetX = eyeCover === "open" ? lookX : eyeCover === "peek" ? lookX * 0.15 : 0;
+    const targetY = eyeCover === "peek" ? lookY : pose === "watching" ? 1 : 0;
 
     Animated.parallel([
       Animated.timing(lookXAnim, {
-        toValue: handsOnFace && eyeCover !== 'peek' ? 0 : targetX,
+        toValue: handsOnFace && eyeCover !== "peek" ? 0 : targetX,
         duration: POSE_TIMING,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -392,13 +405,13 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
         useNativeDriver: false,
       }),
       Animated.timing(peekTilt, {
-        toValue: eyeCover === 'peek' ? 1 : 0,
+        toValue: eyeCover === "peek" ? 1 : 0,
         duration: POSE_TIMING,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(eyeOpen, {
-        toValue: eyeCover === 'covered' ? 0.05 : 1,
+        toValue: eyeCover === "covered" ? 0.05 : 1,
         duration: POSE_TIMING,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -407,11 +420,11 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
   }, [coverReach, eyeCover, eyeOpen, handsOnFace, peekTilt]);
 
   useEffect(() => {
-    if (pose !== 'welcome' || eyeCover !== 'open') {
+    if (pose !== "welcome" || eyeCover !== "open") {
       wave.stopAnimation(() => {
         wave.setValue(0.5);
       });
-      if (eyeCover !== 'open') {
+      if (eyeCover !== "open") {
         return;
       }
       Animated.timing(waveRaised, {
@@ -464,7 +477,7 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
 
   const peekRotate = peekTilt.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '12deg'],
+    outputRange: ["0deg", "12deg"],
   });
 
   const peekShiftX = peekTilt.interpolate({
@@ -481,11 +494,16 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
           style={[
             styles.tiltLayer,
             { transform: [{ translateX: peekShiftX }, { rotate: peekRotate }] },
-          ]}>
+          ]}
+        >
           <View
             style={[
               styles.torso,
-              { backgroundColor: bodyColor, borderColor: accentColor, transform: [{ translateY: 6 }] },
+              {
+                backgroundColor: bodyColor,
+                borderColor: accentColor,
+                transform: [{ translateY: 6 }],
+              },
             ]}
           />
 
@@ -495,7 +513,8 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
               height={28}
               viewBox="0 -10 80 28"
               style={styles.headHair}
-              pointerEvents="none">
+              pointerEvents="none"
+            >
               <Path
                 d="M 30 18 Q 28 6 27 -6"
                 stroke={accentColor}
@@ -522,7 +541,8 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
               style={[
                 styles.foreheadBadge,
                 { borderColor: accentColor, backgroundColor: bodyColor },
-              ]}>
+              ]}
+            >
               <Text style={[styles.foreheadBadgeText, { color: accentColor }]} numberOfLines={1}>
                 ParBot
               </Text>
@@ -539,8 +559,11 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
                     borderRadius: EYE_SIZE / 2,
                     transform: [{ scaleY: eyeScaleY }],
                   },
-                ]}>
-                <Animated.View style={{ transform: [{ translateX: lookXAnim }, { translateY: lookYAnim }] }}>
+                ]}
+              >
+                <Animated.View
+                  style={{ transform: [{ translateX: lookXAnim }, { translateY: lookYAnim }] }}
+                >
                   <View style={[styles.pupil, { backgroundColor: eyeColor }]} />
                 </Animated.View>
               </Animated.View>
@@ -554,21 +577,38 @@ export function SignMascot({ pose, lookX = 0, lookY = 0, eyeCover = 'open' }: Si
                     borderRadius: EYE_SIZE / 2,
                     transform: [{ scaleY: eyeScaleY }],
                   },
-                ]}>
-                <Animated.View style={{ transform: [{ translateX: lookXAnim }, { translateY: lookYAnim }] }}>
+                ]}
+              >
+                <Animated.View
+                  style={{ transform: [{ translateX: lookXAnim }, { translateY: lookYAnim }] }}
+                >
                   <View style={[styles.pupil, { backgroundColor: eyeColor }]} />
                 </Animated.View>
               </Animated.View>
             </View>
 
             <View
-              style={[styles.cheek, styles.cheekLeft, { backgroundColor: accentColor, opacity: handsOnFace ? 0 : 0.35 }]}
+              style={[
+                styles.cheek,
+                styles.cheekLeft,
+                { backgroundColor: accentColor, opacity: handsOnFace ? 0 : 0.35 },
+              ]}
             />
             <View
-              style={[styles.cheek, styles.cheekRight, { backgroundColor: accentColor, opacity: handsOnFace ? 0 : 0.35 }]}
+              style={[
+                styles.cheek,
+                styles.cheekRight,
+                { backgroundColor: accentColor, opacity: handsOnFace ? 0 : 0.35 },
+              ]}
             />
             <View
-              style={[styles.mouth, { borderColor: accentColor, opacity: handsOnFace && eyeCover !== 'peek' ? 0.15 : 1 }]}
+              style={[
+                styles.mouth,
+                {
+                  borderColor: accentColor,
+                  opacity: handsOnFace && eyeCover !== "peek" ? 0.15 : 1,
+                },
+              ]}
             />
           </View>
         </Animated.View>
@@ -610,9 +650,9 @@ const displayStyles = StyleSheet.create({
   clip: {
     width: SIGN_MASCOT_DISPLAY_SIZE,
     height: SIGN_MASCOT_DISPLAY_SIZE,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   scaleWrap: {
     width: SIGN_MASCOT_LAYOUT_SIZE,
@@ -625,22 +665,22 @@ const styles = StyleSheet.create({
   stage: {
     width: SIGN_MASCOT_STAGE.width,
     height: SIGN_MASCOT_STAGE.height,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   upperBody: {
-    position: 'relative',
+    position: "relative",
     width: STAGE_W,
     height: SIGN_MASCOT_STAGE.height - 4,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginTop: 2,
   },
   tiltLayer: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    alignItems: "center",
+    justifyContent: "flex-end",
   },
   armsLayer: {
     ...StyleSheet.absoluteFillObject,
@@ -656,27 +696,27 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
   },
   head: {
-    position: 'absolute',
+    position: "absolute",
     top: HEAD_TOP,
     width: HEAD_SIZE,
     height: HEAD_SIZE,
     borderRadius: HEAD_SIZE / 2,
     borderWidth: 2.5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 4,
-    overflow: 'visible',
+    overflow: "visible",
   },
   headHair: {
-    position: 'absolute',
+    position: "absolute",
     top: -12,
     left: 0,
     zIndex: 6,
   },
   foreheadBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 7,
@@ -686,19 +726,19 @@ const styles = StyleSheet.create({
   foreheadBadgeText: {
     fontSize: 9,
     lineHeight: 11,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.2,
   },
   face: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: EYE_GAP,
     marginTop: EYE_TOP,
     zIndex: 2,
   },
   eye: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
   pupil: {
     width: 11,
@@ -706,7 +746,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   cheek: {
-    position: 'absolute',
+    position: "absolute",
     width: 12,
     height: 7,
     borderRadius: 6,
@@ -715,7 +755,7 @@ const styles = StyleSheet.create({
   cheekLeft: { left: 14 },
   cheekRight: { right: 14 },
   mouth: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 18,
     width: 22,
     height: 11,

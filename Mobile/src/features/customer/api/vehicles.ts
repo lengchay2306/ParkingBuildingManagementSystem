@@ -1,4 +1,4 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
 export type VehicleType = {
   _id: string;
@@ -35,10 +35,10 @@ function normalizePlate(plate: string) {
 function validatePlate(plate: string, t: (vi: string, en: string) => string): string | null {
   const normalized = normalizePlate(plate);
   if (!normalized) {
-    return t('Vui lòng nhập biển số', 'Please enter a license plate');
+    return t("Vui lòng nhập biển số", "Please enter a license plate");
   }
   if (!LICENSE_PLATE_PATTERN.test(normalized)) {
-    return t('Biển số đúng dạng 51A-123.45', 'Plate format: 51A-123.45');
+    return t("Biển số đúng dạng 51A-123.45", "Plate format: 51A-123.45");
   }
   return null;
 }
@@ -52,7 +52,7 @@ type ApiEnvelope<T> = {
 async function parseVehicleApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? "Request failed");
   }
   return payload ?? {};
 }
@@ -67,7 +67,7 @@ export function validateVehicleRegistration(
     return plateError;
   }
   if (!vehicleTypeId) {
-    return t('Vui lòng chọn loại xe', 'Please select a vehicle type');
+    return t("Vui lòng chọn loại xe", "Please select a vehicle type");
   }
   return null;
 }
@@ -95,7 +95,7 @@ export function validateVehicleUpdate(
   t: (vi: string, en: string) => string,
 ): string | null {
   if (!payload.licensePlate && !payload.vehicleTypeId) {
-    return t('Chưa có thay đổi nào', 'No changes to save');
+    return t("Chưa có thay đổi nào", "No changes to save");
   }
   if (payload.licensePlate !== undefined) {
     const plateError = validatePlate(licensePlate, t);
@@ -104,7 +104,7 @@ export function validateVehicleUpdate(
     }
   }
   if (payload.vehicleTypeId !== undefined && !vehicleTypeId) {
-    return t('Vui lòng chọn loại xe', 'Please select a vehicle type');
+    return t("Vui lòng chọn loại xe", "Please select a vehicle type");
   }
   return null;
 }
@@ -115,22 +115,22 @@ export function resolveVehicleTypeId(
   if (!vehicleTypeId) {
     return null;
   }
-  if (typeof vehicleTypeId === 'string') {
+  if (typeof vehicleTypeId === "string") {
     return vehicleTypeId;
   }
   return vehicleTypeId._id ?? null;
 }
 
 export async function getVehicleTypes(): Promise<VehicleType[]> {
-  const response = await authenticatedFetch('/vehicles/types');
+  const response = await authenticatedFetch("/vehicles/types");
   const payload = await parseVehicleApiResponse<{ vehicleTypes?: VehicleType[] }>(response);
   return payload.data?.vehicleTypes ?? [];
 }
 
 export async function createVehicle(payload: CreateVehiclePayload): Promise<CreatedVehicle> {
-  const response = await authenticatedFetch('/vehicles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authenticatedFetch("/vehicles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       licensePlate: normalizePlate(payload.licensePlate),
       vehicleTypeId: payload.vehicleTypeId,
@@ -139,7 +139,7 @@ export async function createVehicle(payload: CreateVehiclePayload): Promise<Crea
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(result.message ?? "Vehicle response is missing data");
   }
   return vehicle;
 }
@@ -149,26 +149,26 @@ export async function updateVehicle(
   payload: UpdateVehiclePayload,
 ): Promise<CreatedVehicle> {
   const response = await authenticatedFetch(`/vehicles/user-vehicles/${vehicleId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(result.message ?? "Vehicle response is missing data");
   }
   return vehicle;
 }
 
 export async function softDeleteVehicle(vehicleId: string): Promise<CreatedVehicle> {
   const response = await authenticatedFetch(`/vehicles/${vehicleId}/soft-delete`, {
-    method: 'DELETE',
+    method: "DELETE",
   });
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(result.message ?? "Vehicle response is missing data");
   }
   return vehicle;
 }

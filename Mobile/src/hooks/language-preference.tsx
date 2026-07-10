@@ -1,7 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-export type AppLanguage = 'vi' | 'en';
+export type AppLanguage = "vi" | "en";
 
 type LanguagePreferenceContextValue = {
   language: AppLanguage;
@@ -9,19 +9,19 @@ type LanguagePreferenceContextValue = {
   t: (vi: string, en: string) => string;
 };
 
-const STORAGE_KEY = 'mobile.languagePreference';
+const STORAGE_KEY = "mobile.languagePreference";
 
 const LanguagePreferenceContext = createContext<LanguagePreferenceContextValue | null>(null);
 
 export function LanguagePreferenceProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<AppLanguage>('vi');
+  const [language, setLanguageState] = useState<AppLanguage>("vi");
 
   useEffect(() => {
     let alive = true;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((stored) => {
         if (!alive) return;
-        if (stored === 'vi' || stored === 'en') {
+        if (stored === "vi" || stored === "en") {
           setLanguageState(stored);
         }
       })
@@ -44,16 +44,20 @@ export function LanguagePreferenceProvider({ children }: { children: React.React
     () => ({
       language,
       setLanguage,
-      t: (vi: string, en: string) => (language === 'vi' ? vi : en),
+      t: (vi: string, en: string) => (language === "vi" ? vi : en),
     }),
     [language],
   );
 
-  return <LanguagePreferenceContext.Provider value={value}>{children}</LanguagePreferenceContext.Provider>;
+  return (
+    <LanguagePreferenceContext.Provider value={value}>
+      {children}
+    </LanguagePreferenceContext.Provider>
+  );
 }
 
 export function useLanguagePreference() {
   const ctx = useContext(LanguagePreferenceContext);
-  if (!ctx) throw new Error('useLanguagePreference must be used within LanguagePreferenceProvider');
+  if (!ctx) throw new Error("useLanguagePreference must be used within LanguagePreferenceProvider");
   return ctx;
 }

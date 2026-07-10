@@ -1,24 +1,27 @@
-import { getParkingSlots } from '@/features/customer/api/parking';
-import { getMyReservations } from '@/features/customer/api/reservations';
+import { getParkingSlots } from "@/features/customer/api/parking";
+import { getMyReservations } from "@/features/customer/api/reservations";
 import {
   createChatSession,
   deleteChatSession,
   getChatSession,
   listChatSessions,
   sendChatSessionMessage,
-} from '@/features/chatbot/api/chatbot';
-import type { ChatMessage, ChatSession } from '@/features/chatbot/api/types';
-import { buildCustomerEnrichedMessage } from '@/features/chatbot/lib/customer-enrich';
+} from "@/features/chatbot/api/chatbot";
+import type { ChatMessage, ChatSession } from "@/features/chatbot/api/types";
+import { buildCustomerEnrichedMessage } from "@/features/chatbot/lib/customer-enrich";
 import {
   ChatbotApiError,
   isChatbotUnavailable,
   resolveUnknownChatbotError,
-} from '@/features/chatbot/lib/chatbot-errors';
-import type { ChatbotAudience } from '@/features/chatbot/lib/role-config';
-import { buildStaffEnrichedMessage, listStaffReservationsForChat } from '@/features/chatbot/lib/staff-enrich';
-import { getParkingSessions, getParkingSlots as getStaffParkingSlots } from '@/features/staff/api';
-import { getMyProfile } from '@/lib/auth-api';
-import { useCallback, useEffect, useRef, useState } from 'react';
+} from "@/features/chatbot/lib/chatbot-errors";
+import type { ChatbotAudience } from "@/features/chatbot/lib/role-config";
+import {
+  buildStaffEnrichedMessage,
+  listStaffReservationsForChat,
+} from "@/features/chatbot/lib/staff-enrich";
+import { getParkingSessions, getParkingSlots as getStaffParkingSlots } from "@/features/staff/api";
+import { getMyProfile } from "@/lib/auth-api";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useMobileChatbot(audience: ChatbotAudience) {
   const [isOpen, setIsOpen] = useState(false);
@@ -126,10 +129,10 @@ export function useMobileChatbot(audience: ChatbotAudience) {
 
   const enrichMessage = useCallback(
     async (userQuestion: string): Promise<string> => {
-      if (audience === 'customer') {
+      if (audience === "customer") {
         const profile = await getMyProfile();
         const vehicles = (profile.vehicles ?? []).filter(
-          (v) => v.status?.toUpperCase() !== 'INACTIVE',
+          (v) => v.status?.toUpperCase() !== "INACTIVE",
         );
         const [floors, reservations] = await Promise.all([
           getParkingSlots().catch(() => []),
@@ -146,7 +149,7 @@ export function useMobileChatbot(audience: ChatbotAudience) {
       const [floors, reservations, sessionsResult] = await Promise.all([
         getStaffParkingSlots().catch(() => []),
         listStaffReservationsForChat().catch(() => []),
-        getParkingSessions({ status: 'ACTIVE', limit: 30 }).catch(() => ({
+        getParkingSessions({ status: "ACTIVE", limit: 30 }).catch(() => ({
           sessions: [],
           pagination: { currentPage: 1, totalPage: 0, totalItems: 0, itemsPerPage: 30 },
         })),
@@ -183,9 +186,7 @@ export function useMobileChatbot(audience: ChatbotAudience) {
 
         const result = await sendChatSessionMessage(activeSessionId, messageToSend);
         setMessages((prev) => [...prev, result.userMessage, result.assistantMessage]);
-        setSessions((prev) =>
-          prev.map((s) => (s._id === result.session._id ? result.session : s)),
-        );
+        setSessions((prev) => prev.map((s) => (s._id === result.session._id ? result.session : s)));
       } catch (error) {
         if (error instanceof ChatbotApiError && isChatbotUnavailable(error)) {
           setIsUnavailable(true);

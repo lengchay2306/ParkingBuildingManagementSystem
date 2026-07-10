@@ -1,9 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 
-import { BotSpeechBubble } from '@/components/bot-speech-bubble';
-import { useThemePreference } from '@/hooks/theme-preference';
-import { getMascotSpeechColor, type MascotSpeech, type MascotSpeechTone } from '@/lib/sign-mascot-utils';
+import { BotSpeechBubble } from "@/components/bot-speech-bubble";
+import { useThemePreference } from "@/hooks/theme-preference";
+import {
+  getMascotSpeechColor,
+  type MascotSpeech,
+  type MascotSpeechTone,
+} from "@/lib/sign-mascot-utils";
 
 /** Gap between bubble tail and the mascot circle (overlay only — no layout height). */
 export const MASCOT_SPEECH_GAP = 8;
@@ -18,25 +22,25 @@ type MascotSpeechBubbleProps = {
 };
 
 function getToneColor(isDark: boolean, tone?: MascotSpeechTone) {
-  if (!tone) return getMascotSpeechColor('hint');
+  if (!tone) return getMascotSpeechColor("hint");
   const color = getMascotSpeechColor(tone);
   if (!isDark) return color;
 
   const darkToneColors: Record<MascotSpeechTone, string> = {
-    idle: '#93c5fd',
-    hint: '#7dd3fc',
-    welcome: '#6ee7b7',
-    password: '#c4b5fd',
-    peek: '#fdba74',
-    error: '#fca5a5',
-    busy: '#a5b4fc',
+    idle: "#93c5fd",
+    hint: "#7dd3fc",
+    welcome: "#6ee7b7",
+    password: "#c4b5fd",
+    peek: "#fdba74",
+    error: "#fca5a5",
+    busy: "#a5b4fc",
   };
   return darkToneColors[tone];
 }
 
 export function MascotSpeechBubble({ speech }: MascotSpeechBubbleProps) {
   const { resolvedScheme } = useThemePreference();
-  const isDark = resolvedScheme === 'dark';
+  const isDark = resolvedScheme === "dark";
   const message = speech?.text ?? null;
   const textColor = getToneColor(isDark, speech?.tone);
 
@@ -94,13 +98,13 @@ export function MascotSpeechBubble({ speech }: MascotSpeechBubbleProps) {
 
 const styles = StyleSheet.create({
   overlayHost: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
-    bottom: '100%',
+    bottom: "100%",
     marginBottom: MASCOT_SPEECH_GAP,
-    alignItems: 'center',
+    alignItems: "center",
     zIndex: 20,
-    overflow: 'visible',
+    overflow: "visible",
   },
 });

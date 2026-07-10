@@ -1,8 +1,8 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React from "react";
+import { StyleSheet, View } from "react-native";
 
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffTabIconProps = {
   focused: boolean;
@@ -37,8 +37,8 @@ export function StaffTabIcon({ focused, color, size, name, outlineName }: StaffT
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
     minHeight: 28,
   },

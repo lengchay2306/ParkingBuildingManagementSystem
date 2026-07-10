@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import React, { useMemo } from "react";
+import { View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { createStaffStyles } from "@/features/staff/styles/common";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffSlotStatsProps = {
   available: number;
@@ -24,7 +24,9 @@ export function StaffSlotStats({ available, inUsed, total, labels }: StaffSlotSt
     <View style={styles.metricRow}>
       <View style={[styles.metricBadge, styles.metricBadgeAvailable]}>
         <ThemedText style={styles.metricLabel}>{labels.available}</ThemedText>
-        <ThemedText style={[styles.metricValue, styles.metricValueAvailable]}>{available}</ThemedText>
+        <ThemedText style={[styles.metricValue, styles.metricValueAvailable]}>
+          {available}
+        </ThemedText>
       </View>
       <View style={[styles.metricBadge, styles.metricBadgeInUse]}>
         <ThemedText style={styles.metricLabel}>{labels.inUsed}</ThemedText>

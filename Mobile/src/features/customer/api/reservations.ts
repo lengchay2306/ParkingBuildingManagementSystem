@@ -1,6 +1,6 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
-export type ReservationStatus = 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
+export type ReservationStatus = "PENDING" | "CLAIMED" | "EXPIRED" | "CANCELLED";
 
 export type ReservationDriver = {
   _id: string;
@@ -52,28 +52,28 @@ type ApiEnvelope<T> = {
 async function parseReservationResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? "Request failed");
   }
   return payload ?? {};
 }
 
 export async function getMyReservations(status?: ReservationStatus): Promise<Reservation[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
   const response = await authenticatedFetch(`/reservations/my${query}`);
   const payload = await parseReservationResponse<{ reservations?: Reservation[] }>(response);
   return payload.data?.reservations ?? [];
 }
 
 export async function createReservation(payload: CreateReservationPayload): Promise<Reservation> {
-  const response = await authenticatedFetch('/reservations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authenticatedFetch("/reservations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const result = await parseReservationResponse<{ reservation?: Reservation }>(response);
   const reservation = result.data?.reservation;
   if (!reservation) {
-    throw new Error(result.message ?? 'Reservation response is missing data');
+    throw new Error(result.message ?? "Reservation response is missing data");
   }
   return reservation;
 }

@@ -1,7 +1,7 @@
-import { Stack } from 'expo-router';
-import React from 'react';
+import { Stack } from "expo-router";
+import React from "react";
 
-import { HeroTransitionProvider } from '@/features/staff/motion/hero-transition-context';
+import { HeroTransitionProvider } from "@/features/staff/motion/hero-transition-context";
 
 export default function StaffSlotsLayout() {
   return (
@@ -9,8 +9,8 @@ export default function StaffSlotsLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'none',
-          contentStyle: { backgroundColor: 'transparent' },
+          animation: "none",
+          contentStyle: { backgroundColor: "transparent" },
         }}
       />
     </HeroTransitionProvider>

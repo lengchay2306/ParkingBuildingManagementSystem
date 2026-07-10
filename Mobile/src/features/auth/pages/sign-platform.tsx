@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -10,40 +10,41 @@ import {
   StyleSheet,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAppToast, useSuppressErrorToasts } from '@/components/app-toast';
-import { MascotSpeechBubble } from '@/components/mascot-speech-bubble';
+import { useAppToast, useSuppressErrorToasts } from "@/components/app-toast";
+import { MascotSpeechBubble } from "@/components/mascot-speech-bubble";
 import {
   SIGN_MASCOT_CIRCLE_SIZE,
   SIGN_MASCOT_FRAME,
   SignMascotDisplay,
   type SignMascotPose,
-} from '@/components/sign-mascot';
-import { ThemedText } from '@/components/themed-text';
-import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { useGuestOnlySession } from '@/hooks/use-guest-only-session';
-import { useSessionRole } from '@/hooks/session-role';
-import { useSignMascotInteraction } from '@/hooks/use-sign-mascot-interaction';
-import { useThemePreference } from '@/hooks/theme-preference';
+} from "@/components/sign-mascot";
+import { ThemedText } from "@/components/themed-text";
+import { Fonts, MaxContentWidth, Spacing } from "@/constants/theme";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { useGuestOnlySession } from "@/hooks/use-guest-only-session";
+import { useSessionRole } from "@/hooks/session-role";
+import { useSignMascotInteraction } from "@/hooks/use-sign-mascot-interaction";
+import { useThemePreference } from "@/hooks/theme-preference";
 import {
   login,
   register,
   resolvePostLoginRoute,
   resolveRoleAfterLogin,
   setStoredPostLoginRoute,
-} from '@/lib/auth-api';
+} from "@/lib/auth-api";
+import { AUTH_ROUTES } from "@/roles";
 
-type AuthView = 'login' | 'signup';
+type AuthView = "login" | "signup";
 type FocusField =
-  | 'loginEmail'
-  | 'loginPassword'
-  | 'signupFullName'
-  | 'signupEmail'
-  | 'signupPhone'
-  | 'signupPassword'
+  | "loginEmail"
+  | "loginPassword"
+  | "signupFullName"
+  | "signupEmail"
+  | "signupPhone"
+  | "signupPassword"
   | null;
 
 const SIGNUP_PHONE_PATTERN = /^[0-9]{10}$/;
@@ -71,47 +72,47 @@ type Palette = {
 };
 
 const darkPalette: Palette = {
-  screenBg: '#000000',
-  cardBg: '#000000',
-  cardBorder: '#1a1a1a',
-  text: '#ffffff',
-  textMuted: '#9ca3af',
-  label: '#6b7280',
-  inputBorder: '#2a2a2a',
-  inputFocusBorder: '#6366f1',
-  inputFocusBg: '#1a1a1a',
-  inputBg: '#1a1a1a',
-  primary: '#6366f1',
-  primaryPressed: '#4f46e5',
-  secondaryBg: '#ffffff',
-  secondaryBorder: '#e5e7eb',
-  divider: '#374151',
-  logoBorder: '#6366f1',
-  logoFill: '#1d3aac',
-  icon: '#6b7280',
-  themeIcon: '#6366f1',
+  screenBg: "#000000",
+  cardBg: "#000000",
+  cardBorder: "#1a1a1a",
+  text: "#ffffff",
+  textMuted: "#9ca3af",
+  label: "#6b7280",
+  inputBorder: "#2a2a2a",
+  inputFocusBorder: "#6366f1",
+  inputFocusBg: "#1a1a1a",
+  inputBg: "#1a1a1a",
+  primary: "#6366f1",
+  primaryPressed: "#4f46e5",
+  secondaryBg: "#ffffff",
+  secondaryBorder: "#e5e7eb",
+  divider: "#374151",
+  logoBorder: "#6366f1",
+  logoFill: "#1d3aac",
+  icon: "#6b7280",
+  themeIcon: "#6366f1",
 };
 
 const lightPalette: Palette = {
-  screenBg: '#f3f4fb',
-  cardBg: '#f3f4fb',
-  cardBorder: '#d5dae7',
-  text: '#0f172a',
-  textMuted: '#475569',
-  label: '#0f172a',
-  inputBorder: '#d5dae7',
-  inputFocusBorder: '#2563eb',
-  inputFocusBg: '#eef3ff',
-  inputBg: '#ffffff',
-  primary: '#2563eb',
-  primaryPressed: '#1d4ed8',
-  secondaryBg: '#f8fafc',
-  secondaryBorder: '#dbe2ef',
-  divider: '#d5dae7',
-  logoBorder: '#2563eb',
-  logoFill: '#1d3aac',
-  icon: '#0f172a',
-  themeIcon: '#0f172a',
+  screenBg: "#f3f4fb",
+  cardBg: "#f3f4fb",
+  cardBorder: "#d5dae7",
+  text: "#0f172a",
+  textMuted: "#475569",
+  label: "#0f172a",
+  inputBorder: "#d5dae7",
+  inputFocusBorder: "#2563eb",
+  inputFocusBg: "#eef3ff",
+  inputBg: "#ffffff",
+  primary: "#2563eb",
+  primaryPressed: "#1d4ed8",
+  secondaryBg: "#f8fafc",
+  secondaryBorder: "#dbe2ef",
+  divider: "#d5dae7",
+  logoBorder: "#2563eb",
+  logoFill: "#1d3aac",
+  icon: "#0f172a",
+  themeIcon: "#0f172a",
 };
 
 const TRANSITION_MS = 600;
@@ -124,21 +125,21 @@ export default function SignPlatformScreen() {
   useSuppressErrorToasts();
   const { t, language, setLanguage } = useLanguagePreference();
   const { resolvedScheme, setThemePreference } = useThemePreference();
-  const palette = resolvedScheme === 'dark' ? darkPalette : lightPalette;
-  const isDark = resolvedScheme === 'dark';
+  const palette = resolvedScheme === "dark" ? darkPalette : lightPalette;
+  const isDark = resolvedScheme === "dark";
 
-  const [activeView, setActiveView] = useState<AuthView>('login');
+  const [activeView, setActiveView] = useState<AuthView>("login");
   const [focusedField, setFocusedField] = useState<FocusField>(null);
   const [authWidth, setAuthWidth] = useState(0);
   const [stageHeight, setStageHeight] = useState(520);
   const didInitAuthLayout = useRef(false);
 
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [signupFullName, setSignupFullName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPhone, setSignupPhone] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupFullName, setSignupFullName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -183,8 +184,8 @@ export default function SignPlatformScreen() {
   }
 
   function animateToLogin() {
-    if (activeView === 'login') return;
-    setActiveView('login');
+    if (activeView === "login") return;
+    setActiveView("login");
     if (authWidth <= 0) return;
 
     loginTranslate.setValue(authWidth);
@@ -219,8 +220,8 @@ export default function SignPlatformScreen() {
   }
 
   function animateToSignup() {
-    if (activeView === 'signup') return;
-    setActiveView('signup');
+    if (activeView === "signup") return;
+    setActiveView("signup");
     if (authWidth <= 0) return;
 
     signupTranslate.setValue(authWidth);
@@ -287,21 +288,21 @@ export default function SignPlatformScreen() {
   });
 
   const mascotPose = useMemo((): SignMascotPose => {
-    if (isSigningIn || isSigningUp) return 'busy';
+    if (isSigningIn || isSigningUp) return "busy";
     if (
-      focusedField === 'loginEmail' ||
-      focusedField === 'signupEmail' ||
-      focusedField === 'signupFullName' ||
-      focusedField === 'signupPhone'
+      focusedField === "loginEmail" ||
+      focusedField === "signupEmail" ||
+      focusedField === "signupFullName" ||
+      focusedField === "signupPhone"
     ) {
-      return 'watching';
+      return "watching";
     }
-    if (activeView === 'signup') return 'welcome';
-    return 'idle';
+    if (activeView === "signup") return "welcome";
+    return "idle";
   }, [activeView, focusedField, isSigningIn, isSigningUp]);
 
-  const blobPrimary = isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(59, 130, 246, 0.05)';
-  const blobSecondary = isDark ? 'rgba(99, 102, 241, 0.04)' : 'rgba(99, 102, 241, 0.05)';
+  const blobPrimary = isDark ? "rgba(99, 102, 241, 0.08)" : "rgba(59, 130, 246, 0.05)";
+  const blobSecondary = isDark ? "rgba(99, 102, 241, 0.04)" : "rgba(99, 102, 241, 0.05)";
 
   async function handleSignIn() {
     if (!mascot.validateSignInForm()) return;
@@ -313,8 +314,8 @@ export default function SignPlatformScreen() {
       const route = resolvePostLoginRoute(roleName);
       await setStoredPostLoginRoute(route);
       await refreshRole();
-      showToast(t('Đăng nhập thành công', 'Login successful'), 'success');
-      setLoginPassword('');
+      showToast(t("Đăng nhập thành công", "Login successful"), "success");
+      setLoginPassword("");
       router.replace(route as never);
     } catch (error) {
       mascot.speakAuthError(error);
@@ -334,13 +335,16 @@ export default function SignPlatformScreen() {
         password: signupPassword,
         phone: signupPhone.trim(),
       });
-      showToast(t('Đăng ký thành công. Vui lòng đăng nhập.', 'Registration successful. Please sign in.'), 'success');
+      showToast(
+        t("Đăng ký thành công. Vui lòng đăng nhập.", "Registration successful. Please sign in."),
+        "success",
+      );
       setLoginEmail(signupEmail.trim());
-      setLoginPassword('');
-      setSignupFullName('');
-      setSignupEmail('');
-      setSignupPhone('');
-      setSignupPassword('');
+      setLoginPassword("");
+      setSignupFullName("");
+      setSignupEmail("");
+      setSignupPhone("");
+      setSignupPassword("");
       animateToLogin();
     } catch (error) {
       mascot.speakRegisterError(error);
@@ -358,7 +362,8 @@ export default function SignPlatformScreen() {
           opacity: themeFade,
           transform: [{ scale: themeScale }],
         },
-      ]}>
+      ]}
+    >
       <View pointerEvents="none" style={styles.backgroundDecor}>
         <View style={[styles.blobTopRight, { backgroundColor: blobPrimary }]} />
         <View style={[styles.blobBottomLeft, { backgroundColor: blobSecondary }]} />
@@ -369,7 +374,8 @@ export default function SignPlatformScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          automaticallyAdjustKeyboardInsets>
+          automaticallyAdjustKeyboardInsets
+        >
           <View style={styles.contentWrap}>
             <View style={styles.topTools}>
               <View style={styles.topToolsRow}>
@@ -377,51 +383,63 @@ export default function SignPlatformScreen() {
                   style={[
                     styles.langToggle,
                     {
-                      borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
-                      backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
+                      borderColor: isDark ? "#2a2a2a" : palette.secondaryBorder,
+                      backgroundColor: isDark ? "#1a1a1a" : "#f8f8f8",
                     },
-                  ]}>
+                  ]}
+                >
                   <Pressable
-                    onPress={() => setLanguage('en')}
+                    onPress={() => setLanguage("en")}
                     style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: language === 'en' }}>
+                    accessibilityState={{ selected: language === "en" }}
+                  >
                     <ThemedText
                       style={[
                         styles.langOptionText,
-                        { color: language === 'en' ? palette.primary : palette.textMuted },
-                        language === 'en' && styles.langOptionTextActive,
-                      ]}>
+                        { color: language === "en" ? palette.primary : palette.textMuted },
+                        language === "en" && styles.langOptionTextActive,
+                      ]}
+                    >
                       EN
                     </ThemedText>
                   </Pressable>
-                  <ThemedText style={[styles.langDivider, { color: palette.divider }]}>|</ThemedText>
+                  <ThemedText style={[styles.langDivider, { color: palette.divider }]}>
+                    |
+                  </ThemedText>
                   <Pressable
-                    onPress={() => setLanguage('vi')}
+                    onPress={() => setLanguage("vi")}
                     style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: language === 'vi' }}>
+                    accessibilityState={{ selected: language === "vi" }}
+                  >
                     <ThemedText
                       style={[
                         styles.langOptionText,
-                        { color: language === 'vi' ? palette.primary : palette.textMuted },
-                        language === 'vi' && styles.langOptionTextActive,
-                      ]}>
+                        { color: language === "vi" ? palette.primary : palette.textMuted },
+                        language === "vi" && styles.langOptionTextActive,
+                      ]}
+                    >
                       VN
                     </ThemedText>
                   </Pressable>
                 </View>
                 <Pressable
-                  onPress={() => setThemePreference(isDark ? 'light' : 'dark')}
+                  onPress={() => setThemePreference(isDark ? "light" : "dark")}
                   style={({ pressed }) => [
                     styles.themeButton,
                     {
-                      borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
-                      backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
+                      borderColor: isDark ? "#2a2a2a" : palette.secondaryBorder,
+                      backgroundColor: isDark ? "#1a1a1a" : "#f8f8f8",
                     },
                     pressed && styles.pressedScale,
-                  ]}>
-                  <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={palette.themeIcon} />
+                  ]}
+                >
+                  <Ionicons
+                    name={isDark ? "sunny-outline" : "moon-outline"}
+                    size={18}
+                    color={palette.themeIcon}
+                  />
                 </Pressable>
               </View>
             </View>
@@ -433,11 +451,12 @@ export default function SignPlatformScreen() {
                   {
                     backgroundColor: palette.cardBg,
                     borderColor: palette.cardBorder,
-                    shadowColor: isDark ? '#000' : '#64748b',
+                    shadowColor: isDark ? "#000" : "#64748b",
                     shadowOpacity: isDark ? 0 : 0.12,
                     elevation: isDark ? 0 : 6,
                   },
-                ]}>
+                ]}
+              >
                 <View style={styles.branding}>
                   <View style={styles.mascotCluster}>
                     <MascotSpeechBubble speech={mascot.mascotSpeech} />
@@ -448,7 +467,8 @@ export default function SignPlatformScreen() {
                           borderColor: SIGN_MASCOT_FRAME.border,
                           backgroundColor: SIGN_MASCOT_FRAME.background,
                         },
-                      ]}>
+                      ]}
+                    >
                       <SignMascotDisplay
                         pose={mascotPose}
                         lookX={mascot.lookX}
@@ -457,14 +477,17 @@ export default function SignPlatformScreen() {
                       />
                     </View>
                   </View>
-                  <ThemedText style={[styles.brandText, { color: palette.primary }]}>PARKOS</ThemedText>
+                  <ThemedText style={[styles.brandText, { color: palette.primary }]}>
+                    PARKOS
+                  </ThemedText>
                 </View>
 
                 <View
                   style={[styles.authStage, { minHeight: stageHeight }]}
-                  onLayout={(e) => setAuthWidth(e.nativeEvent.layout.width)}>
+                  onLayout={(e) => setAuthWidth(e.nativeEvent.layout.width)}
+                >
                   <Animated.View
-                    pointerEvents={activeView === 'signup' ? 'auto' : 'none'}
+                    pointerEvents={activeView === "signup" ? "auto" : "none"}
                     onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height)}
                     style={[
                       styles.authPane,
@@ -472,26 +495,30 @@ export default function SignPlatformScreen() {
                       {
                         opacity: signupOpacity,
                         transform: [{ translateX: signupTranslate }],
-                        zIndex: activeView === 'signup' ? 2 : 1,
+                        zIndex: activeView === "signup" ? 2 : 1,
                       },
-                    ]}>
+                    ]}
+                  >
                     <View style={styles.formPane}>
-                      <ThemedText style={[styles.title, { color: palette.text }]}>{t('Tạo tài khoản', 'Create Account')}</ThemedText>
+                      <ThemedText style={[styles.title, { color: palette.text }]}>
+                        {t("Tạo tài khoản", "Create Account")}
+                      </ThemedText>
                       <ThemedText style={[styles.subtitle, { color: palette.textMuted }]}>
-                        {t('Tham gia mạng lưới bãi đỗ xe', 'Join our parking network')}
+                        {t("Tham gia mạng lưới bãi đỗ xe", "Join our parking network")}
                       </ThemedText>
                       <View style={styles.formBlock}>
                         <FieldRow
                           icon="person-outline"
-                          label={t('HỌ TÊN', 'FULL NAME')}
+                          label={t("HỌ TÊN", "FULL NAME")}
                           value={signupFullName}
-                          focused={focusedField === 'signupFullName'}
-                          palette={palette}>
+                          focused={focusedField === "signupFullName"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={signupFullName}
                             onChangeText={setSignupFullName}
                             onFocus={() => {
-                              setFocusedField('signupFullName');
+                              setFocusedField("signupFullName");
                               mascot.handleSignupNameFocus();
                             }}
                             onBlur={() => setFocusedField(null)}
@@ -502,10 +529,11 @@ export default function SignPlatformScreen() {
                         </FieldRow>
                         <FieldRow
                           icon="mail-outline"
-                          label={t('EMAIL', 'EMAIL')}
+                          label={t("EMAIL", "EMAIL")}
                           value={signupEmail}
-                          focused={focusedField === 'signupEmail'}
-                          palette={palette}>
+                          focused={focusedField === "signupEmail"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={signupEmail}
                             onChangeText={(text) => {
@@ -513,7 +541,7 @@ export default function SignPlatformScreen() {
                               mascot.handleSignupEmailChange(text);
                             }}
                             onFocus={() => {
-                              setFocusedField('signupEmail');
+                              setFocusedField("signupEmail");
                               mascot.handleSignupEmailFocus();
                             }}
                             onBlur={() => {
@@ -529,17 +557,18 @@ export default function SignPlatformScreen() {
                         </FieldRow>
                         <FieldRow
                           icon="call-outline"
-                          label={t('SỐ ĐIỆN THOẠI', 'PHONE')}
+                          label={t("SỐ ĐIỆN THOẠI", "PHONE")}
                           value={signupPhone}
-                          focused={focusedField === 'signupPhone'}
-                          palette={palette}>
+                          focused={focusedField === "signupPhone"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={signupPhone}
                             onChangeText={(text) =>
-                              setSignupPhone(text.replace(/\D/g, '').slice(0, 10))
+                              setSignupPhone(text.replace(/\D/g, "").slice(0, 10))
                             }
                             onFocus={() => {
-                              setFocusedField('signupPhone');
+                              setFocusedField("signupPhone");
                               mascot.handleSignupPhoneFocus();
                             }}
                             onBlur={() => {
@@ -554,16 +583,19 @@ export default function SignPlatformScreen() {
                         </FieldRow>
                         <FieldRow
                           icon="lock-closed-outline"
-                          label={t('MẬT KHẨU', 'PASSWORD')}
+                          label={t("MẬT KHẨU", "PASSWORD")}
                           value={signupPassword}
-                          focused={focusedField === 'signupPassword'}
-                          palette={palette}>
+                          focused={focusedField === "signupPassword"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={signupPassword}
-                            onChangeText={(text) => mascot.handlePasswordChange(text, setSignupPassword)}
+                            onChangeText={(text) =>
+                              mascot.handlePasswordChange(text, setSignupPassword)
+                            }
                             onFocus={() => {
-                              setFocusedField('signupPassword');
-                              mascot.handlePasswordFocus('signupPassword');
+                              setFocusedField("signupPassword");
+                              mascot.handlePasswordFocus("signupPassword");
                             }}
                             onBlur={() => {
                               mascot.handlePasswordBlur();
@@ -573,8 +605,15 @@ export default function SignPlatformScreen() {
                             placeholder=""
                             style={[styles.input, { color: palette.text }]}
                           />
-                          <Pressable onPress={() => setShowSignupPassword((p) => !p)} style={styles.eyeButton}>
-                            <Ionicons name={showSignupPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={palette.icon} />
+                          <Pressable
+                            onPress={() => setShowSignupPassword((p) => !p)}
+                            style={styles.eyeButton}
+                          >
+                            <Ionicons
+                              name={showSignupPassword ? "eye-off-outline" : "eye-outline"}
+                              size={18}
+                              color={palette.icon}
+                            />
                           </Pressable>
                         </FieldRow>
                       </View>
@@ -587,48 +626,62 @@ export default function SignPlatformScreen() {
                             backgroundColor: palette.primary,
                             opacity: canSignUpSubmit ? 1 : 0.55,
                           },
-                          (canSignUpSubmit && pressed) && { backgroundColor: palette.primaryPressed },
+                          canSignUpSubmit && pressed && { backgroundColor: palette.primaryPressed },
                           pressed && styles.pressedScale,
-                        ]}>
+                        ]}
+                      >
                         {isSigningUp ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
                           <View style={styles.buttonInner}>
-                            <ThemedText style={styles.primaryButtonText}>{t('ĐĂNG KÝ', 'SIGN UP')}</ThemedText>
+                            <ThemedText style={styles.primaryButtonText}>
+                              {t("ĐĂNG KÝ", "SIGN UP")}
+                            </ThemedText>
                             <Ionicons name="person-add-outline" size={16} color="#fff" />
                           </View>
                         )}
                       </Pressable>
                       <Divider
-                        text={t('HOẶC ĐĂNG KÝ BẰNG', 'OR SIGN UP WITH')}
+                        text={t("HOẶC ĐĂNG KÝ BẰNG", "OR SIGN UP WITH")}
                         dividerColor={palette.divider}
                         textColor={palette.label}
                       />
                       <Pressable
                         style={({ pressed }) => [
                           styles.secondaryButton,
-                          { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
+                          {
+                            backgroundColor: palette.secondaryBg,
+                            borderColor: palette.secondaryBorder,
+                          },
                           pressed && styles.pressedScale,
                         ]}
-                        onPress={mascot.speakGoogleUnavailable}>
+                        onPress={mascot.speakGoogleUnavailable}
+                      >
                         <Ionicons name="logo-google" size={16} color="#111827" />
-                        <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
+                        <ThemedText
+                          style={[
+                            styles.secondaryButtonText,
+                            { color: isDark ? "#111827" : palette.text },
+                          ]}
+                        >
                           Google
                         </ThemedText>
                       </Pressable>
                       <View style={styles.footerRow}>
                         <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
-                          {t('Đã có tài khoản?', 'Already have an account?')}
+                          {t("Đã có tài khoản?", "Already have an account?")}
                         </ThemedText>
                         <Pressable onPress={animateToLogin}>
-                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>{t('Đăng nhập', 'Sign in')}</ThemedText>
+                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>
+                            {t("Đăng nhập", "Sign in")}
+                          </ThemedText>
                         </Pressable>
                       </View>
                     </View>
                   </Animated.View>
 
                   <Animated.View
-                    pointerEvents={activeView === 'login' ? 'auto' : 'none'}
+                    pointerEvents={activeView === "login" ? "auto" : "none"}
                     onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height)}
                     style={[
                       styles.authPane,
@@ -636,21 +689,25 @@ export default function SignPlatformScreen() {
                       {
                         opacity: loginOpacity,
                         transform: [{ translateX: loginTranslate }],
-                        zIndex: activeView === 'login' ? 2 : 1,
+                        zIndex: activeView === "login" ? 2 : 1,
                       },
-                    ]}>
+                    ]}
+                  >
                     <View style={styles.formPane}>
-                      <ThemedText style={[styles.title, { color: palette.text }]}>{t('Chào mừng trở lại', 'Welcome Back')}</ThemedText>
+                      <ThemedText style={[styles.title, { color: palette.text }]}>
+                        {t("Chào mừng trở lại", "Welcome Back")}
+                      </ThemedText>
                       <ThemedText style={[styles.subtitle, { color: palette.textMuted }]}>
-                        {t('Đăng nhập vào tài khoản của bạn', 'Sign in to your account')}
+                        {t("Đăng nhập vào tài khoản của bạn", "Sign in to your account")}
                       </ThemedText>
                       <View style={styles.formBlock}>
                         <FieldRow
                           icon="mail-outline"
-                          label={t('EMAIL', 'EMAIL')}
+                          label={t("EMAIL", "EMAIL")}
                           value={loginEmail}
-                          focused={focusedField === 'loginEmail'}
-                          palette={palette}>
+                          focused={focusedField === "loginEmail"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={loginEmail}
                             onChangeText={(text) => {
@@ -658,7 +715,7 @@ export default function SignPlatformScreen() {
                               mascot.handleLoginEmailChange(text);
                             }}
                             onFocus={() => {
-                              setFocusedField('loginEmail');
+                              setFocusedField("loginEmail");
                               mascot.handleLoginEmailFocus();
                             }}
                             onBlur={() => {
@@ -673,24 +730,27 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <View style={styles.passwordTopRow}>
-                          <Pressable onPress={mascot.speakForgotPasswordUnavailable}>
+                          <Pressable onPress={() => router.push(AUTH_ROUTES.forgotPassword)}>
                             <ThemedText style={[styles.forgotText, { color: palette.primary }]}>
-                              {t('Quên mật khẩu?', 'Forgot password?')}
+                              {t("Quên mật khẩu?", "Forgot password?")}
                             </ThemedText>
                           </Pressable>
                         </View>
                         <FieldRow
                           icon="lock-closed-outline"
-                          label={t('MẬT KHẨU', 'PASSWORD')}
+                          label={t("MẬT KHẨU", "PASSWORD")}
                           value={loginPassword}
-                          focused={focusedField === 'loginPassword'}
-                          palette={palette}>
+                          focused={focusedField === "loginPassword"}
+                          palette={palette}
+                        >
                           <TextInput
                             value={loginPassword}
-                            onChangeText={(text) => mascot.handlePasswordChange(text, setLoginPassword)}
+                            onChangeText={(text) =>
+                              mascot.handlePasswordChange(text, setLoginPassword)
+                            }
                             onFocus={() => {
-                              setFocusedField('loginPassword');
-                              mascot.handlePasswordFocus('loginPassword');
+                              setFocusedField("loginPassword");
+                              mascot.handlePasswordFocus("loginPassword");
                             }}
                             onBlur={() => {
                               mascot.handlePasswordBlur();
@@ -700,8 +760,15 @@ export default function SignPlatformScreen() {
                             placeholder=""
                             style={[styles.input, { color: palette.text }]}
                           />
-                          <Pressable onPress={() => setShowLoginPassword((p) => !p)} style={styles.eyeButton}>
-                            <Ionicons name={showLoginPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={palette.icon} />
+                          <Pressable
+                            onPress={() => setShowLoginPassword((p) => !p)}
+                            style={styles.eyeButton}
+                          >
+                            <Ionicons
+                              name={showLoginPassword ? "eye-off-outline" : "eye-outline"}
+                              size={18}
+                              color={palette.icon}
+                            />
                           </Pressable>
                         </FieldRow>
                       </View>
@@ -714,41 +781,55 @@ export default function SignPlatformScreen() {
                             backgroundColor: palette.primary,
                             opacity: canSignInSubmit ? 1 : 0.55,
                           },
-                          (canSignInSubmit && pressed) && { backgroundColor: palette.primaryPressed },
+                          canSignInSubmit && pressed && { backgroundColor: palette.primaryPressed },
                           pressed && styles.pressedScale,
-                        ]}>
+                        ]}
+                      >
                         {isSigningIn ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
                           <View style={styles.buttonInner}>
-                            <ThemedText style={styles.primaryButtonText}>{t('ĐĂNG NHẬP', 'SIGN IN')}</ThemedText>
+                            <ThemedText style={styles.primaryButtonText}>
+                              {t("ĐĂNG NHẬP", "SIGN IN")}
+                            </ThemedText>
                             <Ionicons name="arrow-forward" size={16} color="#fff" />
                           </View>
                         )}
                       </Pressable>
                       <Divider
-                        text={t('HOẶC TIẾP TỤC BẰNG', 'OR CONTINUE WITH')}
+                        text={t("HOẶC TIẾP TỤC BẰNG", "OR CONTINUE WITH")}
                         dividerColor={palette.divider}
                         textColor={palette.label}
                       />
                       <Pressable
                         style={({ pressed }) => [
                           styles.secondaryButton,
-                          { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
+                          {
+                            backgroundColor: palette.secondaryBg,
+                            borderColor: palette.secondaryBorder,
+                          },
                           pressed && styles.pressedScale,
                         ]}
-                        onPress={mascot.speakGoogleUnavailable}>
+                        onPress={mascot.speakGoogleUnavailable}
+                      >
                         <Ionicons name="logo-google" size={16} color="#111827" />
-                        <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
+                        <ThemedText
+                          style={[
+                            styles.secondaryButtonText,
+                            { color: isDark ? "#111827" : palette.text },
+                          ]}
+                        >
                           Google
                         </ThemedText>
                       </Pressable>
                       <View style={styles.footerRow}>
                         <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
-                          {t('Chưa có tài khoản?', "Don't have an account?")}
+                          {t("Chưa có tài khoản?", "Don't have an account?")}
                         </ThemedText>
                         <Pressable onPress={animateToSignup}>
-                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>{t('Đăng ký', 'Sign up')}</ThemedText>
+                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>
+                            {t("Đăng ký", "Sign up")}
+                          </ThemedText>
                         </Pressable>
                       </View>
                     </View>
@@ -802,7 +883,8 @@ function FieldRow({
           {
             borderBottomColor: focused ? palette.inputFocusBorder : palette.inputBorder,
           },
-        ]}>
+        ]}
+      >
         <Ionicons name={icon} size={20} color={focused ? palette.primary : palette.icon} />
         <Animated.View
           pointerEvents="none"
@@ -811,10 +893,12 @@ function FieldRow({
             {
               transform: [{ translateY }],
             },
-          ]}>
+          ]}
+        >
           <ThemedText
             numberOfLines={1}
-            style={[styles.floatingLabelText, { color: focused ? palette.primary : palette.label }]}>
+            style={[styles.floatingLabelText, { color: focused ? palette.primary : palette.label }]}
+          >
             {label}
           </ThemedText>
         </Animated.View>
@@ -824,7 +908,15 @@ function FieldRow({
   );
 }
 
-function Divider({ text, dividerColor, textColor }: { text: string; dividerColor: string; textColor: string }) {
+function Divider({
+  text,
+  dividerColor,
+  textColor,
+}: {
+  text: string;
+  dividerColor: string;
+  textColor: string;
+}) {
   return (
     <View style={styles.dividerWrap}>
       <View style={[styles.dividerLine, { backgroundColor: dividerColor }]} />
@@ -838,53 +930,53 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   backgroundDecor: {
     ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   blobTopRight: {
-    position: 'absolute',
+    position: "absolute",
     top: -80,
     right: -60,
-    width: '80%',
-    height: '55%',
+    width: "80%",
+    height: "55%",
     borderRadius: 9999,
     opacity: 0.9,
   },
   blobBottomLeft: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -60,
     left: -40,
-    width: '60%',
-    height: '45%',
+    width: "60%",
+    height: "45%",
     borderRadius: 9999,
     opacity: 0.9,
   },
   safeArea: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.five,
   },
   contentWrap: {
-    width: '100%',
+    width: "100%",
     maxWidth: MaxContentWidth,
-    alignSelf: 'center',
-    overflow: 'visible',
+    alignSelf: "center",
+    overflow: "visible",
   },
   topTools: {
     minHeight: 56,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+    alignItems: "flex-end",
+    justifyContent: "center",
   },
   topToolsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   langToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 42,
     paddingHorizontal: 12,
     borderRadius: 21,
@@ -897,11 +989,11 @@ const styles = StyleSheet.create({
   langOptionText: {
     fontSize: 13,
     lineHeight: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   langOptionTextActive: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
   langDivider: {
     fontSize: 13,
@@ -914,9 +1006,9 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -931,49 +1023,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 18,
-    overflow: 'visible',
+    overflow: "visible",
     shadowOpacity: 0.12,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
   branding: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 8,
-    width: '100%',
-    overflow: 'visible',
+    width: "100%",
+    overflow: "visible",
     zIndex: 2,
   },
   mascotCluster: {
-    position: 'relative',
-    alignItems: 'center',
-    alignSelf: 'center',
-    width: '100%',
+    position: "relative",
+    alignItems: "center",
+    alignSelf: "center",
+    width: "100%",
     maxWidth: 332,
-    overflow: 'visible',
+    overflow: "visible",
   },
   logoCircle: {
     width: SIGN_MASCOT_CIRCLE_SIZE,
     height: SIGN_MASCOT_CIRCLE_SIZE,
     borderRadius: SIGN_MASCOT_CIRCLE_SIZE / 2,
     borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   brandText: {
     fontSize: 26,
     lineHeight: 30,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   authStage: {
-    width: '100%',
-    overflow: 'hidden',
-    position: 'relative',
+    width: "100%",
+    overflow: "hidden",
+    position: "relative",
   },
   authPane: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
   },
@@ -983,46 +1075,46 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 46,
     lineHeight: 50,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: "700",
+    textAlign: "center",
     letterSpacing: -0.8,
     marginTop: 2,
   },
   subtitle: {
     fontSize: 24,
     lineHeight: 30,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 10,
   },
   formBlock: {
     gap: 12,
   },
   passwordTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     marginBottom: -4,
     marginTop: 2,
   },
   forgotText: {
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   fieldWrap: {
-    position: 'relative',
+    position: "relative",
   },
   inputRow: {
     minHeight: 52,
     borderBottomWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 4,
     paddingVertical: 6,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   floatingLabelWrap: {
-    position: 'absolute',
+    position: "absolute",
     left: 32,
     right: 36,
     top: 17,
@@ -1031,7 +1123,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     fontFamily: Fonts.sans,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.4,
   },
   input: {
@@ -1049,23 +1141,23 @@ const styles = StyleSheet.create({
     minHeight: 46,
     marginTop: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
     lineHeight: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   dividerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginTop: 18,
     marginBottom: 12,
@@ -1084,21 +1176,21 @@ const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: 8,
     borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   secondaryButtonText: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
     gap: 4,
     marginTop: 14,
     marginBottom: 2,
@@ -1110,7 +1202,7 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   pressedScale: {
     transform: [{ scale: 0.98 }],

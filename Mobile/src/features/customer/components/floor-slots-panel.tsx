@@ -1,14 +1,18 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect, useState } from 'react';
-import { View, type TextStyle, type ViewStyle } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useEffect, useState } from "react";
+import { View, type TextStyle, type ViewStyle } from "react-native";
 
-import { ScalePressable } from '@/components/scale-pressable';
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette } from '@/constants/design';
-import type { ParkingFloor, ParkingSlot } from '@/features/customer/api/parking';
+import { ScalePressable } from "@/components/scale-pressable";
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette } from "@/constants/design";
+import type { ParkingFloor, ParkingSlot } from "@/features/customer/api/parking";
 
-export function isSlotBookable(slot: ParkingSlot, floor: ParkingFloor, vehicleType: string | null): boolean {
-  if (slot.status !== 'AVAILABLE' || !vehicleType) {
+export function isSlotBookable(
+  slot: ParkingSlot,
+  floor: ParkingFloor,
+  vehicleType: string | null,
+): boolean {
+  if (slot.status !== "AVAILABLE" || !vehicleType) {
     return false;
   }
   return floor.vehicleType?.type === vehicleType;
@@ -98,12 +102,12 @@ export function FloorSlotsPanel({
               <View style={styles.floorHeaderText}>
                 <ThemedText style={styles.floorName}>{floor.floorName}</ThemedText>
                 <ThemedText style={styles.floorStats}>
-                  {floor.vehicleType?.type ?? '—'} · {t('Trống', 'Available')}:{' '}
+                  {floor.vehicleType?.type ?? "—"} · {t("Trống", "Available")}:{" "}
                   {floor.slotStats?.available ?? 0} / {floor.slotStats?.total ?? floor.slots.length}
                 </ThemedText>
               </View>
               <Ionicons
-                name={expanded ? 'chevron-up' : 'chevron-down'}
+                name={expanded ? "chevron-up" : "chevron-down"}
                 size={16}
                 color={DesignColors.inkMuted}
               />
@@ -114,9 +118,9 @@ export function FloorSlotsPanel({
                   const bookable = selectable && isSlotBookable(slot, floor, vehicleType ?? null);
                   const active = selectedSlotId === slot._id;
                   const statusStyle =
-                    slot.status === 'AVAILABLE'
+                    slot.status === "AVAILABLE"
                       ? styles.slotAvailable
-                      : slot.status === 'CURRENTLY-IN-USED'
+                      : slot.status === "CURRENTLY-IN-USED"
                         ? styles.slotInUse
                         : styles.slotUnavailable;
 

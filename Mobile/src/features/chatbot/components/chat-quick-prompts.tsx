@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ChatQuickPromptsProps = {
   prompts: [string, string][];
@@ -25,7 +25,7 @@ export function ChatQuickPrompts({ prompts, t, disabled, onSelect }: ChatQuickPr
     <View style={styles.container}>
       <View style={styles.labelRow}>
         <Ionicons color={DesignColors.inkSubtle} name="bulb-outline" size={14} />
-        <ThemedText style={styles.label}>{t('Gợi ý câu hỏi', 'Suggested questions')}</ThemedText>
+        <ThemedText style={styles.label}>{t("Gợi ý câu hỏi", "Suggested questions")}</ThemedText>
       </View>
       <View style={styles.list}>
         {prompts.map(([vi, en]) => {
@@ -39,7 +39,8 @@ export function ChatQuickPrompts({ prompts, t, disabled, onSelect }: ChatQuickPr
                 styles.chip,
                 disabled && styles.chipDisabled,
                 pressed && !disabled && styles.chipPressed,
-              ]}>
+              ]}
+            >
               <ThemedText numberOfLines={2} style={styles.chipText}>
                 {label}
               </ThemedText>
@@ -63,24 +64,24 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       backgroundColor: DesignColors.surface1,
     },
     labelRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
     },
     label: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
       fontSize: 11,
-      fontWeight: '600',
-      textTransform: 'uppercase',
+      fontWeight: "600",
+      textTransform: "uppercase",
       letterSpacing: 0.4,
     },
     list: {
       gap: Spacing.xs,
     },
     chip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       paddingHorizontal: Spacing.md,
       paddingVertical: 10,

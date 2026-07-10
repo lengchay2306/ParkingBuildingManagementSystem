@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
+import React, { useMemo, useState } from "react";
+import { StyleSheet, TextInput, type TextInputProps } from "react-native";
 
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffTextInputProps = TextInputProps & {
   mono?: boolean;
@@ -16,12 +16,7 @@ export function StaffTextInput({ style, mono, onFocus, onBlur, ...rest }: StaffT
   return (
     <TextInput
       placeholderTextColor={DesignColors.placeholder}
-      style={[
-        styles.input,
-        mono && styles.inputMono,
-        focused && styles.inputFocused,
-        style,
-      ]}
+      style={[styles.input, mono && styles.inputMono, focused && styles.inputFocused, style]}
       onBlur={(event) => {
         setFocused(false);
         onBlur?.(event);

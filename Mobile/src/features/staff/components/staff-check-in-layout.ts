@@ -1,4 +1,4 @@
-import { Radius } from '@/constants/design';
+import { Radius } from "@/constants/design";
 
 /**
  * Minimum body height for the vehicle/contact card (form input state).

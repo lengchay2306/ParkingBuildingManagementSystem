@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import type { ChatMessage } from '@/features/chatbot/api/types';
-import { getUserMessageDisplayText } from '@/features/chatbot/lib/message-wrap';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import type { ChatMessage } from "@/features/chatbot/api/types";
+import { getUserMessageDisplayText } from "@/features/chatbot/lib/message-wrap";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ChatMessageListProps = {
   messages: ChatMessage[];
@@ -43,7 +43,7 @@ export function ChatMessageList({ messages, isLoading, isSending }: ChatMessageL
       data={messages}
       keyExtractor={(item) => item._id}
       renderItem={({ item }) => {
-        const isUser = item.role === 'user';
+        const isUser = item.role === "user";
         const text = isUser ? getUserMessageDisplayText(item.content) : item.content;
         return (
           <View style={[styles.bubbleWrap, isUser ? styles.userWrap : styles.assistantWrap]}>
@@ -71,8 +71,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     loading: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     list: {
       flex: 1,
@@ -84,16 +84,16 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       flexGrow: 1,
     },
     bubbleWrap: {
-      width: '100%',
+      width: "100%",
     },
     userWrap: {
-      alignItems: 'flex-end',
+      alignItems: "flex-end",
     },
     assistantWrap: {
-      alignItems: 'flex-start',
+      alignItems: "flex-start",
     },
     bubble: {
-      maxWidth: '85%',
+      maxWidth: "85%",
       borderRadius: Radius.lg,
       paddingHorizontal: Spacing.md,
       paddingVertical: 10,
@@ -118,8 +118,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.onPrimary,
     },
     typingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
       paddingVertical: Spacing.xs,
     },

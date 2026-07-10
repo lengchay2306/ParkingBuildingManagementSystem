@@ -1,5 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,53 +10,50 @@ import {
   ScrollView,
   StyleSheet,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { useAppToast } from '@/components/app-toast';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import { MaxContentWidth } from '@/constants/theme';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { useProtectedSession } from '@/hooks/use-protected-session';
-import { getMyProfile, type UserVehicle } from '@/lib/auth-api';
-import {
-  getParkingSlots,
-  type ParkingFloor,
-} from '@/features/customer/api/parking';
+import { useAppToast } from "@/components/app-toast";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import { MaxContentWidth } from "@/constants/theme";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { useProtectedSession } from "@/hooks/use-protected-session";
+import { getMyProfile, type UserVehicle } from "@/lib/auth-api";
+import { getParkingSlots, type ParkingFloor } from "@/features/customer/api/parking";
 import {
   buildExpectedArrival,
   createReservation,
   getMyReservations,
   type Reservation,
   type ReservationStatus,
-} from '@/features/customer/api/reservations';
+} from "@/features/customer/api/reservations";
 import {
   FloorSlotsPanel,
   ReservationCard,
   formatReservationDateTime,
   isSlotBookable,
-} from '@/features/customer/components';
+} from "@/features/customer/components";
 
 const ARRIVAL_PRESETS = [
-  { minutes: 30, vi: '30 phút', en: '30 min' },
-  { minutes: 60, vi: '1 giờ', en: '1 hour' },
-  { minutes: 120, vi: '2 giờ', en: '2 hours' },
-  { minutes: 180, vi: '3 giờ', en: '3 hours' },
+  { minutes: 30, vi: "30 phút", en: "30 min" },
+  { minutes: 60, vi: "1 giờ", en: "1 hour" },
+  { minutes: 120, vi: "2 giờ", en: "2 hours" },
+  { minutes: 180, vi: "3 giờ", en: "3 hours" },
 ] as const;
 
 const STATUS_FILTERS: Array<{ value: ReservationStatus | null; vi: string; en: string }> = [
-  { value: null, vi: 'Tất cả', en: 'All' },
-  { value: 'PENDING', vi: 'Chờ', en: 'Pending' },
-  { value: 'CLAIMED', vi: 'Đã nhận', en: 'Claimed' },
-  { value: 'EXPIRED', vi: 'Hết hạn', en: 'Expired' },
-  { value: 'CANCELLED', vi: 'Đã hủy', en: 'Cancelled' },
+  { value: null, vi: "Tất cả", en: "All" },
+  { value: "PENDING", vi: "Chờ", en: "Pending" },
+  { value: "CLAIMED", vi: "Đã nhận", en: "Claimed" },
+  { value: "EXPIRED", vi: "Hết hạn", en: "Expired" },
+  { value: "CANCELLED", vi: "Đã hủy", en: "Cancelled" },
 ];
 
 function resolveVehicleTypeLabel(vehicle: UserVehicle): string | null {
   const type = vehicle.vehicleTypeId;
-  if (!type || typeof type === 'string') {
+  if (!type || typeof type === "string") {
     return null;
   }
   return type.type ?? null;
@@ -87,7 +84,7 @@ export default function ReservationsScreen() {
   useProtectedSession();
 
   const activeVehicles = useMemo(
-    () => vehicles.filter((v) => v.status?.toUpperCase() !== 'INACTIVE'),
+    () => vehicles.filter((v) => v.status?.toUpperCase() !== "INACTIVE"),
     [vehicles],
   );
 
@@ -118,7 +115,7 @@ export default function ReservationsScreen() {
         const message =
           loadError instanceof Error
             ? loadError.message
-            : t('Không tải được dữ liệu', 'Could not load data');
+            : t("Không tải được dữ liệu", "Could not load data");
         setError(message);
       } finally {
         setIsLoading(false);
@@ -141,8 +138,8 @@ export default function ReservationsScreen() {
       showToast(
         loadError instanceof Error
           ? loadError.message
-          : t('Không tải được chỗ đỗ', 'Could not load parking slots'),
-        'error',
+          : t("Không tải được chỗ đỗ", "Could not load parking slots"),
+        "error",
       );
       setBookingFloors([]);
     } finally {
@@ -175,8 +172,8 @@ export default function ReservationsScreen() {
   function openBooking() {
     if (activeVehicles.length === 0) {
       showToast(
-        t('Vui lòng đăng ký xe trong Hồ sơ trước', 'Register a vehicle in Profile first'),
-        'error',
+        t("Vui lòng đăng ký xe trong Hồ sơ trước", "Register a vehicle in Profile first"),
+        "error",
       );
       return;
     }
@@ -194,11 +191,11 @@ export default function ReservationsScreen() {
 
   async function handleCreateReservation() {
     if (!selectedVehicleId) {
-      showToast(t('Vui lòng chọn xe', 'Please select a vehicle'), 'error');
+      showToast(t("Vui lòng chọn xe", "Please select a vehicle"), "error");
       return;
     }
     if (!selectedSlotId) {
-      showToast(t('Vui lòng chọn chỗ đỗ', 'Please select a parking slot'), 'error');
+      showToast(t("Vui lòng chọn chỗ đỗ", "Please select a parking slot"), "error");
       return;
     }
 
@@ -209,15 +206,15 @@ export default function ReservationsScreen() {
         parkingSlotId: selectedSlotId,
         expectedArrival: buildExpectedArrival(arrivalMinutes),
       });
-      showToast(t('Đặt chỗ thành công', 'Reservation created'), 'success');
+      showToast(t("Đặt chỗ thành công", "Reservation created"), "success");
       closeBooking();
       await loadData(true);
     } catch (submitError) {
       showToast(
         submitError instanceof Error
           ? submitError.message
-          : t('Không đặt được chỗ', 'Could not create reservation'),
-        'error',
+          : t("Không đặt được chỗ", "Could not create reservation"),
+        "error",
       );
     } finally {
       setIsSubmitting(false);
@@ -237,30 +234,32 @@ export default function ReservationsScreen() {
         }
       >
         <View style={styles.header}>
-          <ThemedText style={styles.title}>{t('Đặt chỗ', 'Reservations')}</ThemedText>
+          <ThemedText style={styles.title}>{t("Đặt chỗ", "Reservations")}</ThemedText>
           <Pressable
             onPress={openBooking}
             style={({ pressed }) => [styles.bookButton, pressed && styles.buttonPressed]}
           >
             <Ionicons name="add" size={18} color={DesignColors.onPrimary} />
-            <ThemedText style={styles.bookButtonText}>{t('Đặt chỗ mới', 'New booking')}</ThemedText>
+            <ThemedText style={styles.bookButtonText}>{t("Đặt chỗ mới", "New booking")}</ThemedText>
           </Pressable>
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('Tình trạng bãi đỗ', 'Parking status')}</ThemedText>
+          <ThemedText style={styles.sectionTitle}>
+            {t("Tình trạng bãi đỗ", "Parking status")}
+          </ThemedText>
           <View style={styles.legendRow}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.slotAvailable]} />
-              <ThemedText style={styles.legendText}>{t('Trống', 'Available')}</ThemedText>
+              <ThemedText style={styles.legendText}>{t("Trống", "Available")}</ThemedText>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.slotInUse]} />
-              <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
+              <ThemedText style={styles.legendText}>{t("Đang dùng", "In use")}</ThemedText>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, styles.slotUnavailable]} />
-              <ThemedText style={styles.legendText}>{t('Không dùng', 'Unavailable')}</ThemedText>
+              <ThemedText style={styles.legendText}>{t("Không dùng", "Unavailable")}</ThemedText>
             </View>
           </View>
           {overviewFloors.length > 0 ? (
@@ -272,12 +271,14 @@ export default function ReservationsScreen() {
             />
           ) : (
             <ThemedText style={styles.modalHint}>
-              {t('Không có dữ liệu bãi đỗ', 'No parking data')}
+              {t("Không có dữ liệu bãi đỗ", "No parking data")}
             </ThemedText>
           )}
         </View>
 
-        <ThemedText style={styles.sectionTitle}>{t('Đặt chỗ của tôi', 'My reservations')}</ThemedText>
+        <ThemedText style={styles.sectionTitle}>
+          {t("Đặt chỗ của tôi", "My reservations")}
+        </ThemedText>
 
         <ScrollView
           horizontal
@@ -288,7 +289,7 @@ export default function ReservationsScreen() {
             const active = statusFilter === filter.value;
             return (
               <Pressable
-                key={filter.value ?? 'all'}
+                key={filter.value ?? "all"}
                 onPress={() => setStatusFilter(filter.value)}
                 style={({ pressed }) => [
                   styles.filterChip,
@@ -313,14 +314,14 @@ export default function ReservationsScreen() {
               onPress={() => loadData()}
               style={({ pressed }) => [styles.retryButton, pressed && styles.buttonPressed]}
             >
-              <ThemedText style={styles.retryButtonText}>{t('Thử lại', 'Retry')}</ThemedText>
+              <ThemedText style={styles.retryButtonText}>{t("Thử lại", "Retry")}</ThemedText>
             </Pressable>
           </View>
         ) : reservations.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={40} color={DesignColors.inkMuted} />
             <ThemedText style={styles.emptyText}>
-              {t('Chưa có đặt chỗ nào', 'No reservations yet')}
+              {t("Chưa có đặt chỗ nào", "No reservations yet")}
             </ThemedText>
           </View>
         ) : (
@@ -340,13 +341,13 @@ export default function ReservationsScreen() {
 
       <Modal visible={bookingOpen} animationType="slide" transparent onRequestClose={closeBooking}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalOverlay}
         >
           <Pressable style={styles.modalBackdrop} onPress={closeBooking} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>{t('Đặt chỗ mới', 'New booking')}</ThemedText>
+              <ThemedText style={styles.modalTitle}>{t("Đặt chỗ mới", "New booking")}</ThemedText>
               <Pressable
                 onPress={closeBooking}
                 style={({ pressed }) => [styles.modalClose, pressed && styles.buttonPressed]}
@@ -355,8 +356,11 @@ export default function ReservationsScreen() {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-              <ThemedText style={styles.fieldLabel}>{t('Chọn xe', 'Select vehicle')}</ThemedText>
+            <ScrollView
+              contentContainerStyle={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              <ThemedText style={styles.fieldLabel}>{t("Chọn xe", "Select vehicle")}</ThemedText>
               <View style={styles.chipRow}>
                 {activeVehicles.map((vehicle) => {
                   const active = selectedVehicleId === vehicle._id;
@@ -370,7 +374,9 @@ export default function ReservationsScreen() {
                         pressed && styles.buttonPressed,
                       ]}
                     >
-                      <ThemedText style={[styles.typeChipText, active && styles.typeChipTextActive]}>
+                      <ThemedText
+                        style={[styles.typeChipText, active && styles.typeChipTextActive]}
+                      >
                         {vehicle.licensePlate}
                       </ThemedText>
                     </Pressable>
@@ -380,16 +386,17 @@ export default function ReservationsScreen() {
 
               {selectedVehicle ? (
                 <ThemedText style={styles.modalHint}>
-                  {t('Loại xe', 'Vehicle type')}: {resolveVehicleTypeLabel(selectedVehicle) ?? '—'} ·{' '}
+                  {t("Loại xe", "Vehicle type")}: {resolveVehicleTypeLabel(selectedVehicle) ?? "—"}{" "}
+                  ·{" "}
                   {t(
-                    'Chỉ chọn được chỗ trống ở tầng cùng loại xe',
-                    'Only available slots on matching floors can be selected',
+                    "Chỉ chọn được chỗ trống ở tầng cùng loại xe",
+                    "Only available slots on matching floors can be selected",
                   )}
                 </ThemedText>
               ) : null}
 
               <ThemedText style={[styles.fieldLabel, styles.sectionGap]}>
-                {t('Thời gian dự kiến đến', 'Expected arrival')}
+                {t("Thời gian dự kiến đến", "Expected arrival")}
               </ThemedText>
               <View style={styles.chipRow}>
                 {ARRIVAL_PRESETS.map((preset) => {
@@ -404,7 +411,9 @@ export default function ReservationsScreen() {
                         pressed && styles.buttonPressed,
                       ]}
                     >
-                      <ThemedText style={[styles.typeChipText, active && styles.typeChipTextActive]}>
+                      <ThemedText
+                        style={[styles.typeChipText, active && styles.typeChipTextActive]}
+                      >
                         {t(preset.vi, preset.en)}
                       </ThemedText>
                     </Pressable>
@@ -412,18 +421,19 @@ export default function ReservationsScreen() {
                 })}
               </View>
               <ThemedText style={styles.modalHint}>
-                {t('Dự kiến', 'Expected')}: {formatReservationDateTime(buildExpectedArrival(arrivalMinutes))}
+                {t("Dự kiến", "Expected")}:{" "}
+                {formatReservationDateTime(buildExpectedArrival(arrivalMinutes))}
               </ThemedText>
 
               <ThemedText style={[styles.fieldLabel, styles.sectionGap]}>
-                {t('Chọn chỗ đỗ', 'Select parking slot')}
+                {t("Chọn chỗ đỗ", "Select parking slot")}
               </ThemedText>
 
               {isLoadingSlots ? (
                 <ActivityIndicator color={DesignColors.primary} style={styles.typeLoader} />
               ) : bookingFloors.length === 0 ? (
                 <ThemedText style={styles.modalHint}>
-                  {t('Không có dữ liệu chỗ đỗ', 'No parking slot data')}
+                  {t("Không có dữ liệu chỗ đỗ", "No parking slot data")}
                 </ThemedText>
               ) : (
                 <FloorSlotsPanel
@@ -452,7 +462,7 @@ export default function ReservationsScreen() {
                 <ActivityIndicator color={DesignColors.onPrimary} />
               ) : (
                 <ThemedText style={styles.primaryButtonText}>
-                  {t('Xác nhận đặt chỗ', 'Confirm booking')}
+                  {t("Xác nhận đặt chỗ", "Confirm booking")}
                 </ThemedText>
               )}
             </Pressable>
@@ -473,15 +483,15 @@ function createStyles(DesignColors: DesignColorPalette) {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.lg,
       paddingBottom: Spacing.xl,
-      width: '100%',
+      width: "100%",
       maxWidth: MaxContentWidth,
-      alignSelf: 'center',
+      alignSelf: "center",
       gap: Spacing.md,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
     },
     title: {
@@ -490,8 +500,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       flex: 1,
     },
     bookButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 4,
       borderRadius: Radius.pill,
       backgroundColor: DesignColors.primary,
@@ -514,13 +524,13 @@ function createStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.ink,
     },
     legendRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.sm,
     },
     legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
     },
     legendDot: {
@@ -554,20 +564,20 @@ function createStyles(DesignColors: DesignColorPalette) {
     },
     filterChipTextActive: {
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     loader: {
       marginTop: Spacing.xl,
     },
     emptyState: {
-      alignItems: 'center',
+      alignItems: "center",
       gap: Spacing.sm,
       paddingVertical: Spacing.xl,
     },
     emptyText: {
       ...Typography.body,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
     },
     retryButton: {
       borderRadius: Radius.md,
@@ -592,9 +602,9 @@ function createStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.xs,
     },
     reservationHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
       marginBottom: 4,
     },
@@ -619,12 +629,12 @@ function createStyles(DesignColors: DesignColorPalette) {
     },
     statusPillText: {
       ...Typography.caption,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
       gap: Spacing.md,
       paddingVertical: 2,
     },
@@ -637,18 +647,18 @@ function createStyles(DesignColors: DesignColorPalette) {
       ...Typography.bodySm,
       color: DesignColors.ink,
       flex: 1,
-      textAlign: 'right',
+      textAlign: "right",
     },
     modalOverlay: {
       flex: 1,
-      justifyContent: 'flex-end',
+      justifyContent: "flex-end",
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      backgroundColor: "rgba(0,0,0,0.45)",
     },
     modalSheet: {
-      maxHeight: '88%',
+      maxHeight: "88%",
       borderTopLeftRadius: Radius.lg,
       borderTopRightRadius: Radius.lg,
       backgroundColor: DesignColors.surface1,
@@ -658,8 +668,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.md,
     },
     modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     modalTitle: {
@@ -671,8 +681,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       width: 32,
       height: 32,
       borderRadius: Radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.surface2,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -688,18 +698,18 @@ function createStyles(DesignColors: DesignColorPalette) {
     fieldLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     sectionGap: {
       marginTop: Spacing.sm,
     },
     chipRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.xs,
     },
     typeLoader: {
-      alignSelf: 'flex-start',
+      alignSelf: "flex-start",
       marginVertical: Spacing.xs,
     },
     typeChip: {
@@ -720,20 +730,20 @@ function createStyles(DesignColors: DesignColorPalette) {
     },
     typeChipTextActive: {
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     floorBlock: {
       borderRadius: Radius.md,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface2,
-      overflow: 'hidden',
+      overflow: "hidden",
       marginTop: Spacing.xs,
     },
     floorHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       padding: Spacing.sm,
       gap: Spacing.sm,
     },
@@ -744,15 +754,15 @@ function createStyles(DesignColors: DesignColorPalette) {
     floorName: {
       ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     floorStats: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
     },
     slotGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.xs,
       paddingHorizontal: Spacing.sm,
       paddingBottom: Spacing.sm,
@@ -765,15 +775,15 @@ function createStyles(DesignColors: DesignColorPalette) {
       backgroundColor: DesignColors.surface1,
       paddingHorizontal: Spacing.sm,
       paddingVertical: 8,
-      alignItems: 'center',
+      alignItems: "center",
     },
     slotAvailable: {
       borderColor: DesignColors.semanticSuccess,
       backgroundColor: `${DesignColors.semanticSuccess}18`,
     },
     slotInUse: {
-      borderColor: '#f59e0b',
-      backgroundColor: '#f59e0b18',
+      borderColor: "#f59e0b",
+      backgroundColor: "#f59e0b18",
     },
     slotUnavailable: {
       borderColor: DesignColors.hairline,
@@ -794,7 +804,7 @@ function createStyles(DesignColors: DesignColorPalette) {
     },
     slotChipTextActive: {
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     slotChipTextDisabled: {
       color: DesignColors.inkMuted,
@@ -803,8 +813,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       borderRadius: Radius.md,
       backgroundColor: DesignColors.primary,
       paddingVertical: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 44,
     },
     primaryButtonText: {

@@ -1,6 +1,6 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
-import { getVehicleTypes, type VehicleType } from '@/features/customer/api/vehicles';
+import { getVehicleTypes, type VehicleType } from "@/features/customer/api/vehicles";
 
 export type { VehicleType };
 
@@ -24,7 +24,7 @@ type ApiEnvelope<T> = {
 async function parseVehicleApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? "Request failed");
   }
   return payload ?? {};
 }
@@ -40,21 +40,19 @@ export async function getVehicleByLicensePlate(licensePlate: string): Promise<St
   const result = await parseVehicleApiResponse<{ vehicle?: StaffVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(result.message ?? "Vehicle response is missing data");
   }
   return vehicle;
 }
 
-export function resolveVehicleTypeLabel(
-  vehicleTypeId?: { type?: string } | string | null,
-): string {
+export function resolveVehicleTypeLabel(vehicleTypeId?: { type?: string } | string | null): string {
   if (!vehicleTypeId) {
-    return '—';
+    return "—";
   }
-  if (typeof vehicleTypeId === 'string') {
+  if (typeof vehicleTypeId === "string") {
     return vehicleTypeId;
   }
-  return vehicleTypeId.type ?? '—';
+  return vehicleTypeId.type ?? "—";
 }
 
 type PopulatedOwner = {
@@ -78,7 +76,7 @@ export function resolveVehicleOwnerProfile(
   activeSession?: { checkInUserId?: string | PopulatedOwner } | null,
 ): VehicleOwnerProfile | null {
   const sessionUser = activeSession?.checkInUserId;
-  if (sessionUser && typeof sessionUser === 'object') {
+  if (sessionUser && typeof sessionUser === "object") {
     const fullName = sessionUser.fullName?.trim();
     const phone = sessionUser.phone?.trim();
     if (fullName || phone) {
@@ -90,7 +88,7 @@ export function resolveVehicleOwnerProfile(
   }
 
   const owner = vehicle.userId;
-  if (owner && typeof owner === 'object') {
+  if (owner && typeof owner === "object") {
     const fullName = owner.fullName?.trim();
     const phone = owner.phone?.trim();
     if (fullName || phone) {
@@ -109,5 +107,5 @@ export function resolveVehicleOwnerPhone(
   vehicle: StaffVehicle,
   activeSession?: { checkInUserId?: string | PopulatedOwner } | null,
 ): string {
-  return resolveVehicleOwnerProfile(vehicle, activeSession)?.phone ?? '';
+  return resolveVehicleOwnerProfile(vehicle, activeSession)?.phone ?? "";
 }

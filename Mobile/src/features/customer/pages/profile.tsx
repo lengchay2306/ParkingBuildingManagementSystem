@@ -1,7 +1,7 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import React, { useCallback, useMemo, useState } from 'react';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import { openBrowserAsync, WebBrowserPresentationStyle } from "expo-web-browser";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,29 +14,29 @@ import {
   StyleSheet,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { useAppToast } from '@/components/app-toast';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import { MaxContentWidth } from '@/constants/theme';
-import { useDesignColors } from '@/hooks/use-design-colors';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { useProtectedSession } from '@/hooks/use-protected-session';
-import { useSessionRole } from '@/hooks/session-role';
+import { useAppToast } from "@/components/app-toast";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import { MaxContentWidth } from "@/constants/theme";
+import { useDesignColors } from "@/hooks/use-design-colors";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { useProtectedSession } from "@/hooks/use-protected-session";
+import { useSessionRole } from "@/hooks/session-role";
 import {
   extractRoleNameFromProfile,
   getMyProfile,
   logout,
   type UserProfile,
   type UserVehicle,
-} from '@/lib/auth-api';
+} from "@/lib/auth-api";
 import {
   buildProfileUpdatePayload,
   updateMyProfile,
   validateProfileUpdate,
-} from '@/features/customer/api/profile';
+} from "@/features/customer/api/profile";
 import {
   buildVehicleUpdatePayload,
   createVehicle,
@@ -47,15 +47,15 @@ import {
   validateVehicleRegistration,
   validateVehicleUpdate,
   type VehicleType,
-} from '@/features/customer/api/vehicles';
-import { VehicleCard } from '@/features/customer/components';
-import { createSubscriptionCheckoutLink } from '@/features/payment/api';
-import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
+} from "@/features/customer/api/vehicles";
+import { VehicleCard } from "@/features/customer/components";
+import { createSubscriptionCheckoutLink } from "@/features/payment/api";
+import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from "@/roles";
 
 function getInitials(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
-    return '?';
+    return "?";
   }
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
@@ -65,13 +65,13 @@ function getInitials(fullName: string) {
 
 function statusTone(status: string | undefined, DesignColors: DesignColorPalette) {
   const normalized = status?.toUpperCase();
-  if (normalized === 'ACTIVE') {
+  if (normalized === "ACTIVE") {
     return { label: normalized, color: DesignColors.semanticSuccess };
   }
-  if (normalized === 'LOCKED') {
-    return { label: normalized, color: '#ef4444' };
+  if (normalized === "LOCKED") {
+    return { label: normalized, color: "#ef4444" };
   }
-  return { label: normalized ?? '—', color: DesignColors.inkSubtle };
+  return { label: normalized ?? "—", color: DesignColors.inkSubtle };
 }
 
 export default function ProfileScreen() {
@@ -87,14 +87,14 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editFullName, setEditFullName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
+  const [editFullName, setEditFullName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [vehicleModalMode, setVehicleModalMode] = useState<'create' | 'edit' | null>(null);
+  const [vehicleModalMode, setVehicleModalMode] = useState<"create" | "edit" | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<UserVehicle | null>(null);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [isLoadingVehicleTypes, setIsLoadingVehicleTypes] = useState(false);
-  const [licensePlate, setLicensePlate] = useState('');
+  const [licensePlate, setLicensePlate] = useState("");
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string | null>(null);
   const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
@@ -103,28 +103,31 @@ export default function ProfileScreen() {
   useProtectedSession();
   const { refreshRole } = useSessionRole();
 
-  const loadProfile = useCallback(async (refreshing = false) => {
-    if (refreshing) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setError(null);
+  const loadProfile = useCallback(
+    async (refreshing = false) => {
+      if (refreshing) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
 
-    try {
-      const user = await getMyProfile();
-      setProfile(user);
-    } catch (loadError) {
-      const message =
-        loadError instanceof Error
-          ? loadError.message
-          : t('Không tải được hồ sơ', 'Could not load profile');
-      setError(message);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [t]);
+      try {
+        const user = await getMyProfile();
+        setProfile(user);
+      } catch (loadError) {
+        const message =
+          loadError instanceof Error
+            ? loadError.message
+            : t("Không tải được hồ sơ", "Could not load profile");
+        setError(message);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [t],
+  );
 
   React.useEffect(() => {
     loadProfile();
@@ -142,8 +145,8 @@ export default function ProfileScreen() {
       showToast(
         loadError instanceof Error
           ? loadError.message
-          : t('Không tải được loại xe', 'Could not load vehicle types'),
-        'error',
+          : t("Không tải được loại xe", "Could not load vehicle types"),
+        "error",
       );
     } finally {
       setIsLoadingVehicleTypes(false);
@@ -159,13 +162,13 @@ export default function ProfileScreen() {
   function closeVehicleModal() {
     setVehicleModalMode(null);
     setEditingVehicle(null);
-    setLicensePlate('');
+    setLicensePlate("");
   }
 
   function startRegisteringVehicle() {
     setEditingVehicle(null);
-    setVehicleModalMode('create');
-    setLicensePlate('');
+    setVehicleModalMode("create");
+    setLicensePlate("");
     if (vehicleTypes.length > 0) {
       setSelectedVehicleTypeId(vehicleTypes[0]._id);
     }
@@ -173,7 +176,7 @@ export default function ProfileScreen() {
 
   function startEditingVehicle(vehicle: UserVehicle) {
     setEditingVehicle(vehicle);
-    setVehicleModalMode('edit');
+    setVehicleModalMode("edit");
     setLicensePlate(vehicle.licensePlate);
     setSelectedVehicleTypeId(resolveVehicleTypeId(vehicle.vehicleTypeId));
     if (vehicleTypes.length === 0) {
@@ -182,10 +185,10 @@ export default function ProfileScreen() {
   }
 
   async function handleSubmitVehicle() {
-    if (vehicleModalMode === 'create') {
+    if (vehicleModalMode === "create") {
       const validationError = validateVehicleRegistration(licensePlate, selectedVehicleTypeId, t);
       if (validationError) {
-        showToast(validationError, 'error');
+        showToast(validationError, "error");
         return;
       }
 
@@ -198,13 +201,13 @@ export default function ProfileScreen() {
         const refreshed = await getMyProfile();
         setProfile(refreshed);
         closeVehicleModal();
-        showToast(t('Đã đăng ký xe', 'Vehicle registered'), 'success');
+        showToast(t("Đã đăng ký xe", "Vehicle registered"), "success");
       } catch (submitError) {
         showToast(
           submitError instanceof Error
             ? submitError.message
-            : t('Không thể đăng ký xe', 'Could not register vehicle'),
-          'error',
+            : t("Không thể đăng ký xe", "Could not register vehicle"),
+          "error",
         );
       } finally {
         setIsSubmittingVehicle(false);
@@ -212,24 +215,19 @@ export default function ProfileScreen() {
       return;
     }
 
-    if (vehicleModalMode !== 'edit' || !editingVehicle) {
+    if (vehicleModalMode !== "edit" || !editingVehicle) {
       return;
     }
 
-    const currentTypeId = resolveVehicleTypeId(editingVehicle.vehicleTypeId) ?? '';
+    const currentTypeId = resolveVehicleTypeId(editingVehicle.vehicleTypeId) ?? "";
     const payload = buildVehicleUpdatePayload(
       { licensePlate: editingVehicle.licensePlate, vehicleTypeId: currentTypeId },
       licensePlate,
       selectedVehicleTypeId ?? currentTypeId,
     );
-    const validationError = validateVehicleUpdate(
-      payload,
-      licensePlate,
-      selectedVehicleTypeId,
-      t,
-    );
+    const validationError = validateVehicleUpdate(payload, licensePlate, selectedVehicleTypeId, t);
     if (validationError) {
-      showToast(validationError, 'error');
+      showToast(validationError, "error");
       return;
     }
 
@@ -239,13 +237,13 @@ export default function ProfileScreen() {
       const refreshed = await getMyProfile();
       setProfile(refreshed);
       closeVehicleModal();
-      showToast(t('Đã cập nhật xe', 'Vehicle updated'), 'success');
+      showToast(t("Đã cập nhật xe", "Vehicle updated"), "success");
     } catch (submitError) {
       showToast(
         submitError instanceof Error
           ? submitError.message
-          : t('Không thể cập nhật xe', 'Could not update vehicle'),
-        'error',
+          : t("Không thể cập nhật xe", "Could not update vehicle"),
+        "error",
       );
     } finally {
       setIsSubmittingVehicle(false);
@@ -257,14 +255,14 @@ export default function ProfileScreen() {
       return;
     }
     setEditFullName(profile.fullName);
-    setEditPhone(profile.phone ?? '');
+    setEditPhone(profile.phone ?? "");
     setIsEditing(true);
   }
 
   function cancelEditing() {
     setIsEditing(false);
-    setEditFullName('');
-    setEditPhone('');
+    setEditFullName("");
+    setEditPhone("");
   }
 
   async function handleSaveProfile() {
@@ -275,7 +273,7 @@ export default function ProfileScreen() {
     const payload = buildProfileUpdatePayload(profile, editFullName, editPhone);
     const validationError = validateProfileUpdate(payload, t);
     if (validationError) {
-      showToast(validationError, 'error');
+      showToast(validationError, "error");
       return;
     }
 
@@ -285,13 +283,13 @@ export default function ProfileScreen() {
       const refreshed = await getMyProfile();
       setProfile(refreshed);
       setIsEditing(false);
-      showToast(t('Đã cập nhật hồ sơ', 'Profile updated'), 'success');
+      showToast(t("Đã cập nhật hồ sơ", "Profile updated"), "success");
     } catch (saveError) {
       showToast(
         saveError instanceof Error
           ? saveError.message
-          : t('Không thể cập nhật hồ sơ', 'Could not update profile'),
-        'error',
+          : t("Không thể cập nhật hồ sơ", "Could not update profile"),
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -303,14 +301,14 @@ export default function ProfileScreen() {
     try {
       await logout();
       await refreshRole();
-      showToast(t('Đã đăng xuất', 'Logged out successfully'), 'success');
+      showToast(t("Đã đăng xuất", "Logged out successfully"), "success");
       router.replace(AUTH_ROUTES.signIn as never);
     } catch (logoutError) {
       showToast(
         logoutError instanceof Error
           ? logoutError.message
-          : t('Không thể đăng xuất', 'Cannot log out'),
-        'error',
+          : t("Không thể đăng xuất", "Cannot log out"),
+        "error",
       );
     } finally {
       setIsLoggingOut(false);
@@ -321,22 +319,19 @@ export default function ProfileScreen() {
   const accountStatus = statusTone(profile?.status, DesignColors);
   const vehicles = profile?.vehicles ?? [];
   const activeVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE'),
+    () => vehicles.filter((vehicle) => vehicle.status?.toUpperCase() !== "INACTIVE"),
     [vehicles],
   );
 
   function confirmDeleteVehicle(vehicle: UserVehicle) {
     Alert.alert(
-      t('Xóa xe', 'Delete vehicle'),
-      t(
-        `Bạn có chắc muốn xóa xe ${vehicle.licensePlate}?.`,
-        `Remove ${vehicle.licensePlate}?.`,
-      ),
+      t("Xóa xe", "Delete vehicle"),
+      t(`Bạn có chắc muốn xóa xe ${vehicle.licensePlate}?.`, `Remove ${vehicle.licensePlate}?.`),
       [
-        { text: t('Hủy', 'Cancel'), style: 'cancel' },
+        { text: t("Hủy", "Cancel"), style: "cancel" },
         {
-          text: t('Xóa', 'Delete'),
-          style: 'destructive',
+          text: t("Xóa", "Delete"),
+          style: "destructive",
           onPress: () => handleDeleteVehicle(vehicle),
         },
       ],
@@ -352,13 +347,13 @@ export default function ProfileScreen() {
       if (editingVehicle?._id === vehicle._id) {
         closeVehicleModal();
       }
-      showToast(t('Đã xóa xe', 'Vehicle removed'), 'success');
+      showToast(t("Đã xóa xe", "Vehicle removed"), "success");
     } catch (deleteError) {
       showToast(
         deleteError instanceof Error
           ? deleteError.message
-          : t('Không thể xóa xe', 'Could not delete vehicle'),
-        'error',
+          : t("Không thể xóa xe", "Could not delete vehicle"),
+        "error",
       );
     } finally {
       setDeletingVehicleId(null);
@@ -374,10 +369,10 @@ export default function ProfileScreen() {
       });
       showToast(
         t(
-          'Sau khi thanh toán, kéo xuống để làm mới hồ sơ.',
-          'After paying, pull to refresh your profile.',
+          "Sau khi thanh toán, kéo xuống để làm mới hồ sơ.",
+          "After paying, pull to refresh your profile.",
         ),
-        'success',
+        "success",
       );
       const refreshed = await getMyProfile();
       setProfile(refreshed);
@@ -385,8 +380,8 @@ export default function ProfileScreen() {
       showToast(
         buyError instanceof Error
           ? buyError.message
-          : t('Không tạo được link thanh toán', 'Could not create payment link'),
-        'error',
+          : t("Không tạo được link thanh toán", "Could not create payment link"),
+        "error",
       );
     } finally {
       setBuyingVehicleId(null);
@@ -397,7 +392,9 @@ export default function ProfileScreen() {
     return (
       <ThemedView style={styles.centered}>
         <ActivityIndicator color={DesignColors.primary} size="large" />
-        <ThemedText style={styles.loadingText}>{t('Đang tải hồ sơ...', 'Loading profile...')}</ThemedText>
+        <ThemedText style={styles.loadingText}>
+          {t("Đang tải hồ sơ...", "Loading profile...")}
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -406,13 +403,15 @@ export default function ProfileScreen() {
     return (
       <ThemedView style={styles.centered}>
         <Ionicons name="cloud-offline-outline" size={40} color={DesignColors.inkSubtle} />
-        <ThemedText style={styles.errorTitle}>{t('Không tải được hồ sơ', 'Profile unavailable')}</ThemedText>
+        <ThemedText style={styles.errorTitle}>
+          {t("Không tải được hồ sơ", "Profile unavailable")}
+        </ThemedText>
         <ThemedText style={styles.errorDetail}>{error}</ThemedText>
         <Pressable
           onPress={() => loadProfile()}
           style={({ pressed }) => [styles.retryButton, pressed && styles.buttonPressed]}
         >
-          <ThemedText style={styles.retryButtonText}>{t('Thử lại', 'Retry')}</ThemedText>
+          <ThemedText style={styles.retryButtonText}>{t("Thử lại", "Retry")}</ThemedText>
         </Pressable>
       </ThemedView>
     );
@@ -432,14 +431,14 @@ export default function ProfileScreen() {
         }
       >
         <View style={styles.header}>
-          <ThemedText style={styles.eyebrow}>{t('Tài khoản', 'Account')}</ThemedText>
-          <ThemedText style={styles.title}>{t('Hồ sơ của tôi', 'My profile')}</ThemedText>
+          <ThemedText style={styles.eyebrow}>{t("Tài khoản", "Account")}</ThemedText>
+          <ThemedText style={styles.title}>{t("Hồ sơ của tôi", "My profile")}</ThemedText>
         </View>
 
         <View style={styles.heroCard}>
           <View style={styles.avatar}>
             <ThemedText style={styles.avatarText}>
-              {getInitials(profile?.fullName ?? '')}
+              {getInitials(profile?.fullName ?? "")}
             </ThemedText>
           </View>
           <View style={styles.heroText}>
@@ -462,12 +461,14 @@ export default function ProfileScreen() {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>{t('Thông tin liên hệ', 'Contact info')}</ThemedText>
+            <ThemedText style={styles.sectionTitle}>
+              {t("Thông tin liên hệ", "Contact info")}
+            </ThemedText>
             {!isEditing ? (
               <Pressable
                 onPress={startEditing}
                 style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]}
-                accessibilityLabel={t('Chỉnh sửa', 'Edit')}
+                accessibilityLabel={t("Chỉnh sửa", "Edit")}
               >
                 <Ionicons name="create-outline" size={18} color={DesignColors.primary} />
               </Pressable>
@@ -477,56 +478,50 @@ export default function ProfileScreen() {
           {isEditing ? (
             <>
               <View style={styles.field}>
-                <ThemedText style={styles.fieldLabel}>{t('Họ tên', 'Full name')}</ThemedText>
+                <ThemedText style={styles.fieldLabel}>{t("Họ tên", "Full name")}</ThemedText>
                 <TextInput
                   value={editFullName}
                   onChangeText={setEditFullName}
                   autoCapitalize="words"
                   maxLength={30}
-                  placeholder={t('Nhập họ tên', 'Enter full name')}
+                  placeholder={t("Nhập họ tên", "Enter full name")}
                   placeholderTextColor={DesignColors.inkSubtle}
                   style={styles.input}
                 />
               </View>
               <View style={styles.field}>
-                <ThemedText style={styles.fieldLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
+                <ThemedText style={styles.fieldLabel}>{t("Số điện thoại", "Phone")}</ThemedText>
                 <TextInput
                   value={editPhone}
                   onChangeText={setEditPhone}
                   keyboardType="phone-pad"
                   maxLength={10}
-                  placeholder={t('10 chữ số', '10 digits')}
+                  placeholder={t("10 chữ số", "10 digits")}
                   placeholderTextColor={DesignColors.inkSubtle}
                   style={styles.input}
                 />
               </View>
               <View style={styles.infoRow}>
-                <ThemedText style={styles.infoLabel}>{t('Email', 'Email')}</ThemedText>
+                <ThemedText style={styles.infoLabel}>{t("Email", "Email")}</ThemedText>
                 <ThemedText style={styles.infoValue}>{profile?.email}</ThemedText>
               </View>
               <View style={styles.editActions}>
                 <Pressable
                   disabled={isSaving}
                   onPress={cancelEditing}
-                  style={({ pressed }) => [
-                    styles.secondaryButton,
-                    pressed && styles.buttonPressed,
-                  ]}
+                  style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
                 >
-                  <ThemedText style={styles.secondaryButtonText}>{t('Hủy', 'Cancel')}</ThemedText>
+                  <ThemedText style={styles.secondaryButtonText}>{t("Hủy", "Cancel")}</ThemedText>
                 </Pressable>
                 <Pressable
                   disabled={isSaving}
                   onPress={handleSaveProfile}
-                  style={({ pressed }) => [
-                    styles.primaryButton,
-                    pressed && styles.buttonPressed,
-                  ]}
+                  style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
                 >
                   {isSaving ? (
                     <ActivityIndicator color={DesignColors.onPrimary} size="small" />
                   ) : (
-                    <ThemedText style={styles.primaryButtonText}>{t('Lưu', 'Save')}</ThemedText>
+                    <ThemedText style={styles.primaryButtonText}>{t("Lưu", "Save")}</ThemedText>
                   )}
                 </Pressable>
               </View>
@@ -534,15 +529,15 @@ export default function ProfileScreen() {
           ) : (
             <>
               <View style={styles.infoRow}>
-                <ThemedText style={styles.infoLabel}>{t('Họ tên', 'Full name')}</ThemedText>
+                <ThemedText style={styles.infoLabel}>{t("Họ tên", "Full name")}</ThemedText>
                 <ThemedText style={styles.infoValue}>{profile?.fullName}</ThemedText>
               </View>
               <View style={styles.infoRow}>
-                <ThemedText style={styles.infoLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
-                <ThemedText style={styles.infoValue}>{profile?.phone ?? '—'}</ThemedText>
+                <ThemedText style={styles.infoLabel}>{t("Số điện thoại", "Phone")}</ThemedText>
+                <ThemedText style={styles.infoValue}>{profile?.phone ?? "—"}</ThemedText>
               </View>
               <View style={styles.infoRow}>
-                <ThemedText style={styles.infoLabel}>{t('Email', 'Email')}</ThemedText>
+                <ThemedText style={styles.infoLabel}>{t("Email", "Email")}</ThemedText>
                 <ThemedText style={styles.infoValue}>{profile?.email}</ThemedText>
               </View>
             </>
@@ -552,14 +547,14 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <ThemedText style={styles.sectionTitle}>
-              {t('Xe đã đăng ký', 'Registered vehicles')}
+              {t("Xe đã đăng ký", "Registered vehicles")}
             </ThemedText>
             <View style={styles.sectionHeaderActions}>
               <ThemedText style={styles.sectionCount}>{activeVehicles.length}</ThemedText>
               <Pressable
                 onPress={startRegisteringVehicle}
                 style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]}
-                accessibilityLabel={t('Đăng ký xe', 'Register vehicle')}
+                accessibilityLabel={t("Đăng ký xe", "Register vehicle")}
               >
                 <Ionicons name="add" size={20} color={DesignColors.primary} />
               </Pressable>
@@ -568,7 +563,7 @@ export default function ProfileScreen() {
 
           {activeVehicles.length === 0 ? (
             <ThemedText style={styles.emptyText}>
-              {t('Chưa có xe nào trong tài khoản.', 'No vehicles on this account yet.')}
+              {t("Chưa có xe nào trong tài khoản.", "No vehicles on this account yet.")}
             </ThemedText>
           ) : (
             activeVehicles.map((vehicle) => (
@@ -594,7 +589,7 @@ export default function ProfileScreen() {
         >
           <Ionicons name="settings-outline" size={18} color={DesignColors.ink} />
           <ThemedText style={styles.settingsButtonText}>
-            {t('Cài đặt hiển thị', 'Display settings')}
+            {t("Cài đặt hiển thị", "Display settings")}
           </ThemedText>
           <Ionicons name="chevron-forward" size={18} color={DesignColors.inkSubtle} />
         </Pressable>
@@ -607,7 +602,7 @@ export default function ProfileScreen() {
           {isLoggingOut ? (
             <ActivityIndicator color={DesignColors.onPrimary} />
           ) : (
-            <ThemedText style={styles.logoutButtonText}>{t('Đăng xuất', 'Log out')}</ThemedText>
+            <ThemedText style={styles.logoutButtonText}>{t("Đăng xuất", "Log out")}</ThemedText>
           )}
         </Pressable>
       </ScrollView>
@@ -620,31 +615,31 @@ export default function ProfileScreen() {
       >
         <KeyboardAvoidingView
           style={styles.modalRoot}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <Pressable style={styles.modalBackdrop} onPress={closeVehicleModal} />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>
-                {vehicleModalMode === 'edit'
-                  ? t('Cập nhật xe', 'Update vehicle')
-                  : t('Đăng ký xe', 'Register vehicle')}
+                {vehicleModalMode === "edit"
+                  ? t("Cập nhật xe", "Update vehicle")
+                  : t("Đăng ký xe", "Register vehicle")}
               </ThemedText>
               <Pressable
                 onPress={closeVehicleModal}
                 style={({ pressed }) => [styles.modalClose, pressed && styles.buttonPressed]}
-                accessibilityLabel={t('Đóng', 'Close')}
+                accessibilityLabel={t("Đóng", "Close")}
               >
                 <Ionicons name="close" size={20} color={DesignColors.inkMuted} />
               </Pressable>
             </View>
 
             <ThemedText style={styles.modalHint}>
-              {t('Biển số đúng dạng 51A-123.45', 'Plate format: 51A-123.45')}
+              {t("Biển số đúng dạng 51A-123.45", "Plate format: 51A-123.45")}
             </ThemedText>
 
             <View style={styles.field}>
-              <ThemedText style={styles.fieldLabel}>{t('Biển số', 'License plate')}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>{t("Biển số", "License plate")}</ThemedText>
               <TextInput
                 value={licensePlate}
                 onChangeText={setLicensePlate}
@@ -657,7 +652,7 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.field}>
-              <ThemedText style={styles.fieldLabel}>{t('Loại xe', 'Vehicle type')}</ThemedText>
+              <ThemedText style={styles.fieldLabel}>{t("Loại xe", "Vehicle type")}</ThemedText>
               {isLoadingVehicleTypes ? (
                 <ActivityIndicator color={DesignColors.primary} style={styles.typeLoader} />
               ) : (
@@ -692,7 +687,7 @@ export default function ProfileScreen() {
                 onPress={closeVehicleModal}
                 style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
               >
-                <ThemedText style={styles.secondaryButtonText}>{t('Hủy', 'Cancel')}</ThemedText>
+                <ThemedText style={styles.secondaryButtonText}>{t("Hủy", "Cancel")}</ThemedText>
               </Pressable>
               <Pressable
                 disabled={isSubmittingVehicle || isLoadingVehicleTypes}
@@ -703,7 +698,7 @@ export default function ProfileScreen() {
                   <ActivityIndicator color={DesignColors.onPrimary} size="small" />
                 ) : (
                   <ThemedText style={styles.primaryButtonText}>
-                    {vehicleModalMode === 'edit' ? t('Lưu', 'Save') : t('Đăng ký', 'Register')}
+                    {vehicleModalMode === "edit" ? t("Lưu", "Save") : t("Đăng ký", "Register")}
                   </ThemedText>
                 )}
               </Pressable>
@@ -725,15 +720,15 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.section,
       gap: Spacing.lg,
-      width: '100%',
+      width: "100%",
       maxWidth: MaxContentWidth,
-      alignSelf: 'center',
+      alignSelf: "center",
       paddingBottom: Spacing.xxl,
     },
     centered: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       gap: Spacing.sm,
       padding: Spacing.lg,
       backgroundColor: DesignColors.canvas,
@@ -745,12 +740,12 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     errorTitle: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-      textAlign: 'center',
+      textAlign: "center",
     },
     errorDetail: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
     },
     retryButton: {
       marginTop: Spacing.sm,
@@ -768,7 +763,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     eyebrow: {
       ...Typography.eyebrow,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       color: DesignColors.inkSubtle,
     },
     title: {
@@ -776,9 +771,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.ink,
     },
     heroCard: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.md,
-      alignItems: 'center',
+      alignItems: "center",
       borderRadius: Radius.lg,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -789,8 +784,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       width: 64,
       height: 64,
       borderRadius: Radius.full,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.surface3,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -812,8 +807,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkMuted,
     },
     heroMetaRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.xs,
       marginTop: 4,
     },
@@ -828,7 +823,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     roleBadgeText: {
       ...Typography.caption,
       color: DesignColors.primary,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     card: {
       borderRadius: Radius.lg,
@@ -839,9 +834,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: Spacing.sm,
     },
     sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     },
     sectionTitle: {
       ...Typography.button,
@@ -852,18 +847,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkSubtle,
     },
     sectionHeaderActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
     },
     modalRoot: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: "center",
       padding: Spacing.md,
     },
     modalBackdrop: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+      backgroundColor: "rgba(0, 0, 0, 0.55)",
     },
     modalCard: {
       borderRadius: Radius.lg,
@@ -873,14 +868,14 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       padding: Spacing.lg,
       gap: Spacing.sm,
       maxWidth: MaxContentWidth,
-      width: '100%',
-      alignSelf: 'center',
+      width: "100%",
+      alignSelf: "center",
       zIndex: 1,
     },
     modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
     },
     modalTitle: {
@@ -892,8 +887,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       width: 32,
       height: 32,
       borderRadius: Radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.surface2,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -903,12 +898,12 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkSubtle,
     },
     typeLoader: {
-      alignSelf: 'flex-start',
+      alignSelf: "flex-start",
       marginVertical: Spacing.xs,
     },
     typeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: Spacing.xs,
     },
     typeChip: {
@@ -926,11 +921,11 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     typeChipText: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     typeChipTextActive: {
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     editButton: {
       width: 32,
@@ -939,8 +934,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface2,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     field: {
       gap: Spacing.xs,
@@ -948,7 +943,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     fieldLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     input: {
       ...Typography.body,
@@ -961,7 +956,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       paddingVertical: 10,
     },
     editActions: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: Spacing.sm,
       marginTop: Spacing.xs,
     },
@@ -972,7 +967,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface2,
       paddingVertical: 10,
-      alignItems: 'center',
+      alignItems: "center",
     },
     secondaryButtonText: {
       ...Typography.button,
@@ -983,8 +978,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderRadius: Radius.md,
       backgroundColor: DesignColors.primary,
       paddingVertical: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 40,
     },
     primaryButtonText: {
@@ -992,9 +987,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.onPrimary,
     },
     infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
       gap: Spacing.md,
       paddingVertical: 4,
     },
@@ -1007,13 +1002,13 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       ...Typography.bodySm,
       color: DesignColors.ink,
       flex: 1,
-      textAlign: 'right',
+      textAlign: "right",
     },
     infoValueMono: {
       ...Typography.mono,
       color: DesignColors.ink,
       flex: 1,
-      textAlign: 'right',
+      textAlign: "right",
     },
     vehicleCard: {
       borderRadius: Radius.md,
@@ -1025,15 +1020,15 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       marginTop: Spacing.xs,
     },
     vehicleHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
       marginBottom: 4,
     },
     vehicleHeaderActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.xs,
     },
     vehicleActionButton: {
@@ -1043,8 +1038,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     plateBadge: {
       borderRadius: Radius.sm,
@@ -1067,7 +1062,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     statusPillText: {
       ...Typography.caption,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     noCardText: {
       ...Typography.caption,
@@ -1078,21 +1073,21 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       marginTop: Spacing.sm,
       borderRadius: Radius.md,
       paddingVertical: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       minHeight: 40,
     },
     buyCardButtonText: {
       ...Typography.button,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     emptyText: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
     },
     settingsButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       borderRadius: Radius.lg,
       borderWidth: 1,
@@ -1110,7 +1105,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderRadius: Radius.md,
       backgroundColor: DesignColors.primary,
       paddingVertical: 12,
-      alignItems: 'center',
+      alignItems: "center",
     },
     logoutButtonText: {
       ...Typography.button,

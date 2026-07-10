@@ -1,45 +1,45 @@
-import type { Reservation, ReservationStatus } from '@/features/customer/api/reservations';
+import type { Reservation, ReservationStatus } from "@/features/customer/api/reservations";
 
 export function getReservationSlotId(reservation: Reservation): string | null {
-  if (typeof reservation.parkingSlotId === 'string') {
+  if (typeof reservation.parkingSlotId === "string") {
     return reservation.parkingSlotId;
   }
   return reservation.parkingSlotId?._id ?? null;
 }
 
 export function getReservationDriverPhone(reservation: Reservation): string | undefined {
-  if (typeof reservation.driverId === 'object') {
+  if (typeof reservation.driverId === "object") {
     return reservation.driverId.phone?.trim() || undefined;
   }
   return undefined;
 }
 
 export function getReservationDriverName(reservation: Reservation): string | undefined {
-  if (typeof reservation.driverId === 'object') {
+  if (typeof reservation.driverId === "object") {
     return reservation.driverId.fullName?.trim() || undefined;
   }
   return undefined;
 }
 
 export function getReservationSlotNumber(reservation: Reservation): string | undefined {
-  if (typeof reservation.parkingSlotId === 'object') {
+  if (typeof reservation.parkingSlotId === "object") {
     return reservation.parkingSlotId.slotNumber?.trim() || undefined;
   }
   return undefined;
 }
 
 export function getReservationFloorName(reservation: Reservation): string | undefined {
-  if (typeof reservation.parkingSlotId === 'object') {
+  if (typeof reservation.parkingSlotId === "object") {
     return reservation.parkingSlotId.floorId?.floorName?.trim() || undefined;
   }
   return undefined;
 }
 
 export function isStaffRelevantReservation(reservation: Reservation): boolean {
-  if (reservation.status !== 'PENDING' && reservation.status !== 'CLAIMED') {
+  if (reservation.status !== "PENDING" && reservation.status !== "CLAIMED") {
     return false;
   }
-  if (reservation.status === 'PENDING' && reservation.expiryAt) {
+  if (reservation.status === "PENDING" && reservation.expiryAt) {
     return new Date(reservation.expiryAt).getTime() > Date.now();
   }
   return true;
@@ -62,7 +62,7 @@ export function formatReservationSlotLabel(reservation: Reservation): string {
   if (slotNumber && floorName) {
     return `${slotNumber} · ${floorName}`;
   }
-  return slotNumber ?? floorName ?? '—';
+  return slotNumber ?? floorName ?? "—";
 }
 
 export type ReservationsByPlateResult = {

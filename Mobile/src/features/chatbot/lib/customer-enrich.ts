@@ -1,34 +1,30 @@
-import type { ParkingFloor } from '@/features/customer/api/parking';
-import type { Reservation } from '@/features/customer/api/reservations';
-import type { SlotRecommendation } from '@/features/chatbot/api/types';
-import { wrapMessageWithContext } from '@/features/chatbot/lib/message-wrap';
-import type { UserVehicle } from '@/lib/auth-api';
-import { authenticatedFetch } from '@/lib/auth-api';
+import type { ParkingFloor } from "@/features/customer/api/parking";
+import type { Reservation } from "@/features/customer/api/reservations";
+import type { SlotRecommendation } from "@/features/chatbot/api/types";
+import { wrapMessageWithContext } from "@/features/chatbot/lib/message-wrap";
+import type { UserVehicle } from "@/lib/auth-api";
+import { authenticatedFetch } from "@/lib/auth-api";
 
 export type CustomerChatIntent =
-  | 'floorAvailability'
-  | 'recommendSlot'
-  | 'myReservation'
-  | 'howTo'
-  | 'general';
+  "floorAvailability" | "recommendSlot" | "myReservation" | "howTo" | "general";
 
-const VEHICLE_TYPES = ['SUV', 'SEDAN', 'MPV', 'PICKUP'] as const;
+const VEHICLE_TYPES = ["SUV", "SEDAN", "MPV", "PICKUP"] as const;
 
 export function detectCustomerChatIntent(message: string): CustomerChatIntent {
   const text = message.toLowerCase();
   if (/tìm chỗ|gợi ý|chỗ đậu|chỗ đỗ|slot nào|đỗ xe ở đâu/.test(text)) {
-    return 'recommendSlot';
+    return "recommendSlot";
   }
   if (/còn trống|tầng nào|available|bao nhiêu chỗ|chỗ trống/.test(text)) {
-    return 'floorAvailability';
+    return "floorAvailability";
   }
   if (/cách đặt|làm sao đặt|hướng dẫn|quy trình đặt/.test(text)) {
-    return 'howTo';
+    return "howTo";
   }
   if (/reservation|đặt chỗ của tôi|hủy đặt|booking/.test(text)) {
-    return 'myReservation';
+    return "myReservation";
   }
-  return 'general';
+  return "general";
 }
 
 function extractVehicleType(message: string): string | null {
@@ -37,14 +33,14 @@ function extractVehicleType(message: string): string | null {
 }
 
 function vehicleTypeLabel(vehicle: UserVehicle): string {
-  if (typeof vehicle.vehicleTypeId === 'object' && vehicle.vehicleTypeId?.type) {
+  if (typeof vehicle.vehicleTypeId === "object" && vehicle.vehicleTypeId?.type) {
     return vehicle.vehicleTypeId.type;
   }
-  return 'UNKNOWN';
+  return "UNKNOWN";
 }
 
 function pickVehicle(vehicles: UserVehicle[], message: string): UserVehicle | null {
-  const active = vehicles.filter((v) => v.status?.toUpperCase() !== 'INACTIVE');
+  const active = vehicles.filter((v) => v.status?.toUpperCase() !== "INACTIVE");
   if (active.length === 0) {
     return null;
   }
@@ -63,50 +59,48 @@ function summarizeFloors(floors: ParkingFloor[], typeFilter?: string | null): st
     ? floors.filter((f) => f.vehicleType?.type?.toUpperCase() === typeFilter.toUpperCase())
     : floors;
   if (filtered.length === 0) {
-    return '- Không có dữ liệu tầng phù hợp';
+    return "- Không có dữ liệu tầng phù hợp";
   }
   return filtered
     .slice(0, 6)
     .map((floor) => {
       const stats = floor.slotStats;
-      const type = floor.vehicleType?.type ?? '?';
+      const type = floor.vehicleType?.type ?? "?";
       if (stats) {
         return `- ${floor.floorName} (${type}): ${stats.available} trống / ${stats.total} tổng`;
       }
-      const available = floor.slots?.filter((s) => s.status === 'AVAILABLE').length ?? 0;
+      const available = floor.slots?.filter((s) => s.status === "AVAILABLE").length ?? 0;
       return `- ${floor.floorName} (${type}): ${available} trống`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 function summarizeReservations(reservations: Reservation[]): string {
-  const active = reservations.filter((r) => r.status === 'PENDING' || r.status === 'CLAIMED');
+  const active = reservations.filter((r) => r.status === "PENDING" || r.status === "CLAIMED");
   if (active.length === 0) {
-    return '- Reservation đang active: không có';
+    return "- Reservation đang active: không có";
   }
   return active
     .slice(0, 5)
     .map((r) => {
-      const slot =
-        typeof r.parkingSlotId === 'object' ? (r.parkingSlotId.slotNumber ?? '?') : '?';
-      const plate =
-        typeof r.vehicleId === 'object' ? (r.vehicleId.licensePlate ?? '?') : '?';
+      const slot = typeof r.parkingSlotId === "object" ? (r.parkingSlotId.slotNumber ?? "?") : "?";
+      const plate = typeof r.vehicleId === "object" ? (r.vehicleId.licensePlate ?? "?") : "?";
       return `- ${r.status}: slot ${slot}, xe ${plate}`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 function summarizeRecommendations(items: SlotRecommendation[]): string {
   if (items.length === 0) {
-    return '- Gợi ý slot: không có slot khả dụng';
+    return "- Gợi ý slot: không có slot khả dụng";
   }
   return items
     .slice(0, 3)
     .map((item) => {
-      const reason = item.reasons[0] ?? 'phù hợp';
-      return `- ${item.slotNumber} (${item.floorName ?? 'tầng ?'}): ${reason}`;
+      const reason = item.reasons[0] ?? "phù hợp";
+      return `- ${item.slotNumber} (${item.floorName ?? "tầng ?"}): ${reason}`;
     })
-    .join('\n');
+    .join("\n");
 }
 
 export async function recommendParkingSlots(payload: {
@@ -114,9 +108,9 @@ export async function recommendParkingSlots(payload: {
   expectedArrival: string;
   limit?: number;
 }): Promise<SlotRecommendation[]> {
-  const response = await authenticatedFetch('/reservations/recommend-slots', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authenticatedFetch("/reservations/recommend-slots", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       vehicleId: payload.vehicleId,
       expectedArrival: payload.expectedArrival,
@@ -128,7 +122,7 @@ export async function recommendParkingSlots(payload: {
     message?: string;
   } | null;
   if (!response.ok) {
-    throw new Error(result?.message ?? 'Recommendation request failed');
+    throw new Error(result?.message ?? "Recommendation request failed");
   }
   return result?.data?.recommendations ?? [];
 }
@@ -147,21 +141,21 @@ export async function buildCustomerEnrichedMessage({
   const intent = detectCustomerChatIntent(userQuestion);
   const typeKeyword = extractVehicleType(userQuestion);
   const lines = [
-    'Bạn đang hỗ trợ KHÁCH (CUSTOMER). Chỉ dùng số liệu dưới đây, không bịa.',
-    'Xe của khách:',
+    "Bạn đang hỗ trợ KHÁCH (CUSTOMER). Chỉ dùng số liệu dưới đây, không bịa.",
+    "Xe của khách:",
     vehicles.length
       ? vehicles
           .slice(0, 5)
           .map((v) => `- ${v.licensePlate} (${vehicleTypeLabel(v)})`)
-          .join('\n')
-      : '- Chưa đăng ký xe',
+          .join("\n")
+      : "- Chưa đăng ký xe",
   ];
 
-  if (intent === 'floorAvailability' || intent === 'recommendSlot' || intent === 'general') {
-    lines.push('Tầng bãi:', summarizeFloors(floors, typeKeyword));
+  if (intent === "floorAvailability" || intent === "recommendSlot" || intent === "general") {
+    lines.push("Tầng bãi:", summarizeFloors(floors, typeKeyword));
   }
 
-  if (intent === 'recommendSlot' || intent === 'general') {
+  if (intent === "recommendSlot" || intent === "general") {
     const vehicle = pickVehicle(vehicles, userQuestion);
     let recommendations: SlotRecommendation[] = [];
     if (vehicle) {
@@ -175,20 +169,20 @@ export async function buildCustomerEnrichedMessage({
         recommendations = [];
       }
     }
-    lines.push('Gợi ý slot:', summarizeRecommendations(recommendations));
+    lines.push("Gợi ý slot:", summarizeRecommendations(recommendations));
   }
 
-  if (intent === 'myReservation' || intent === 'general') {
-    lines.push('Reservation của khách:', summarizeReservations(reservations));
+  if (intent === "myReservation" || intent === "general") {
+    lines.push("Reservation của khách:", summarizeReservations(reservations));
   }
 
-  if (intent === 'howTo') {
+  if (intent === "howTo") {
     lines.push(
-      'Quy trình đặt chỗ:',
-      '- Chọn xe → slot AVAILABLE đúng loại → giờ đến → xác nhận',
-      '- Hủy: chỉ PENDING, trước giờ hẹn >15 phút',
+      "Quy trình đặt chỗ:",
+      "- Chọn xe → slot AVAILABLE đúng loại → giờ đến → xác nhận",
+      "- Hủy: chỉ PENDING, trước giờ hẹn >15 phút",
     );
   }
 
-  return wrapMessageWithContext(lines.join('\n'), userQuestion);
+  return wrapMessageWithContext(lines.join("\n"), userQuestion);
 }

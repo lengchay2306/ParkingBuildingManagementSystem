@@ -1,19 +1,19 @@
-import React, { useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
-import { usePathname } from 'expo-router';
+import React, { useCallback, useMemo } from "react";
+import { Alert } from "react-native";
+import { usePathname } from "expo-router";
 
-import { useAppToast } from '@/components/app-toast';
-import { ChatbotFab } from '@/features/chatbot/components/chatbot-fab';
-import { ChatbotPanel } from '@/features/chatbot/components/chatbot-panel';
-import { useMobileChatbot } from '@/features/chatbot/hooks/use-mobile-chatbot';
-import { resolveUnknownChatbotError } from '@/features/chatbot/lib/chatbot-errors';
+import { useAppToast } from "@/components/app-toast";
+import { ChatbotFab } from "@/features/chatbot/components/chatbot-fab";
+import { ChatbotPanel } from "@/features/chatbot/components/chatbot-panel";
+import { useMobileChatbot } from "@/features/chatbot/hooks/use-mobile-chatbot";
+import { resolveUnknownChatbotError } from "@/features/chatbot/lib/chatbot-errors";
 import {
   getChatbotRolePresentation,
   resolveChatbotAudience,
-} from '@/features/chatbot/lib/role-config';
-import { useLanguagePreference } from '@/hooks/language-preference';
-import { useSessionRole } from '@/hooks/session-role';
-import { AUTH_ROUTES } from '@/roles';
+} from "@/features/chatbot/lib/role-config";
+import { useLanguagePreference } from "@/hooks/language-preference";
+import { useSessionRole } from "@/hooks/session-role";
+import { AUTH_ROUTES } from "@/roles";
 
 const TAB_BAR_CONTENT_HEIGHT = 52;
 const TAB_BAR_VERTICAL_PADDING = 12;
@@ -24,7 +24,7 @@ export function MobileChatbotWidget() {
   const { t } = useLanguagePreference();
   const { showToast } = useAppToast();
 
-  const isAuthScreen = pathname === AUTH_ROUTES.signIn || pathname === '/';
+  const isAuthScreen = pathname === AUTH_ROUTES.signIn || pathname === "/";
 
   const audience = useMemo(() => resolveChatbotAudience(role), [role]);
   const presentation = useMemo(
@@ -32,14 +32,14 @@ export function MobileChatbotWidget() {
     [audience, t],
   );
 
-  const chatbot = useMobileChatbot(audience ?? 'customer');
+  const chatbot = useMobileChatbot(audience ?? "customer");
 
   const handleSendMessage = useCallback(
     async (message: string) => {
       try {
         await chatbot.sendMessage(message);
       } catch (error) {
-        showToast(resolveUnknownChatbotError(error), 'error');
+        showToast(resolveUnknownChatbotError(error), "error");
       }
     },
     [chatbot, showToast],
@@ -47,16 +47,19 @@ export function MobileChatbotWidget() {
 
   const handleDeleteSession = useCallback(() => {
     Alert.alert(
-      t('Xóa hội thoại?', 'Delete conversation?'),
-      t('Toàn bộ tin nhắn trong hội thoại này sẽ bị xóa.', 'All messages in this chat will be removed.'),
+      t("Xóa hội thoại?", "Delete conversation?"),
+      t(
+        "Toàn bộ tin nhắn trong hội thoại này sẽ bị xóa.",
+        "All messages in this chat will be removed.",
+      ),
       [
-        { text: t('Hủy', 'Cancel'), style: 'cancel' },
+        { text: t("Hủy", "Cancel"), style: "cancel" },
         {
-          text: t('Xóa', 'Delete'),
-          style: 'destructive',
+          text: t("Xóa", "Delete"),
+          style: "destructive",
           onPress: () => {
             void chatbot.removeSession().catch((error) => {
-              showToast(resolveUnknownChatbotError(error), 'error');
+              showToast(resolveUnknownChatbotError(error), "error");
             });
           },
         },
@@ -96,7 +99,7 @@ export function MobileChatbotWidget() {
         onDeleteSession={handleDeleteSession}
         onNewSession={() => {
           void chatbot.createSession().catch((error) => {
-            showToast(resolveUnknownChatbotError(error), 'error');
+            showToast(resolveUnknownChatbotError(error), "error");
           });
         }}
         onSelectSession={handleSelectSession}

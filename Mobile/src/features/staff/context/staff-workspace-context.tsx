@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import {
   checkoutParkingSession as checkoutParkingSessionApi,
@@ -7,16 +7,16 @@ import {
   type ParkingSessionsQuery,
   type ParkingFloor,
   type ParkingSlotFilters,
-} from '@/features/staff/api';
+} from "@/features/staff/api";
 import {
   computeSlotStats,
   indexActiveSessionsBySlotId,
   mapParkingSessionToRecord,
   todayDateParam,
   type StaffCheckInRecord,
-} from '@/features/staff/lib/utils';
+} from "@/features/staff/lib/utils";
 
-type LoadSessionsOptions = Omit<ParkingSessionsQuery, 'date'> & { date?: string };
+type LoadSessionsOptions = Omit<ParkingSessionsQuery, "date"> & { date?: string };
 
 type StaffWorkspaceContextValue = {
   floors: ParkingFloor[];
@@ -32,7 +32,9 @@ type StaffWorkspaceContextValue = {
     options?: LoadSessionsOptions,
     floorSnapshot?: ParkingFloor[],
   ) => Promise<StaffCheckInRecord[]>;
-  loadActiveSlotSessions: (floorSnapshot?: ParkingFloor[]) => Promise<Record<string, StaffCheckInRecord>>;
+  loadActiveSlotSessions: (
+    floorSnapshot?: ParkingFloor[],
+  ) => Promise<Record<string, StaffCheckInRecord>>;
   refreshWorkspace: (sessionOptions?: LoadSessionsOptions) => Promise<void>;
   checkoutSession: (sessionId: string, phone: string) => Promise<void>;
   recordCheckIn: (record: StaffCheckInRecord) => void;
@@ -98,7 +100,7 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
         }
         return records;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Could not load sessions';
+        const message = error instanceof Error ? error.message : "Could not load sessions";
         setSessionsError(message);
         throw error;
       } finally {
@@ -113,7 +115,7 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
       const { sessions } = await getParkingSessions({
         page: 1,
         limit: 200,
-        status: 'ACTIVE',
+        status: "ACTIVE",
         date: todayDateParam(),
       });
 
@@ -163,7 +165,7 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
       const next = [record, ...prev.filter((item) => item.id !== record.id)];
       return next.slice(0, 50);
     });
-    if (record.slotId && record.status.toUpperCase() === 'ACTIVE') {
+    if (record.slotId && record.status.toUpperCase() === "ACTIVE") {
       setActiveSessionsBySlotId((prev) => ({ ...prev, [record.slotId!]: record }));
     }
     setTodaySessionCount((count) => count + 1);
@@ -204,15 +206,13 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
     ],
   );
 
-  return (
-    <StaffWorkspaceContext.Provider value={value}>{children}</StaffWorkspaceContext.Provider>
-  );
+  return <StaffWorkspaceContext.Provider value={value}>{children}</StaffWorkspaceContext.Provider>;
 }
 
 export function useStaffWorkspace() {
   const context = useContext(StaffWorkspaceContext);
   if (!context) {
-    throw new Error('useStaffWorkspace must be used within StaffWorkspaceProvider');
+    throw new Error("useStaffWorkspace must be used within StaffWorkspaceProvider");
   }
   return context;
 }

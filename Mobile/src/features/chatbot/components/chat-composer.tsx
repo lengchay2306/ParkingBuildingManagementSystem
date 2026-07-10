@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo, useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ChatComposerProps = {
   disabled?: boolean;
@@ -16,7 +16,7 @@ type ChatComposerProps = {
 export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatComposerProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
 
   const canSend = !disabled && !isSending && text.trim().length > 0;
 
@@ -31,7 +31,7 @@ export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatC
             return;
           }
           const value = text.trim();
-          setText('');
+          setText("");
           onSend(value);
         }}
         placeholder={placeholder}
@@ -43,14 +43,15 @@ export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatC
         disabled={!canSend}
         onPress={() => {
           const value = text.trim();
-          setText('');
+          setText("");
           onSend(value);
         }}
         style={({ pressed }) => [
           styles.sendBtn,
           !canSend && styles.sendBtnDisabled,
           pressed && canSend && styles.sendBtnPressed,
-        ]}>
+        ]}
+      >
         <Ionicons color={DesignColors.onPrimary} name="send" size={18} />
       </Pressable>
     </View>
@@ -60,8 +61,8 @@ export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatC
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     row: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
+      flexDirection: "row",
+      alignItems: "flex-end",
       gap: Spacing.sm,
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.sm,
@@ -84,8 +85,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       width: 42,
       height: 42,
       borderRadius: 21,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: DesignColors.primaryFocus,
     },
     sendBtnDisabled: {

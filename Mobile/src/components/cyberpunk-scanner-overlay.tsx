@@ -5,8 +5,8 @@ import {
   Shader,
   Skia,
   type SkRuntimeEffect,
-} from '@shopify/react-native-skia';
-import React, { useEffect, useMemo, useState } from 'react';
+} from "@shopify/react-native-skia";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AccessibilityInfo,
   LayoutChangeEvent,
@@ -14,10 +14,10 @@ import {
   View,
   type StyleProp,
   type ViewStyle,
-} from 'react-native';
-import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
+} from "react-native";
+import { useDerivedValue, useFrameCallback, useSharedValue } from "react-native-reanimated";
 
-import { CYBERPUNK_SCANNER_SKSL } from '@/components/shaders/cyberpunk-scanner.shader';
+import { CYBERPUNK_SCANNER_SKSL } from "@/components/shaders/cyberpunk-scanner.shader";
 
 export type CyberpunkScannerOverlayProps = {
   style?: StyleProp<ViewStyle>;
@@ -32,19 +32,19 @@ export type CyberpunkScannerOverlayProps = {
 function compileScannerShader(): SkRuntimeEffect | null {
   const effect = Skia.RuntimeEffect.Make(CYBERPUNK_SCANNER_SKSL);
   if (!effect) {
-    console.warn('[CyberpunkScannerOverlay] SkSL compile failed');
+    console.warn("[CyberpunkScannerOverlay] SkSL compile failed");
   }
   return effect;
 }
 
 function hexToUnitRgb(hex: string): [number, number, number] {
-  const normalized = hex.replace('#', '');
+  const normalized = hex.replace("#", "");
   const value =
     normalized.length === 3
       ? normalized
-          .split('')
+          .split("")
           .map((channel) => channel + channel)
-          .join('')
+          .join("")
       : normalized;
   const int = Number.parseInt(value, 16);
   return [(int >> 16) & 255, (int >> 8) & 255, int & 255].map((channel) => channel / 255) as [
@@ -65,7 +65,7 @@ function hexToUnitRgb(hex: string): [number, number, number] {
 export function CyberpunkScannerOverlay({
   style,
   intensity = 0.85,
-  neonHex = '#5e6ad2',
+  neonHex = "#5e6ad2",
   paused = false,
 }: CyberpunkScannerOverlayProps) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -78,7 +78,7 @@ export function CyberpunkScannerOverlay({
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
     return () => sub.remove();
   }, []);
 
@@ -90,7 +90,7 @@ export function CyberpunkScannerOverlay({
   }, [isPaused, pausedFlag]);
 
   useFrameCallback((frame) => {
-    'worklet';
+    "worklet";
     if (pausedFlag.value) {
       return;
     }
@@ -132,6 +132,6 @@ export function CyberpunkScannerOverlay({
 const styles = StyleSheet.create({
   host: {
     ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
 });

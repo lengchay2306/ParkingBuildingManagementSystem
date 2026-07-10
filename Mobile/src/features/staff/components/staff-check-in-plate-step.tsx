@@ -1,19 +1,13 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { StaffPlateScannerModal } from '@/features/staff/components/staff-plate-scanner-modal';
-import { StaffScreenHeader } from '@/features/staff/components/premium';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { StaffPlateScannerModal } from "@/features/staff/components/staff-plate-scanner-modal";
+import { StaffScreenHeader } from "@/features/staff/components/premium";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffCheckInPlateStepProps = {
   plateQuery: string;
@@ -43,7 +37,7 @@ export function StaffCheckInPlateStep({
     }
 
     const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: 'none' } });
+    parent?.setOptions({ tabBarStyle: { display: "none" } });
 
     return () => {
       parent?.setOptions({ tabBarStyle: undefined });
@@ -54,14 +48,14 @@ export function StaffCheckInPlateStep({
     <View style={styles.root}>
       <StaffScreenHeader
         subtitle={t(
-          'Quét biển số để kiểm tra đặt chỗ và check-in',
-          'Scan a plate to check reservations and check in',
+          "Quét biển số để kiểm tra đặt chỗ và check-in",
+          "Scan a plate to check reservations and check in",
         )}
-        title={t('Check-in', 'Check-in')}
+        title={t("Check-in", "Check-in")}
       />
 
       <View style={styles.card}>
-        <ThemedText style={styles.label}>{t('Biển số xe', 'License plate')}</ThemedText>
+        <ThemedText style={styles.label}>{t("Biển số xe", "License plate")}</ThemedText>
         <View style={styles.plateRow}>
           <TextInput
             autoCapitalize="characters"
@@ -77,7 +71,8 @@ export function StaffCheckInPlateStep({
           <Pressable
             disabled={isSearching}
             onPress={onSearch}
-            style={({ pressed }) => [styles.searchBtn, pressed && styles.btnPressed]}>
+            style={({ pressed }) => [styles.searchBtn, pressed && styles.btnPressed]}
+          >
             {isSearching ? (
               <ActivityIndicator color={DesignColors.onPrimary} size="small" />
             ) : (
@@ -90,14 +85,20 @@ export function StaffCheckInPlateStep({
       <Pressable
         disabled={isSearching}
         onPress={() => setScannerVisible(true)}
-        style={({ pressed }) => [styles.scanCard, pressed && styles.btnPressed]}>
+        style={({ pressed }) => [styles.scanCard, pressed && styles.btnPressed]}
+      >
         <View style={styles.scanIconWrap}>
           <Ionicons color={DesignColors.primaryFocus} name="scan-outline" size={36} />
         </View>
         <View style={styles.scanTextBlock}>
-          <ThemedText style={styles.scanTitle}>{t('Quét biển số xe', 'Scan license plate')}</ThemedText>
+          <ThemedText style={styles.scanTitle}>
+            {t("Quét biển số xe", "Scan license plate")}
+          </ThemedText>
           <ThemedText style={styles.scanSubtitle}>
-            {t('Dùng camera để nhận diện biển số tự động', 'Use the camera for automatic plate recognition')}
+            {t(
+              "Dùng camera để nhận diện biển số tự động",
+              "Use the camera for automatic plate recognition",
+            )}
           </ThemedText>
         </View>
         <Ionicons color={DesignColors.inkSubtle} name="chevron-forward" size={22} />
@@ -132,14 +133,14 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     label: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.9,
       fontSize: 10,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     plateRow: {
-      flexDirection: 'row',
-      alignItems: 'stretch',
+      flexDirection: "row",
+      alignItems: "stretch",
       gap: Spacing.sm,
     },
     input: {
@@ -156,19 +157,19 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     plateInput: {
       ...Typography.mono,
       letterSpacing: 0.8,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
     },
     searchBtn: {
       width: 52,
       height: 52,
       borderRadius: Radius.lg,
       backgroundColor: DesignColors.primaryFocus,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     scanCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.md,
       backgroundColor: DesignColors.surface1,
       borderRadius: Radius.xl,
@@ -181,8 +182,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       height: 64,
       borderRadius: Radius.lg,
       backgroundColor: `${DesignColors.primaryFocus}18`,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     scanTextBlock: {
       flex: 1,
@@ -191,7 +192,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     scanTitle: {
       ...Typography.body,
       color: DesignColors.ink,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 16,
     },
     scanSubtitle: {

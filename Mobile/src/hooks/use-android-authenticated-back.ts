@@ -1,8 +1,8 @@
-import { usePathname } from 'expo-router';
-import { useEffect } from 'react';
-import { BackHandler, Platform } from 'react-native';
+import { usePathname } from "expo-router";
+import { useEffect } from "react";
+import { BackHandler, Platform } from "react-native";
 
-import { CUSTOMER_ROUTES, STAFF_ROUTES } from '@/roles';
+import { CUSTOMER_ROUTES, STAFF_ROUTES } from "@/roles";
 
 const ROOT_TAB_PATHS = new Set<string>([
   CUSTOMER_ROUTES.home,
@@ -23,11 +23,11 @@ export function useAndroidAuthenticatedBack(isAuthenticated: boolean) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || !isAuthenticated) {
+    if (Platform.OS !== "android" || !isAuthenticated) {
       return;
     }
 
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (!ROOT_TAB_PATHS.has(pathname)) {
         return false;
       }

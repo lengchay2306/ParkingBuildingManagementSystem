@@ -1,4 +1,4 @@
-import { authenticatedFetch } from '@/lib/auth-api';
+import { authenticatedFetch } from "@/lib/auth-api";
 
 import {
   getActiveUserParkingSession,
@@ -10,7 +10,7 @@ import {
   type ParkingSlotApiStatus,
   type ParkingVehicleType,
   type ParkingSlotStatus,
-} from '@/features/customer/api/parking';
+} from "@/features/customer/api/parking";
 
 export type {
   ParkingFloor,
@@ -48,14 +48,14 @@ export type ParkingSession = {
   _id: string;
   vehicleId: string | PopulatedVehicle;
   parkingSlotId: string | PopulatedSlot;
-  sessionType: 'DAILY' | 'MONTH';
+  sessionType: "DAILY" | "MONTH";
   checkInUserId: string | PopulatedUser;
   checkInStaffId: string | PopulatedUser;
   checkOutUserId?: string | PopulatedUser;
   checkOutStaffId?: string | PopulatedUser;
   checkInTime: string;
   checkOutTime?: string;
-  status: 'ACTIVE' | 'COMPLETED';
+  status: "ACTIVE" | "COMPLETED";
 };
 
 export type ParkingSessionsPagination = {
@@ -68,7 +68,7 @@ export type ParkingSessionsPagination = {
 export type ParkingSessionsQuery = {
   page?: number;
   limit?: number;
-  status?: 'ACTIVE' | 'COMPLETED';
+  status?: "ACTIVE" | "COMPLETED";
   /** ISO date `YYYY-MM-DD` — defaults to today on backend when omitted. */
   date?: string;
 };
@@ -100,7 +100,7 @@ type ParkingSessionsPayload = {
 async function parseParkingApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(payload?.message ?? "Request failed");
   }
   return payload ?? {};
 }
@@ -110,7 +110,7 @@ function isEmptySessionsError(response: Response, message: string): boolean {
     return false;
   }
   const lower = message.toLowerCase();
-  return lower.includes('no data') || lower.includes('cannot get all parking session');
+  return lower.includes("no data") || lower.includes("cannot get all parking session");
 }
 
 function normalizePlate(plate: string) {
@@ -119,13 +119,13 @@ function normalizePlate(plate: string) {
 
 function buildSessionsQuery(params: ParkingSessionsQuery): string {
   const search = new URLSearchParams();
-  search.set('page', String(params.page ?? 1));
-  search.set('limit', String(params.limit ?? 50));
+  search.set("page", String(params.page ?? 1));
+  search.set("limit", String(params.limit ?? 50));
   if (params.status) {
-    search.set('status', params.status);
+    search.set("status", params.status);
   }
   if (params.date) {
-    search.set('date', params.date);
+    search.set("date", params.date);
   }
   return search.toString();
 }
@@ -137,8 +137,10 @@ export async function getParkingSessions(params: ParkingSessionsQuery = {}): Pro
 }> {
   const query = buildSessionsQuery(params);
   const response = await authenticatedFetch(`/parking/parking-sessions?${query}`);
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<ParkingSessionsPayload> | null;
-  const message = payload?.message ?? 'Request failed';
+  const payload = (await response
+    .json()
+    .catch(() => null)) as ApiEnvelope<ParkingSessionsPayload> | null;
+  const message = payload?.message ?? "Request failed";
 
   if (!response.ok) {
     if (isEmptySessionsError(response, message)) {
@@ -174,15 +176,15 @@ export async function checkoutParkingSession(
   const response = await authenticatedFetch(
     `/parking/checkout-parking-session/${encodeURIComponent(payload.parkingSessionId.trim())}`,
     {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: payload.phone.trim() }),
     },
   );
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
-    throw new Error(result.message ?? 'Checkout response is missing session data');
+    throw new Error(result.message ?? "Checkout response is missing session data");
   }
   return session;
 }
@@ -191,9 +193,9 @@ export async function checkoutParkingSession(
 export async function createParkingSession(
   payload: CreateParkingSessionPayload,
 ): Promise<ParkingSession> {
-  const response = await authenticatedFetch('/parking/create-parking-session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await authenticatedFetch("/parking/create-parking-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       phone: payload.phone.trim(),
       licensePlate: normalizePlate(payload.licensePlate),
@@ -203,15 +205,17 @@ export async function createParkingSession(
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
-    throw new Error(result.message ?? 'Parking session response is missing data');
+    throw new Error(result.message ?? "Parking session response is missing data");
   }
   return session;
 }
 
-export function collectAvailableSlots(floors: ParkingFloor[]): Array<ParkingSlot & { floorName: string }> {
+export function collectAvailableSlots(
+  floors: ParkingFloor[],
+): Array<ParkingSlot & { floorName: string }> {
   return floors.flatMap((floor) =>
     floor.slots
-      .filter((slot) => slot.status === 'AVAILABLE')
+      .filter((slot) => slot.status === "AVAILABLE")
       .map((slot) => ({
         ...slot,
         floorName: floor.floorName,

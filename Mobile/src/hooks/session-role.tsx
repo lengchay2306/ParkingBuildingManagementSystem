@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { getMyProfile, refreshSession, resolveRoleAfterLogin } from '@/lib/auth-api';
-import { type AppRole, normalizeAppRole } from '@/roles';
+import { getMyProfile, refreshSession, resolveRoleAfterLogin } from "@/lib/auth-api";
+import { type AppRole, normalizeAppRole } from "@/roles";
 
 type SessionRoleContextValue = {
   role: AppRole | null;
@@ -36,9 +36,9 @@ export function SessionRoleProvider({ children }: { children: React.ReactNode })
         try {
           const profile = await getMyProfile();
           const roleName =
-            typeof profile.roleName === 'string'
+            typeof profile.roleName === "string"
               ? profile.roleName
-              : typeof profile.roleId === 'object'
+              : typeof profile.roleId === "object"
                 ? profile.roleId?.roleName
                 : null;
           setRole(normalizeAppRole(roleName ?? null));
@@ -75,7 +75,7 @@ export function SessionRoleProvider({ children }: { children: React.ReactNode })
 export function useSessionRole() {
   const context = useContext(SessionRoleContext);
   if (!context) {
-    throw new Error('useSessionRole must be used within SessionRoleProvider');
+    throw new Error("useSessionRole must be used within SessionRoleProvider");
   }
   return context;
 }

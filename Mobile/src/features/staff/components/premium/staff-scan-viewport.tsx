@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useMemo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { ThemedText } from "@/components/themed-text";
+import { Radius, Spacing, Typography } from "@/constants/design";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type StaffScanViewportProps = {
   onPress: () => void;
@@ -24,7 +24,8 @@ export function StaffScanViewport({ onPress, statusText, disabled }: StaffScanVi
         styles.shell,
         pressed && !disabled && styles.pressed,
         disabled && styles.disabled,
-      ]}>
+      ]}
+    >
       <View style={styles.cornerTL} />
       <View style={styles.cornerTR} />
       <View style={styles.cornerBL} />
@@ -40,7 +41,7 @@ export function StaffScanViewport({ onPress, statusText, disabled }: StaffScanVi
 
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   const cornerBase = {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     width: 28,
     height: 28,
     borderColor: DesignColors.primary,
@@ -53,7 +54,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderWidth: 1,
       borderColor: `${DesignColors.primary}55`,
       backgroundColor: DesignColors.surface2,
-      overflow: 'hidden',
+      overflow: "hidden",
       shadowColor: DesignColors.primary,
       shadowOffset: { width: 0, height: 0 },
       shadowOpacity: 0.25,
@@ -69,8 +70,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     inner: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       padding: Spacing.lg,
       gap: Spacing.xs,
     },

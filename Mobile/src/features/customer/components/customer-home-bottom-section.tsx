@@ -1,14 +1,14 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
+import React, { useMemo } from "react";
+import { Linking, StyleSheet, View } from "react-native";
 
-import { ScalePressable } from '@/components/scale-pressable';
-import { ThemedText } from '@/components/themed-text';
-import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
-import type { Reservation } from '@/features/customer/api/reservations';
-import { ReservationCard } from '@/features/customer/components/reservation-card';
-import { CUSTOMER_ROUTES } from '@/roles';
+import { ScalePressable } from "@/components/scale-pressable";
+import { ThemedText } from "@/components/themed-text";
+import { DesignColorPalette, Radius, Spacing, Typography } from "@/constants/design";
+import type { Reservation } from "@/features/customer/api/reservations";
+import { ReservationCard } from "@/features/customer/components/reservation-card";
+import { CUSTOMER_ROUTES } from "@/roles";
 
 type Props = {
   reservations: Reservation[];
@@ -16,7 +16,7 @@ type Props = {
   DesignColors: DesignColorPalette;
 };
 
-const HOTLINE = '19001234';
+const HOTLINE = "19001234";
 
 function createReservationStyles(DesignColors: DesignColorPalette) {
   return {
@@ -29,9 +29,9 @@ function createReservationStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.xs,
     },
     reservationHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
       gap: Spacing.sm,
     },
     plateBadge: {
@@ -55,11 +55,11 @@ function createReservationStyles(DesignColors: DesignColorPalette) {
     },
     statusPillText: {
       ...Typography.caption,
-      fontWeight: '600' as const,
+      fontWeight: "600" as const,
     },
     infoRow: {
-      flexDirection: 'row' as const,
-      justifyContent: 'space-between' as const,
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
       gap: Spacing.md,
     },
     infoLabel: {
@@ -71,7 +71,7 @@ function createReservationStyles(DesignColors: DesignColorPalette) {
       ...Typography.caption,
       color: DesignColors.ink,
       flex: 1,
-      textAlign: 'right' as const,
+      textAlign: "right" as const,
     },
   };
 }
@@ -87,19 +87,21 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
     <View style={styles.wrap}>
       <View style={styles.card}>
         <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionTitle}>{t('Lịch sử gần đây', 'Recent history')}</ThemedText>
+          <ThemedText style={styles.sectionTitle}>
+            {t("Lịch sử gần đây", "Recent history")}
+          </ThemedText>
           <ScalePressable
             onPress={() => router.push(CUSTOMER_ROUTES.reservations as never)}
             style={styles.linkButton}
             scaleTo={0.95}
           >
-            <ThemedText style={styles.linkText}>{t('Xem tất cả', 'View all')}</ThemedText>
+            <ThemedText style={styles.linkText}>{t("Xem tất cả", "View all")}</ThemedText>
           </ScalePressable>
         </View>
 
         {recent.length === 0 ? (
           <ThemedText style={styles.emptyText}>
-            {t('Chưa có lịch sử đặt chỗ', 'No reservation history yet')}
+            {t("Chưa có lịch sử đặt chỗ", "No reservation history yet")}
           </ThemedText>
         ) : (
           <View style={styles.list}>
@@ -123,7 +125,7 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
       </View>
 
       <View style={styles.card}>
-        <ThemedText style={styles.sectionTitle}>{t('Hỗ trợ', 'Support')}</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{t("Hỗ trợ", "Support")}</ThemedText>
         <View style={styles.supportList}>
           <ScalePressable
             onPress={() => void Linking.openURL(`tel:${HOTLINE}`)}
@@ -134,13 +136,15 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
               <Ionicons name="call-outline" size={18} color={DesignColors.primary} />
             </View>
             <View style={styles.supportText}>
-              <ThemedText style={styles.supportLabel}>{t('Hotline 24/7', '24/7 hotline')}</ThemedText>
+              <ThemedText style={styles.supportLabel}>
+                {t("Hotline 24/7", "24/7 hotline")}
+              </ThemedText>
               <ThemedText style={styles.supportValue}>1900 1234</ThemedText>
             </View>
           </ScalePressable>
 
           <ScalePressable
-            onPress={() => void Linking.openURL('mailto:contact@parkingbs.vn')}
+            onPress={() => void Linking.openURL("mailto:contact@parkingbs.vn")}
             style={styles.supportRow}
             scaleTo={0.98}
           >
@@ -148,7 +152,9 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
               <Ionicons name="mail-outline" size={18} color={DesignColors.primary} />
             </View>
             <View style={styles.supportText}>
-              <ThemedText style={styles.supportLabel}>{t('Email hỗ trợ', 'Support email')}</ThemedText>
+              <ThemedText style={styles.supportLabel}>
+                {t("Email hỗ trợ", "Support email")}
+              </ThemedText>
               <ThemedText style={styles.supportValue}>contact@parkingbs.vn</ThemedText>
             </View>
           </ScalePressable>
@@ -162,8 +168,12 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
               <Ionicons name="settings-outline" size={18} color={DesignColors.primary} />
             </View>
             <View style={styles.supportText}>
-              <ThemedText style={styles.supportLabel}>{t('Cài đặt ứng dụng', 'App settings')}</ThemedText>
-              <ThemedText style={styles.supportValue}>{t('Ngôn ngữ, giao diện', 'Language, theme')}</ThemedText>
+              <ThemedText style={styles.supportLabel}>
+                {t("Cài đặt ứng dụng", "App settings")}
+              </ThemedText>
+              <ThemedText style={styles.supportValue}>
+                {t("Ngôn ngữ, giao diện", "Language, theme")}
+              </ThemedText>
             </View>
           </ScalePressable>
         </View>
@@ -186,9 +196,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: Spacing.sm,
     },
     sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       gap: Spacing.sm,
     },
     sectionTitle: {
@@ -205,12 +215,12 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     linkText: {
       ...Typography.caption,
       color: DesignColors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     emptyText: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-      textAlign: 'center',
+      textAlign: "center",
       paddingVertical: Spacing.sm,
     },
     list: {
@@ -223,8 +233,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       gap: Spacing.xs,
     },
     supportRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: Spacing.sm,
       borderRadius: Radius.md,
       borderWidth: 1,
@@ -237,8 +247,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       height: 36,
       borderRadius: Radius.md,
       backgroundColor: DesignColors.surface1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     supportText: {
       flex: 1,

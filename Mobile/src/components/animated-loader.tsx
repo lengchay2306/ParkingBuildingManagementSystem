@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Ionicons from "@expo/vector-icons/Ionicons";
+import React, { useEffect } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -9,24 +9,24 @@ import Animated, {
   withRepeat,
   withSequence,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { ThemedText } from '@/components/themed-text';
-import { Typography } from '@/constants/design';
+import { ThemedText } from "@/components/themed-text";
+import { Typography } from "@/constants/design";
 
 type AnimatedLoaderProps = {
   color: string;
-  size?: 'small' | 'large';
+  size?: "small" | "large";
   label?: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** Spinner có xoay + pulse nhẹ — dùng khi đang tải dữ liệu. */
-export function AnimatedLoader({ color, size = 'large', label, style }: AnimatedLoaderProps) {
+export function AnimatedLoader({ color, size = "large", label, style }: AnimatedLoaderProps) {
   const rotation = useSharedValue(0);
   const pulse = useSharedValue(1);
-  const iconSize = size === 'large' ? 26 : 16;
-  const ringSize = size === 'large' ? 56 : 36;
+  const iconSize = size === "large" ? 26 : 16;
+  const ringSize = size === "large" ? 56 : 36;
 
   useEffect(() => {
     rotation.value = withRepeat(
@@ -88,22 +88,22 @@ export function AnimatedLoaderCard({
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 10,
   },
   ring: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
   },
   label: {
     ...Typography.caption,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   card: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 56,
     minWidth: 56,
   },

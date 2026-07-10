@@ -1,3 +1,3 @@
-import ManagerScreen from '@/features/manager/pages/manager';
+import ManagerScreen from "@/features/manager/pages/manager";
 
 export default ManagerScreen;

@@ -1,9 +1,9 @@
-import React from 'react';
-import { View } from 'react-native';
+import React from "react";
+import { View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import type { StaffStyles } from '@/features/staff/styles/common';
-import type { StaffCheckInRecord } from '@/features/staff/lib/utils';
+import { ThemedText } from "@/components/themed-text";
+import type { StaffStyles } from "@/features/staff/styles/common";
+import type { StaffCheckInRecord } from "@/features/staff/lib/utils";
 
 type StaffCheckInListProps = {
   items: StaffCheckInRecord[];

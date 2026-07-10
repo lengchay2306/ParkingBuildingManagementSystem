@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from "react";
+import { AppState, type AppStateStatus } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 
-import { refreshSession } from '@/lib/auth-api';
-import { AUTH_ROUTES } from '@/roles';
+import { refreshSession } from "@/lib/auth-api";
+import { AUTH_ROUTES } from "@/roles";
 
 /**
  * Keeps the session alive on protected screens: refresh when the screen is focused
@@ -24,12 +24,12 @@ export function useProtectedSession() {
       syncSession();
 
       const onAppStateChange = (nextState: AppStateStatus) => {
-        if (nextState === 'active') {
+        if (nextState === "active") {
           syncSession();
         }
       };
 
-      const subscription = AppState.addEventListener('change', onAppStateChange);
+      const subscription = AppState.addEventListener("change", onAppStateChange);
       return () => subscription.remove();
     }, [syncSession]),
   );
