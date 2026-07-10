@@ -11,7 +11,7 @@ export function calculatedParkingFee ({
         throw new BadRequestError(`checkOutTime must be after checkInTime`)
     }
 
-    let totalHours = Math.ceil(totalMs / 1000 * 60 * 60)
+    let totalHours = Math.ceil(totalMs / (1000 * 60 * 60))
     totalHours = Math.max(totalHours, 1);
     
     const sortedPolicies = [...pricePolicies].sort(
