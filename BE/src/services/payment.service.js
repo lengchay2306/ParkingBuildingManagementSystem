@@ -150,7 +150,7 @@ class PaymentService {
     }
 
     handlePayOSWebhook = async (webhookBody) => {
-        const verifiedData = this.#payosGateway.webhooks.verify(webhookBody);
+        const verifiedData = await this.#payosGateway.webhooks.verify(webhookBody);
 
         if (!verifiedData) {
             throw new BadRequestError(`Invalid webhook signature`)
