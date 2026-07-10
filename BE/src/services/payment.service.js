@@ -368,7 +368,7 @@ class PaymentService {
 
         const paymentLink = await this.#payosGateway.paymentRequests.create(paymentBody)
 
-        if (!checkoutUrl) {
+        if (!paymentLink) {
             throw new BadRequestError(`Cannot request to PayOS`)
         }
 
