@@ -262,7 +262,8 @@ class PaymentService {
             throw new BadRequestError(`This payment has been created already!`)
         }
 
-        const vehicleTypeId = existingParkingSession.vehicleId?.vehicleTypeId
+        const vehicleTypeId = existingParkingSession.parkingSlotId?.floorId?.vehicleTypeId?._id
+                            ?? existingParkingSession.parkingSlotId?.floorId?.vehicleTypeId
 
         const pricePolicies = await this.#pricePolicyRepository.findHourlyPricePoliciesByVehicleType({
             vehicleTypeId,
