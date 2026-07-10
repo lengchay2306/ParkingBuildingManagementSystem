@@ -566,6 +566,20 @@ class PaymentService {
         };
     }
 
+    getPaymentById = async ({
+        paymentId,
+    }) => {
+        const payment = await this.#paymentRepository.findPaymentDetailById({
+            paymentId,
+        });
+
+        if (!payment) {
+            throw new NotFoundError(`This payment doesn't exist!`);
+        }
+
+        return payment;
+    }
+
     deletePayment = async ({
         paymentId
     }) => {

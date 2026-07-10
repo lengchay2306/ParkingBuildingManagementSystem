@@ -583,6 +583,54 @@ router.put(
 /**
  * @swagger
  * /api/v1/payment/{paymentId}:
+ *   get:
+ *     summary: Get payment detail by ID
+ *     description: |
+ *       Get a single payment with populated vehicle and parking session details.
+ *       Only accessible by ADMIN, MANAGER, and STAFF.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payment ObjectId
+ *         example: "665f1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       200:
+ *         description: Payment fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 payment:
+ *                   _id: "665f..."
+ *                   amount: 56000
+ *                   paymentMethod: "TRANSFER"
+ *                   status: "PAID"
+ *                   orderCode: 123456789
+ *                   vehicleId:
+ *                     _id: "665b..."
+ *                     licensePlate: "51A-123.45"
+ *                     vehicleTypeId:
+ *                       type: "SEDAN"
+ *                   parkingSessionId:
+ *                     _id: "665a..."
+ *                     licensePlate: "51A-123.45"
+ *                     status: "COMPLETED"
+ *                     isGuest: false
+ *                   createdAt: "2026-07-10T10:00:00.000Z"
+ *               message: "Payment fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Payment not found
  *   delete:
  *     summary: Delete a payment (Admin only)
  *     description: |
@@ -623,6 +671,17 @@ router.put(
  *       404:
  *         description: Payment not found
  */
+router.get(
+    '/:paymentId',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(paymentIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+        await paymentController.getPaymentById(req, res, next)
+    }
+)
+
 router.delete(
     '/:paymentId',
     authentication,
