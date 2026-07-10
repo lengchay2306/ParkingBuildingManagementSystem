@@ -38,6 +38,7 @@ type FocusField =
 
 type Params = {
   t: (vi: string, en: string) => string;
+  showToast: (message: string, kind?: "success" | "error") => void;
   focusedField: FocusField;
   activeView: "login" | "signup";
   loginEmail: string;
@@ -57,6 +58,7 @@ const PASSWORD_TYPING_PAUSE_MS = 520;
 
 export function useSignMascotInteraction({
   t,
+  showToast,
   focusedField,
   activeView,
   loginEmail,
@@ -160,45 +162,61 @@ export function useSignMascotInteraction({
   const validateSignInForm = useCallback((): boolean => {
     const email = loginEmail.trim();
     if (!email) {
+      const msg = t("Vui lòng nhập email", "Please enter your email");
+      showToast(msg, "error");
       speakRandom(getEmptyEmailLines(t));
       return false;
     }
     if (!isValidEmail(email)) {
+      const msg = t("Email không hợp lệ", "Invalid email");
+      showToast(msg, "error");
       speakRandom(getInvalidEmailLines(t));
       return false;
     }
     if (loginPassword.length < 8) {
+      const msg = t("Mật khẩu cần ít nhất 8 ký tự", "Password must be at least 8 characters");
+      showToast(msg, "error");
       speakRandom(getPasswordTooShortLines(t));
       return false;
     }
     return true;
-  }, [loginEmail, loginPassword, speakRandom, t]);
+  }, [loginEmail, loginPassword, showToast, speakRandom, t]);
 
   const validateSignUpForm = useCallback((): boolean => {
     const name = signupFullName.trim();
     if (name.length < 2 || name.length > 30) {
+      const msg = t("Họ tên phải từ 2–30 ký tự", "Full name must be 2–30 characters");
+      showToast(msg, "error");
       speakRandom(getInvalidNameLines(t));
       return false;
     }
     const email = signupEmail.trim();
     if (!email) {
+      const msg = t("Vui lòng nhập email", "Please enter your email");
+      showToast(msg, "error");
       speakRandom(getEmptyEmailLines(t));
       return false;
     }
     if (!isValidEmail(email)) {
+      const msg = t("Email không hợp lệ", "Invalid email");
+      showToast(msg, "error");
       speakRandom(getInvalidEmailLines(t));
       return false;
     }
     if (!isValidPhone(signupPhone.trim())) {
+      const msg = t("Số điện thoại không hợp lệ", "Invalid phone number");
+      showToast(msg, "error");
       speakRandom(getInvalidPhoneLines(t));
       return false;
     }
     if (signupPassword.length < 8) {
+      const msg = t("Mật khẩu cần ít nhất 8 ký tự", "Password must be at least 8 characters");
+      showToast(msg, "error");
       speakRandom(getPasswordTooShortLines(t));
       return false;
     }
     return true;
-  }, [signupEmail, signupFullName, signupPassword, signupPhone, speakRandom, t]);
+  }, [showToast, signupEmail, signupFullName, signupPassword, signupPhone, speakRandom, t]);
 
   const isPasswordFocused = focusedField === "loginPassword" || focusedField === "signupPassword";
 

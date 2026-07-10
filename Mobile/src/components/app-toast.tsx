@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import React, {
   createContext,
   useCallback,
@@ -7,12 +8,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { StyleSheet, View } from "react-native";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
 import { ThemedText } from "@/components/themed-text";
+import { Radius, Typography } from "@/constants/design";
+import { Spacing } from "@/constants/theme";
+import { useDesignColors } from "@/hooks/use-design-colors";
 
 type ToastKind = "success" | "error";
 
@@ -29,12 +31,16 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
+const TOAST_MS = 2800;
+
 export function AppToastProvider({ children }: { children: React.ReactNode }) {
-  const theme = useTheme();
+  const colors = useDesignColors();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressErrorToastsRef = useRef(0);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(-12)).current;
 
   const setSuppressErrorToasts = useCallback((suppress: boolean) => {
     suppressErrorToastsRef.current += suppress ? 1 : -1;
@@ -43,22 +49,69 @@ export function AppToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const showToast = useCallback((message: string, kind: ToastKind = "success") => {
-    if (kind === "error" && suppressErrorToastsRef.current > 0) {
-      return;
-    }
+  const animateIn = useCallback(() => {
+    opacity.setValue(0);
+    translateY.setValue(-12);
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [opacity, translateY]);
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
+  const animateOut = useCallback(
+    (onDone?: () => void) => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: -8,
+          duration: 180,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) onDone?.();
+      });
+    },
+    [opacity, translateY],
+  );
 
-    const id = Date.now();
-    setToast({ id, message, kind });
+  const showToast = useCallback(
+    (message: string, kind: ToastKind = "success") => {
+      if (kind === "error" && suppressErrorToastsRef.current > 0) {
+        return;
+      }
 
-    timerRef.current = setTimeout(() => {
-      setToast((current) => (current?.id === id ? null : current));
-    }, 2400);
-  }, []);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      const id = Date.now();
+      setToast({ id, message, kind });
+      animateIn();
+
+      timerRef.current = setTimeout(() => {
+        animateOut(() => {
+          setToast((current) => (current?.id === id ? null : current));
+        });
+      }, TOAST_MS);
+    },
+    [animateIn, animateOut],
+  );
 
   useEffect(() => {
     return () => {
@@ -73,25 +126,36 @@ export function AppToastProvider({ children }: { children: React.ReactNode }) {
     [setSuppressErrorToasts, showToast],
   );
 
+  const isSuccess = toast?.kind === "success";
+  const accent = isSuccess ? colors.semanticSuccess : colors.semanticDanger;
+  const iconName = isSuccess ? "checkmark-circle" : "alert-circle";
+
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
       {toast ? (
-        <View
+        <Animated.View
           pointerEvents="none"
           style={[
             styles.toastWrap,
             {
-              top: insets.top + Spacing.three,
-              backgroundColor:
-                toast.kind === "success" ? "rgba(22, 163, 74, 0.96)" : "rgba(220, 38, 38, 0.96)",
+              top: insets.top + Spacing.two,
+              backgroundColor: colors.surface1,
+              borderColor: colors.hairlineStrong,
+              shadowColor: colors.semanticOverlay,
+              opacity,
+              transform: [{ translateY }],
             },
           ]}
         >
-          <ThemedText type="smallBold" style={[styles.toastText, { color: theme.background }]}>
+          <View style={[styles.accentBar, { backgroundColor: accent }]} />
+          <View style={[styles.iconWrap, { backgroundColor: `${accent}22` }]}>
+            <Ionicons name={iconName} size={20} color={accent} />
+          </View>
+          <ThemedText style={[styles.toastText, { color: colors.ink }]} numberOfLines={3}>
             {toast.message}
           </ThemedText>
-        </View>
+        </Animated.View>
       ) : null}
     </ToastContext.Provider>
   );
@@ -121,21 +185,46 @@ export function useSuppressErrorToasts(enabled = true) {
 const styles = StyleSheet.create({
   toastWrap: {
     position: "absolute",
-    left: Spacing.four,
-    right: Spacing.four,
+    left: Spacing.three,
+    right: Spacing.three,
     zIndex: 50,
     alignSelf: "center",
-    maxWidth: 520,
-    borderRadius: 18,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
+    maxWidth: 420,
+    minHeight: 52,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 12,
+    paddingRight: 14,
+    paddingLeft: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    overflow: "hidden",
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    elevation: 12,
+  },
+  accentBar: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
   },
   toastText: {
-    textAlign: "center",
+    ...Typography.body,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
   },
 });

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useAppToast, useSuppressErrorToasts } from "@/components/app-toast";
+import { useAppToast } from "@/components/app-toast";
 import { MascotSpeechBubble } from "@/components/mascot-speech-bubble";
 import {
   SIGN_MASCOT_CIRCLE_SIZE,
@@ -122,7 +122,6 @@ export default function SignPlatformScreen() {
   const { showToast } = useAppToast();
   const { refreshRole } = useSessionRole();
   useGuestOnlySession();
-  useSuppressErrorToasts();
   const { t, language, setLanguage } = useLanguagePreference();
   const { resolvedScheme, setThemePreference } = useThemePreference();
   const palette = resolvedScheme === "dark" ? darkPalette : lightPalette;
@@ -275,6 +274,7 @@ export default function SignPlatformScreen() {
 
   const mascot = useSignMascotInteraction({
     t,
+    showToast,
     focusedField,
     activeView,
     loginEmail,
@@ -318,6 +318,9 @@ export default function SignPlatformScreen() {
       setLoginPassword("");
       router.replace(route as never);
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("Đăng nhập thất bại", "Login failed");
+      showToast(message, "error");
       mascot.speakAuthError(error);
     } finally {
       setIsSigningIn(false);
@@ -347,6 +350,9 @@ export default function SignPlatformScreen() {
       setSignupPassword("");
       animateToLogin();
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : t("Đăng ký thất bại", "Registration failed");
+      showToast(message, "error");
       mascot.speakRegisterError(error);
     } finally {
       setIsSigningUp(false);
