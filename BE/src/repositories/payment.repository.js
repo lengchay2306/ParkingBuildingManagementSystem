@@ -30,7 +30,79 @@ class PaymentRepository {
             { returnDocument: 'after' } 
         )
 
-        return updatedPayment.toObject()
+        return updatedPayment ? updatedPayment.toObject() : null
+    }
+
+    cancelPayment = async ({
+        paymentId,
+    }) => {
+        const updatedPayment = await Payment.findOneAndUpdate(
+            { _id: paymentId },
+            {
+                $set: {
+                    status: "CANCELLED",
+                },
+            },
+            { returnDocument: 'after' }
+        )
+        return updatedPayment ? updatedPayment.toObject() : null
+    }
+
+    findPaymentById = async ({
+        paymentId,
+    }) => {
+        return Payment.findById(paymentId).lean()
+    }
+
+    getAllPayments = async ({
+        filter = {},
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = -1,
+    }) => {
+        const skip = (page - 1) * limit;
+
+        const [payments, totalCount] = await Promise.all([
+            Payment.find(filter)
+                .populate({
+                    path: 'vehicleId',
+                    populate: { path: 'vehicleTypeId' },
+                })
+                .populate({
+                    path: 'parkingSessionId',
+                    populate: [
+                        {
+                            path: 'vehicleId',
+                            populate: { path: 'vehicleTypeId' },
+                        },
+                        { path: 'checkInUserId', select: '-password' },
+                        { path: 'checkOutUserId', select: '-password' },
+                    ],
+                })
+                .sort({ [sortBy]: sortOrder })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Payment.countDocuments(filter),
+        ]);
+
+        return {
+            payments,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
+    }
+
+    deletePayment = async ({
+        paymentId,
+    }) => {
+        const deletedPayment = await Payment.findByIdAndDelete(paymentId)
+        return deletedPayment ? deletedPayment.toObject() : null
     }
 }
 

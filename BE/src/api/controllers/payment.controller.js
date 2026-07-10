@@ -46,7 +46,7 @@ class PaymentController {
                 }
             })
         } catch (error) {
-            
+            next(error)
         }
     }
 
@@ -110,6 +110,120 @@ class PaymentController {
             next(error)
         }
     }
+
+    cancelPayment = async (req, res, next) => {
+        try {
+            const { paymentId } = req.params
+
+            const updatedPayment = await this.#paymentService.cancelPayment({
+                paymentId,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: { updatedPayment },
+                message: 'Payment cancelled successfully',
+            })
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getAllPayments = async (req, res, next) => {
+        try {
+            const {
+                page,
+                limit,
+                status,
+                paymentMethod,
+                orderCode,
+                vehicleId,
+                parkingSessionId,
+                licensePlate,
+                sortBy,
+                sortOrder,
+            } = req.query;
+
+            const result = await this.#paymentService.getAllPayments({
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
+                status,
+                paymentMethod,
+                orderCode,
+                vehicleId,
+                parkingSessionId,
+                licensePlate,
+                sortBy: sortBy || 'createdAt',
+                sortOrder: sortOrder === 'asc' || Number(sortOrder) === 1 ? 1 : -1,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    payments: result.payments,
+                    pagination: result.pagination,
+                },
+                message: 'Payments fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getPaymentsByLicensePlate = async (req, res, next) => {
+        try {
+            const { licensePlate } = req.params;
+            const {
+                page,
+                limit,
+                status,
+                paymentMethod,
+                sortBy,
+                sortOrder,
+            } = req.query;
+
+            const result = await this.#paymentService.getPaymentsByLicensePlate({
+                licensePlate,
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
+                status,
+                paymentMethod,
+                sortBy: sortBy || 'createdAt',
+                sortOrder: sortOrder === 'asc' || Number(sortOrder) === 1 ? 1 : -1,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    licensePlate: result.licensePlate,
+                    vehicle: result.vehicle,
+                    payments: result.payments,
+                    pagination: result.pagination,
+                },
+                message: 'Payments fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    deletePayment = async (req, res, next) => {
+        try {
+            const { paymentId } = req.params
+
+            const deletedPayment = await this.#paymentService.deletePayment({
+                paymentId,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: { deletedPayment },
+                message: 'Payment deleted successfully',
+            })
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
-export default PaymentController
+export default PaymentController;

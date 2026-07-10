@@ -4,6 +4,10 @@ import {
     checkPaymentSchema,
     createSubcriptionPaymentLinkSchema,
     getPricePoliciesSchema, 
+    getAllPaymentsQuerySchema,
+    getPaymentsByLicensePlateParamsSchema,
+    getPaymentsByLicensePlateQuerySchema,
+    paymentIdParamSchema,
     qrPaymentLinkSchema
 } from '../../validators/payment.validator.js'
 
@@ -15,6 +19,124 @@ const router = express.Router()
  *   name: Payment
  *   description: Payment and price policy API endpoints
  */
+
+/**
+ * @swagger
+ * /api/v1/payment:
+ *   get:
+ *     summary: Get all payments (Admin/Manager/Staff)
+ *     description: |
+ *       Get a paginated list of payments.
+ *       Supports filtering by status, payment method, orderCode, vehicleId,
+ *       parkingSessionId, and license plate (covers both registered vehicles and guest sessions).
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of payments per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, PAID, CANCELLED]
+ *         description: Filter by payment status
+ *       - in: query
+ *         name: paymentMethod
+ *         schema:
+ *           type: string
+ *           enum: [CASH, CARD, TRANSFER]
+ *         description: Filter by payment method
+ *       - in: query
+ *         name: orderCode
+ *         schema:
+ *           type: integer
+ *         description: Filter by PayOS order code
+ *       - in: query
+ *         name: vehicleId
+ *         schema:
+ *           type: string
+ *         description: Filter by vehicle ObjectId (subscription payments)
+ *       - in: query
+ *         name: parkingSessionId
+ *         schema:
+ *           type: string
+ *         description: Filter by parking session ObjectId (checkout payments)
+ *       - in: query
+ *         name: licensePlate
+ *         schema:
+ *           type: string
+ *         description: Filter by license plate (format 51A-123.45)
+ *         example: "51A-123.45"
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, amount, orderCode, status]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *               enum: [asc, desc]
+ *             - type: integer
+ *               enum: [1, -1]
+ *           default: desc
+ *         description: Sort direction
+ *     responses:
+ *       200:
+ *         description: Payments fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 payments:
+ *                   - _id: "665f..."
+ *                     parkingSessionId:
+ *                       _id: "665a..."
+ *                       licensePlate: "51A-123.45"
+ *                       isGuest: true
+ *                       status: "COMPLETED"
+ *                     vehicleId: null
+ *                     amount: 56000
+ *                     paymentMethod: "TRANSFER"
+ *                     status: "PAID"
+ *                     orderCode: 123456789
+ *                     createdAt: "2026-07-10T10:00:00.000Z"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   totalCount: 25
+ *                   totalPages: 3
+ *               message: "Payments fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ */
+router.get(
+    '/',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(getAllPaymentsQuerySchema, 'query'),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+        await paymentController.getAllPayments(req, res, next)
+    }
+)
 
 /**
  * @swagger
@@ -261,12 +383,254 @@ router.post(
     }
 )
 
+/**
+ * @swagger
+ * /api/v1/payment/by-plate/{licensePlate}:
+ *   get:
+ *     summary: Get payments by vehicle license plate
+ *     description: |
+ *       Look up payments linked to a license plate.
+ *       Includes subscription payments (via registered vehicle) and checkout payments
+ *       (via parking sessions, including guest walk-in sessions).
+ *       Supports pagination and optional filters by status / payment method.
+ *       Only accessible by ADMIN, MANAGER, and STAFF.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licensePlate
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vehicle license plate (format 51A-123.45)
+ *         example: "51A-123.45"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of payments per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, PAID, CANCELLED]
+ *         description: Filter by payment status
+ *       - in: query
+ *         name: paymentMethod
+ *         schema:
+ *           type: string
+ *           enum: [CASH, CARD, TRANSFER]
+ *         description: Filter by payment method
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, amount, orderCode, status]
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           oneOf:
+ *             - type: string
+ *               enum: [asc, desc]
+ *             - type: integer
+ *               enum: [1, -1]
+ *           default: desc
+ *         description: Sort direction
+ *     responses:
+ *       200:
+ *         description: Payments fetched successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 licensePlate: "51A-123.45"
+ *                 vehicle:
+ *                   _id: "665b..."
+ *                   licensePlate: "51A-123.45"
+ *                 payments:
+ *                   - _id: "665f..."
+ *                     amount: 56000
+ *                     paymentMethod: "TRANSFER"
+ *                     status: "PAID"
+ *                     orderCode: 123456789
+ *                     parkingSessionId:
+ *                       _id: "665a..."
+ *                       licensePlate: "51A-123.45"
+ *                       isGuest: false
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   totalCount: 5
+ *                   totalPages: 1
+ *               message: "Payments fetched successfully"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: No vehicle or parking sessions found for this license plate
+ */
+router.get(
+    '/by-plate/:licensePlate',
+    authentication,
+    validateData(getPaymentsByLicensePlateParamsSchema, 'params'),
+    validateData(getPaymentsByLicensePlateQuerySchema, 'query'),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+        await paymentController.getPaymentsByLicensePlate(req, res, next)
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/payment/webhook:
+ *   post:
+ *     summary: PayOS webhook callback
+ *     description: |
+ *       Receives payment status updates from PayOS.
+ *       Used to mark subscription payments as PAID and activate monthly cards.
+ *       This endpoint is called by PayOS (no bearer auth).
+ *     tags: [Payment]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: Raw PayOS webhook payload
+ *     responses:
+ *       200:
+ *         description: Webhook processed
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ */
 router.post(
     '/webhook',
     async (req, res, next) => {
         const paymentController = req.container.resolve('paymentController')
 
         await paymentController.handlePayOSWebhook(req, res, next)
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/payment/cancel/{paymentId}:
+ *   put:
+ *     summary: Cancel a pending payment
+ *     description: |
+ *       Soft-cancels a payment by setting status to CANCELLED.
+ *       Only PENDING payments can be cancelled.
+ *       Only accessible by ADMIN, MANAGER, and STAFF.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payment ObjectId
+ *         example: "665f1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       200:
+ *         description: Payment cancelled successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 updatedPayment:
+ *                   _id: "665f..."
+ *                   status: "CANCELLED"
+ *                   amount: 56000
+ *                   orderCode: 123456789
+ *               message: "Payment cancelled successfully"
+ *       400:
+ *         description: Payment already PAID or CANCELLED
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Payment not found
+ */
+router.put(
+    '/cancel/:paymentId',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(paymentIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+        await paymentController.cancelPayment(req, res, next)
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/payment/{paymentId}:
+ *   delete:
+ *     summary: Delete a payment (Admin only)
+ *     description: |
+ *       Hard-deletes a payment record.
+ *       Only PAID or CANCELLED payments can be deleted (PENDING must be cancelled first).
+ *       Only accessible by ADMIN.
+ *     tags: [Payment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: paymentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payment ObjectId
+ *         example: "665f1b2c3d4e5f6a7b8c9d0e"
+ *     responses:
+ *       200:
+ *         description: Payment deleted successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: success
+ *               data:
+ *                 deletedPayment:
+ *                   _id: "665f..."
+ *                   status: "PAID"
+ *                   amount: 56000
+ *                   orderCode: 123456789
+ *               message: "Payment deleted successfully"
+ *       400:
+ *         description: Payment is still PENDING and cannot be deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - ADMIN role required
+ *       404:
+ *         description: Payment not found
+ */
+router.delete(
+    '/:paymentId',
+    authentication,
+    authorizationByRole(['ADMIN']),
+    validateData(paymentIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const paymentController = req.container.resolve('paymentController')
+        await paymentController.deletePayment(req, res, next)
     }
 )
 
