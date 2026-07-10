@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { AdminResourcesPanel } from "@/components/AdminResourcesPanel";
+import { DashboardStatsPanel } from "@/components/DashboardStatsPanel";
 import { ParkingSessionListPanel } from "@/components/ParkingSessionListPanel";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -7,7 +9,7 @@ import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { DashboardMain, DashboardTabs } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 
-type AdminTab = "users" | "reservations" | "sessions";
+type AdminTab = "stats" | "users" | "reservations" | "sessions" | "resources";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>("users");
+  const [activeTab, setActiveTab] = useState<AdminTab>("stats");
 
   return (
     <div className="min-h-screen">
@@ -34,21 +36,31 @@ function AdminPage() {
       <DashboardMain>
         <DashboardTabs
           tabs={[
+            { id: "stats", label: "Thống kê" },
             { id: "users", label: "Người dùng" },
             { id: "reservations", label: "Đặt chỗ" },
             { id: "sessions", label: "Phiên đỗ xe" },
+            { id: "resources", label: "Cấu hình" },
           ]}
           activeTab={activeTab}
           onChange={setActiveTab}
           className="mb-4"
         />
 
-        {activeTab === "users" ? (
+        {activeTab === "stats" ? (
+          <DashboardStatsPanel className="min-h-[calc(100vh-12rem)]" />
+        ) : activeTab === "users" ? (
           <UserDirectoryPanel tableOnly allowDelete allowCreate className="min-h-[calc(100vh-12rem)]" />
         ) : activeTab === "reservations" ? (
           <ReservationListPanel tableOnly className="min-h-[calc(100vh-12rem)]" />
+        ) : activeTab === "sessions" ? (
+          <ParkingSessionListPanel
+            tableOnly
+            allowDeleteError
+            className="min-h-[calc(100vh-12rem)]"
+          />
         ) : (
-          <ParkingSessionListPanel tableOnly className="min-h-[calc(100vh-12rem)]" />
+          <AdminResourcesPanel className="min-h-[calc(100vh-12rem)]" />
         )}
       </DashboardMain>
     </div>

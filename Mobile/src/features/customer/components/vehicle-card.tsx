@@ -55,19 +55,31 @@ export function VehicleCard({
   DesignColors,
   onEdit,
   onDelete,
+  onBuyMonthlyCard,
   isDeleting,
+  isBuyingMonthlyCard,
 }: {
   vehicle: UserVehicle;
   t: (vi: string, en: string) => string;
-  styles: VehicleCardStyles;
+  styles: VehicleCardStyles & {
+    buyCardButton?: ViewStyle;
+    buyCardButtonText?: TextStyle;
+  };
   DesignColors: DesignColorPalette;
   onEdit: () => void;
   onDelete: () => void;
+  onBuyMonthlyCard?: () => void;
   isDeleting: boolean;
+  isBuyingMonthlyCard?: boolean;
 }) {
   const card = vehicle.monthlyCardId;
   const vehicleType = vehicle.vehicleTypeId?.type ?? '—';
   const cardStatus = statusTone(card?.status, DesignColors);
+  const hasActiveCard =
+    Boolean(card) &&
+    (typeof card === 'object'
+      ? card?.status?.toUpperCase() === 'ACTIVE' || Boolean(card?._id)
+      : true);
 
   return (
     <View style={styles.vehicleCard}>
@@ -78,7 +90,7 @@ export function VehicleCard({
         <View style={styles.vehicleHeaderActions}>
           <Pressable
             onPress={onEdit}
-            disabled={isDeleting}
+            disabled={isDeleting || isBuyingMonthlyCard}
             style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
             accessibilityLabel={t('Sửa xe', 'Edit vehicle')}
           >
@@ -86,7 +98,7 @@ export function VehicleCard({
           </Pressable>
           <Pressable
             onPress={onDelete}
-            disabled={isDeleting}
+            disabled={isDeleting || isBuyingMonthlyCard}
             style={({ pressed }) => [styles.vehicleActionButton, pressed && styles.buttonPressed]}
             accessibilityLabel={t('Xóa xe', 'Delete vehicle')}
           >
@@ -109,7 +121,7 @@ export function VehicleCard({
         <ThemedText style={styles.infoValue}>{vehicleType}</ThemedText>
       </View>
 
-      {card ? (
+      {hasActiveCard && typeof card === 'object' && card ? (
         <>
           <View style={styles.infoRow}>
             <ThemedText style={styles.infoLabel}>{t('Thẻ tháng', 'Monthly card')}</ThemedText>
@@ -129,9 +141,30 @@ export function VehicleCard({
           </View>
         </>
       ) : (
-        <ThemedText style={styles.noCardText}>
-          {t('Chưa có thẻ tháng', 'No monthly card linked')}
-        </ThemedText>
+        <>
+          <ThemedText style={styles.noCardText}>
+            {t('Chưa có thẻ tháng', 'No monthly card linked')}
+          </ThemedText>
+          {onBuyMonthlyCard ? (
+            <Pressable
+              onPress={onBuyMonthlyCard}
+              disabled={isBuyingMonthlyCard}
+              style={({ pressed }) => [
+                styles.buyCardButton,
+                pressed && styles.buttonPressed,
+                { backgroundColor: DesignColors.primary },
+              ]}
+            >
+              {isBuyingMonthlyCard ? (
+                <ActivityIndicator color={DesignColors.onPrimary} size="small" />
+              ) : (
+                <ThemedText style={[styles.buyCardButtonText, { color: DesignColors.onPrimary }]}>
+                  {t('Mua thẻ tháng', 'Buy monthly card')}
+                </ThemedText>
+              )}
+            </Pressable>
+          ) : null}
+        </>
       )}
     </View>
   );

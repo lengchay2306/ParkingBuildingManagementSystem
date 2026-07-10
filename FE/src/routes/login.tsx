@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { SiteHeader } from "@/components/SiteHeader";
@@ -176,6 +176,15 @@ function LoginPage() {
                     required
                   />
                 </div>
+
+                <p className="text-right text-sm">
+                  <Link
+                    to="/forgot-password"
+                    className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    Quên mật khẩu?
+                  </Link>
+                </p>
 
                 {error ? (
                   <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

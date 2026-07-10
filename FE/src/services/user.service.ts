@@ -306,3 +306,23 @@ export const deleteUserById = async (userId: string) => {
 
   return user;
 };
+
+/** GET /api/v1/users/:userId — ADMIN | MANAGER | STAFF */
+export const getUserById = async (userId: string) => {
+  const response = await fetch(`${API_BASE}/api/v1/users/${encodeURIComponent(userId)}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  const payload = await parseJson<{ user?: UserProfile }>(response);
+
+  if (!response.ok) {
+    throw new UserApiError(response.status, payload.message || userErrorMessage(response.status));
+  }
+
+  const user = payload.data?.user;
+  if (!user) {
+    throw new UserApiError(response.status, "User response data is missing.");
+  }
+
+  return user;
+};

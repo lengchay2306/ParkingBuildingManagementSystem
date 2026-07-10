@@ -220,3 +220,41 @@ export const deleteChatSession = async (sessionId: string) => {
 
   return payload.data?.session ?? null;
 };
+
+export type StatelessChatHistoryEntry = {
+  role: ChatMessageRole;
+  content: string;
+};
+
+/** POST /api/v1/chatbot/message — legacy stateless chat */
+export const sendStatelessChatMessage = async (
+  message: string,
+  history: StatelessChatHistoryEntry[] = [],
+) => {
+  const response = await fetch(`${API_BASE}/api/v1/chatbot/message`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      message: message.trim(),
+      history,
+    }),
+  });
+  const payload = await parseJson<{ reply?: string; model?: string }>(response);
+
+  if (!response.ok) {
+    throw new ChatbotApiError(
+      response.status,
+      payload.message || chatbotErrorMessage(response.status),
+    );
+  }
+
+  if (typeof payload.data?.reply !== "string") {
+    throw new ChatbotApiError(response.status, "Phản hồi chatbot thiếu reply.");
+  }
+
+  return {
+    reply: payload.data.reply,
+    model: payload.data.model ?? "",
+  };
+};
