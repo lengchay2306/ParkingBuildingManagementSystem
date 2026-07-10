@@ -131,7 +131,14 @@ class ParkingRepository {
         const existParkingSession = await ParkingSession.findOne(filter)
                                                         .populate([
                                                             "vehicleId",
-                                                            "parkingSlotId",
+                                                            // "parkingSlotId",
+                                                            {
+                                                                path: "parkingSlotId",
+                                                                populate: {
+                                                                    path: "floorId",
+                                                                    populate: { path: "vehicleTypeId" },
+                                                                },
+                                                            },
                                                             "checkInUserId",
                                                             "checkOutUserId",
                                                             "checkInStaffId",
