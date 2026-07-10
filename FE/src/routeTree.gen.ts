@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PaymentReturnRouteImport } from './routes/payment.return'
+import { Route as PaymentCancelRouteImport } from './routes/payment.cancel'
 
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
@@ -46,6 +48,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentReturnRoute = PaymentReturnRouteImport.update({
+  id: '/payment/return',
+  path: '/payment/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentCancelRoute = PaymentCancelRouteImport.update({
+  id: '/payment/cancel',
+  path: '/payment/cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
+  '/payment/cancel': typeof PaymentCancelRoute
+  '/payment/return': typeof PaymentReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
+  '/payment/cancel': typeof PaymentCancelRoute
+  '/payment/return': typeof PaymentReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +87,40 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/manager': typeof ManagerRoute
   '/staff': typeof StaffRoute
+  '/payment/cancel': typeof PaymentCancelRoute
+  '/payment/return': typeof PaymentReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/driver'
+    | '/login'
+    | '/manager'
+    | '/staff'
+    | '/payment/cancel'
+    | '/payment/return'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
-  id: '__root__' | '/' | '/admin' | '/driver' | '/login' | '/manager' | '/staff'
+  to:
+    | '/'
+    | '/admin'
+    | '/driver'
+    | '/login'
+    | '/manager'
+    | '/staff'
+    | '/payment/cancel'
+    | '/payment/return'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/driver'
+    | '/login'
+    | '/manager'
+    | '/staff'
+    | '/payment/cancel'
+    | '/payment/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,6 +130,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManagerRoute: typeof ManagerRoute
   StaffRoute: typeof StaffRoute
+  PaymentCancelRoute: typeof PaymentCancelRoute
+  PaymentReturnRoute: typeof PaymentReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -133,6 +178,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payment/return': {
+      id: '/payment/return'
+      path: '/payment/return'
+      fullPath: '/payment/return'
+      preLoaderRoute: typeof PaymentReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/cancel': {
+      id: '/payment/cancel'
+      path: '/payment/cancel'
+      fullPath: '/payment/cancel'
+      preLoaderRoute: typeof PaymentCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -143,6 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManagerRoute: ManagerRoute,
   StaffRoute: StaffRoute,
+  PaymentCancelRoute: PaymentCancelRoute,
+  PaymentReturnRoute: PaymentReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

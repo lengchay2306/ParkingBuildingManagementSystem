@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import {
+  CreditCard,
   CarFront,
   CheckCircle2,
   ChevronDown,
@@ -71,6 +72,7 @@ import {
   type ParkingSlot,
   type ParkingSlotStatus,
 } from "@/services/parking.service";
+import { createSubscriptionCheckoutLink } from "@/services/payment.service";
 import {
   cancelReservation,
   createReservation,
@@ -202,6 +204,7 @@ function DriverPage() {
   const [editVehicleTypeId, setEditVehicleTypeId] = useState("");
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
+  const [subscribingVehicleId, setSubscribingVehicleId] = useState<string | null>(null);
   const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(false);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
   const [viewingHistoryReservation, setViewingHistoryReservation] = useState<Reservation | null>(null);
@@ -334,6 +337,33 @@ function DriverPage() {
       });
     },
   });
+
+  const subscribeMonthlyMutation = useMutation({
+    mutationFn: createSubscriptionCheckoutLink,
+    onSuccess: ({ checkoutUrl }) => {
+      toast.success("Đang chuyển tới PayOS...", {
+        description: "Hoàn tất thanh toán thẻ tháng trên trang PayOS.",
+      });
+      window.location.href = checkoutUrl;
+    },
+    onError: (error) => {
+      setSubscribingVehicleId(null);
+      toast.error("Không thể tạo link thanh toán", {
+        description: getErrorMessage(error, "Vui lòng thử lại."),
+      });
+    },
+  });
+
+  const handleBuyMonthlyCard = (vehicle: Vehicle) => {
+    // BE gắn thẻ qua webhook vào vehicle.monthlyCardId — chỉ mua khi chưa có.
+    if (vehicle.monthlyCardId) {
+      toast.info("Xe này đã có thẻ tháng.");
+      return;
+    }
+    setSubscribingVehicleId(vehicle._id);
+    subscribeMonthlyMutation.mutate(vehicle._id);
+  };
+
   const updateProfileMutation = useMutation({
     mutationFn: updateMyProfile,
     onSuccess: async (updatedUser) => {
@@ -1404,7 +1434,7 @@ function DriverPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {isInactive ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
                         <CircleDashed className="size-3.5" />
@@ -1416,6 +1446,32 @@ function DriverPage() {
                           <CheckCircle2 className="size-3.5" />
                           {vehicle.monthlyCardId ? "Thẻ tháng" : "Đã đăng ký"}
                         </span>
+                        {!vehicle.monthlyCardId ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleBuyMonthlyCard(vehicle)}
+                            disabled={
+                              subscribeMonthlyMutation.isPending &&
+                              subscribingVehicleId === vehicle._id
+                            }
+                            className="h-8 rounded-lg px-2.5 text-xs"
+                          >
+                            {subscribeMonthlyMutation.isPending &&
+                            subscribingVehicleId === vehicle._id ? (
+                              <>
+                                <LoaderCircle className="size-3.5 animate-spin" />
+                                Đang tạo link...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="size-3.5" />
+                                Mua thẻ tháng
+                              </>
+                            )}
+                          </Button>
+                        ) : null}
                         <Button
                           type="button"
                           size="icon"

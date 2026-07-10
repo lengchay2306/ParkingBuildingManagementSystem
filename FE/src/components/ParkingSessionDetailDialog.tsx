@@ -27,6 +27,7 @@ type ParkingSessionDetailDialogProps = {
   showCheckoutAction?: boolean;
   onCheckout?: () => void;
   isCheckingOut?: boolean;
+  checkoutLabel?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -40,6 +41,7 @@ export function ParkingSessionDetailDialog({
   showCheckoutAction = false,
   onCheckout,
   isCheckingOut = false,
+  checkoutLabel,
   open,
   onOpenChange,
 }: ParkingSessionDetailDialogProps) {
@@ -50,6 +52,10 @@ export function ParkingSessionDetailDialog({
   const resolvedLicensePlate =
     licensePlateLabel ?? getSessionLicensePlate(session) ?? "—";
   const isGuest = session.isGuest || !session.checkInUserId;
+  const isMonthlySession = session.sessionType === "MONTH";
+  const resolvedCheckoutLabel =
+    checkoutLabel ??
+    (isMonthlySession ? "Kết thúc phiên (thẻ tháng)" : "Thanh toán VietQR & ra cổng");
   const resolvedSlotNumber =
     slotNumber ??
     (typeof session.parkingSlotId === "object" ? session.parkingSlotId.slotNumber : undefined) ??
@@ -119,6 +125,11 @@ export function ParkingSessionDetailDialog({
           {showCheckoutAction && session.status === "ACTIVE" ? (
             <section className="space-y-3 border-t border-border pt-4">
               <SectionHeading>Ra cổng</SectionHeading>
+              <p className="text-xs text-muted-foreground">
+                {isMonthlySession
+                  ? "Xe có thẻ tháng — kết thúc phiên không cần quét VietQR."
+                  : "Phiên gửi ngày — tạo mã VietQR để khách thanh toán trước khi ra cổng."}
+              </p>
               <Button
                 type="button"
                 className="w-full rounded-xl"
@@ -128,10 +139,10 @@ export function ParkingSessionDetailDialog({
                 {isCheckingOut ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    Đang kết thúc phiên...
+                    Đang xử lý...
                   </>
                 ) : (
-                  "Kết thúc phiên"
+                  resolvedCheckoutLabel
                 )}
               </Button>
             </section>
