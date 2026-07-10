@@ -18,6 +18,12 @@ const cancelReservationSchema = Joi.object({
 
 const reservationStatus = Joi.string().valid('PENDING', 'CLAIMED', 'EXPIRED', 'CANCELLED');
 
+const getMyReservationsQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
+    status: reservationStatus.optional(),
+});
+
 const getReservationsByVehiclePlateParamsSchema = Joi.object({
     licensePlate: Joi.string()
         .pattern(/^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/)
@@ -29,6 +35,8 @@ const getReservationsByVehiclePlateParamsSchema = Joi.object({
 });
 
 const getReservationsByVehiclePlateQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
     status: reservationStatus.optional(),
 });
 
@@ -43,6 +51,7 @@ const recommendSlotsSchema = Joi.object({
 export {
     createReservationSchema,
     cancelReservationSchema,
+    getMyReservationsQuerySchema,
     getReservationsByVehiclePlateParamsSchema,
     getReservationsByVehiclePlateQuerySchema,
     recommendSlotsSchema,

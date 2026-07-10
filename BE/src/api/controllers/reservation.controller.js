@@ -55,19 +55,22 @@ class ReservationController {
     getMyReservations = async (req, res, next) => {
         try {
             const { userId } = req.user;
-            const { status } = req.query;
-            const reservations = await this.#reservationService.getMyReservations({
+            const { status, page, limit } = req.query;
+            const result = await this.#reservationService.getMyReservations({
                 driverId: userId,
                 status,
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
             });
 
             res.status(200).json({
                 status: 'success',
-                data: { 
-                    reservations: reservations,
-                    message: 'Reservations fetched successfully',   
-                }
-            })
+                data: {
+                    reservations: result.reservations,
+                    pagination: result.pagination,
+                },
+                message: 'Reservations fetched successfully',
+            });
         } catch (error) {
             next(error);
         }
@@ -98,11 +101,13 @@ class ReservationController {
     getAllReservationsByVehiclePlate = async (req, res, next) => {
         try {
             const { licensePlate } = req.params;
-            const { status } = req.query;
+            const { status, page, limit } = req.query;
 
             const result = await this.#reservationService.getAllReservationsByVehiclePlate({
                 licensePlate,
                 status,
+                page: parseInt(page) || 1,
+                limit: parseInt(limit) || 10,
             });
 
             res.status(200).json({
@@ -110,6 +115,7 @@ class ReservationController {
                 data: {
                     vehicle: result.vehicle,
                     reservations: result.reservations,
+                    pagination: result.pagination,
                 },
                 message: 'Reservations fetched successfully',
             });

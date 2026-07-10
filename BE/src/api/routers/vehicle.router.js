@@ -1,6 +1,6 @@
 import express from 'express';
 import { authentication, authorizationByRole, validateData } from '../middleware/middleware.js';
-import { createVehicleSchema, updateVehicleSchema, adminUpdateVehicleSchema } from '../../validators/vehicle.validator.js';
+import { createVehicleSchema, updateVehicleSchema, adminUpdateVehicleSchema, getMyVehiclesQuerySchema } from '../../validators/vehicle.validator.js';
 
 const router = express.Router();
 
@@ -117,10 +117,23 @@ router.get(
  * /api/v1/vehicles/user-vehicles:
  *   get:
  *     summary: Get my vehicles
- *     description: Get all vehicles belonging to the currently authenticated user.
+ *     description: Get paginated vehicles belonging to the currently authenticated user.
  *     tags: [Vehicle]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of vehicles per page
  *     responses:
  *       200:
  *         description: Vehicles fetched successfully
@@ -148,6 +161,11 @@ router.get(
  *                       status: "ACTIVE"
  *                       createdAt: "2026-06-02T10:00:00.000Z"
  *                       updatedAt: "2026-06-02T10:00:00.000Z"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   totalCount: 3
+ *                   totalPages: 1
  *               message: "Vehicles fetched successfully"
  *       401:
  *         description: Unauthorized
@@ -157,6 +175,7 @@ router.get(
 router.get(
     "/user-vehicles",
     authentication,
+    validateData(getMyVehiclesQuerySchema, 'query'),
     async (req, res, next) => {
         const vehicleController = req.container.resolve('vehicleController');
         await vehicleController.getVehicleByUserId(req, res, next);

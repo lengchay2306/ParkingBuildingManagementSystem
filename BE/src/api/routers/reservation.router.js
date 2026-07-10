@@ -3,6 +3,7 @@ import { authentication, authorizationByRole, validateData } from '../middleware
 import {
     createReservationSchema,
     cancelReservationSchema,
+    getMyReservationsQuerySchema,
     getReservationsByVehiclePlateParamsSchema,
     getReservationsByVehiclePlateQuerySchema,
     recommendSlotsSchema,
@@ -172,11 +173,23 @@ router.post(
  * /api/v1/reservations/my:
  *   get:
  *     summary: Get my reservations
- *     description: Get all reservations for the authenticated customer. Supports filtering by status.
+ *     description: Get paginated reservations for the authenticated customer. Supports filtering by status.
  *     tags: [Reservation]
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of reservations per page
  *       - in: query
  *         name: status
  *         schema:
@@ -214,7 +227,12 @@ router.post(
  *                     expectedArrival: "2026-05-27T10:00:00.000Z"
  *                     expiryAt: "2026-05-27T10:15:00.000Z"
  *                     status: "PENDING"
- *                 message: "Reservations fetched successfully"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   totalCount: 25
+ *                   totalPages: 3
+ *               message: "Reservations fetched successfully"
  *       401:
  *         description: Unauthorized
  */
@@ -222,6 +240,7 @@ router.get(
     "/my",
     authentication,
     authorizationByRole(['CUSTOMER']),
+    validateData(getMyReservationsQuerySchema, 'query'),
     async (req, res, next) => {
         const reservationController = req.container.resolve('reservationController');
         await reservationController.getMyReservations(req, res, next);
@@ -316,7 +335,7 @@ router.get(
  *   get:
  *     summary: Get all reservations by vehicle license plate
  *     description: |
- *       Look up a vehicle by license plate and return all of its reservations,
+ *       Look up a vehicle by license plate and return its reservations (paginated),
  *       sorted by newest first (`reservedAt` descending).
  *       Supports optional filtering by status.
  *       Only accessible by ADMIN, MANAGER, and STAFF.
@@ -331,6 +350,18 @@ router.get(
  *           type: string
  *         description: Vehicle license plate (format 51A-123.45)
  *         example: "51A-123.45"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of reservations per page
  *       - in: query
  *         name: status
  *         schema:
@@ -370,6 +401,11 @@ router.get(
  *                     expectedArrival: "2026-06-15T12:00:00.000Z"
  *                     expiryAt: "2026-06-15T12:15:00.000Z"
  *                     status: "PENDING"
+ *                 pagination:
+ *                   page: 1
+ *                   limit: 10
+ *                   totalCount: 25
+ *                   totalPages: 3
  *               message: "Reservations fetched successfully"
  *       401:
  *         description: Unauthorized

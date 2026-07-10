@@ -41,7 +41,7 @@ class VehicleRepository {
         const vehicleTypes = await VehicleType.find().lean();
         return vehicleTypes;
     }
-    getUserWithVehicles = async ({ userId }) => {
+    getUserWithVehicles = async ({ userId, page = 1, limit = 10 }) => {
         const user = await User.findById(userId)
             .select("-password -__v")
             .populate("roleId", "roleName")
@@ -51,15 +51,32 @@ class VehicleRepository {
             return null;
         }
 
-        const vehicles = await Vehicle.find({ userId })
-            .select("-userId -__v")
-            .populate("vehicleTypeId", "_id type")
-            .populate("monthlyCardId", "_id cardCode startDate endDate status")
-            .lean();
+        const filter = { userId };
+        const skip = (page - 1) * limit;
+
+        const [vehicles, totalCount] = await Promise.all([
+            Vehicle.find(filter)
+                .select("-userId -__v")
+                .populate("vehicleTypeId", "_id type")
+                .populate("monthlyCardId", "_id cardCode startDate endDate status")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Vehicle.countDocuments(filter),
+        ]);
 
         return {
-            ...user,
-            vehicles,
+            user: {
+                ...user,
+                vehicles,
+            },
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
         };
     }
 
