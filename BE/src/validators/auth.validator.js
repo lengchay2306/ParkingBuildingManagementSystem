@@ -12,7 +12,17 @@ const registerSchema = Joi.object({
     phone: Joi.string().max(10).required(),
 })
 
+const forgotPasswordSchema = Joi.object({
+    email: Joi.string().email().required(),
+})
+const resetPasswordSchema = Joi.object({
+    token: Joi.string().required(),
+    newPassword: Joi.string().min(8).required(),
+})
+
 export {
     loginSchema,
     registerSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
 }

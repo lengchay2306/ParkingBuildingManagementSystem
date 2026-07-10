@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type ChatMessageRole = "user" | "assistant";
@@ -83,7 +85,7 @@ const chatbotErrorMessage = (status: number, fallback?: string) => {
 };
 
 export const createChatSession = async (title?: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/chatbot/sessions`, {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/sessions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -118,7 +120,7 @@ export const getMyChatSessions = async ({
     page: String(page),
     limit: String(limit),
   });
-  const response = await fetch(`${API_BASE}/api/v1/chatbot/sessions?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/sessions?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -148,7 +150,7 @@ export const getMyChatSessions = async ({
 };
 
 export const getChatSession = async (sessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}`,
     {
       method: "GET",
@@ -176,7 +178,7 @@ export const getChatSession = async (sessionId: string) => {
 };
 
 export const sendChatMessage = async (sessionId: string, message: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}/messages`,
     {
       method: "POST",
@@ -202,7 +204,7 @@ export const sendChatMessage = async (sessionId: string, message: string) => {
 };
 
 export const deleteChatSession = async (sessionId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/chatbot/sessions/${encodeURIComponent(sessionId)}`,
     {
       method: "DELETE",
@@ -219,4 +221,42 @@ export const deleteChatSession = async (sessionId: string) => {
   }
 
   return payload.data?.session ?? null;
+};
+
+export type StatelessChatHistoryEntry = {
+  role: ChatMessageRole;
+  content: string;
+};
+
+/** POST /api/v1/chatbot/message — legacy stateless chat */
+export const sendStatelessChatMessage = async (
+  message: string,
+  history: StatelessChatHistoryEntry[] = [],
+) => {
+  const response = await authFetch(`${API_BASE}/api/v1/chatbot/message`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      message: message.trim(),
+      history,
+    }),
+  });
+  const payload = await parseJson<{ reply?: string; model?: string }>(response);
+
+  if (!response.ok) {
+    throw new ChatbotApiError(
+      response.status,
+      payload.message || chatbotErrorMessage(response.status),
+    );
+  }
+
+  if (typeof payload.data?.reply !== "string") {
+    throw new ChatbotApiError(response.status, "Phản hồi chatbot thiếu reply.");
+  }
+
+  return {
+    reply: payload.data.reply,
+    model: payload.data.model ?? "",
+  };
 };

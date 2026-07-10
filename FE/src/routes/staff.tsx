@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import { StaffCreateParkingSessionDialog } from "@/components/StaffCreateParkingSessionDialog";
+import { StaffPaymentQrDialog } from "@/components/StaffPaymentQrDialog";
 import { StaffWalkInCheckInDialog } from "@/components/staff/StaffWalkInCheckInDialog";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,11 @@ import {
   type ParkingSlot,
   type ParkingSlotStatus,
 } from "@/services/parking.service";
+import {
+  checkStaffPayment,
+  createStaffBillQr,
+  type StaffBillQrResult,
+} from "@/services/payment.service";
 import {
   fetchAllReservationsPages,
   getCreateSessionDisabledReasonFromReservation,
@@ -113,6 +119,8 @@ function StaffPage() {
     string | null
   >(null);
   const [walkInSlot, setWalkInSlot] = useState<ParkingSlot | null>(null);
+  const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [paymentBillPlate, setPaymentBillPlate] = useState<string | undefined>();
 
   useEffect(() => {
     setHasMounted(true);
@@ -361,24 +369,86 @@ function StaffPage() {
     },
   });
 
+  const createBillQrMutation = useMutation({
+    mutationFn: ({
+      parkingSessionId,
+    }: {
+      parkingSessionId: string;
+      licensePlate?: string;
+    }) => createStaffBillQr(parkingSessionId),
+    onSuccess: (bill, variables) => {
+      setPaymentBillPlate(variables.licensePlate);
+      setPaymentBill(bill);
+      setViewingSessionSlotId(null);
+      toast.success("Đã tạo mã VietQR", {
+        description: "Yêu cầu khách quét mã để thanh toán.",
+      });
+    },
+    onError: (error) => {
+      toast.error("Không thể tạo mã VietQR", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    },
+  });
+
+  const checkPaymentMutation = useMutation({
+    mutationFn: checkStaffPayment,
+    onSuccess: async (result) => {
+      setPaymentBill(null);
+      setPaymentBillPlate(undefined);
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: staffParkingSessionsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: staffReservationsQueryKey }),
+      ]);
+
+      toast.success("Thanh toán thành công", {
+        description: result.message,
+      });
+    },
+    onError: (error) => {
+      toast.error("Chưa xác nhận được thanh toán", {
+        description: error instanceof Error ? error.message : "Khách có thể chưa chuyển khoản xong.",
+      });
+    },
+  });
+
   const handleCheckoutSession = () => {
     const session = viewingSessionDetail?.session;
     if (!session?._id || session.status !== "ACTIVE") {
       return;
     }
 
-    const phone = getCheckoutPhoneForSession(session);
-    if (!phone) {
-      toast.error("Không thể checkout", {
-        description: "Phiên này không có SĐT khách — API checkout hiện yêu cầu SĐT tài khoản.",
+    // BE: bill-qr rejects sessionType === "MONTH" → dùng checkout-parking-session.
+    if (session.sessionType === "MONTH") {
+      const phone = getCheckoutPhoneForSession(session);
+      if (!phone) {
+        toast.error("Không thể checkout", {
+          description: "Phiên thẻ tháng cần SĐT khách để xác nhận ra cổng.",
+        });
+        return;
+      }
+
+      checkoutSessionMutation.mutate({
+        parkingSessionId: session._id,
+        phone,
       });
       return;
     }
 
-    checkoutSessionMutation.mutate({
+    // BE: DAILY / guest → staff/bill-qr → check-payment (tự COMPLETED + slot AVAILABLE).
+    createBillQrMutation.mutate({
       parkingSessionId: session._id,
-      phone,
+      licensePlate: getSessionLicensePlate(session) ?? undefined,
     });
+  };
+
+  const handleConfirmQrPayment = () => {
+    if (!paymentBill?.orderCode) {
+      return;
+    }
+    checkPaymentMutation.mutate(paymentBill.orderCode);
   };
 
   const openCreateSessionDialog = (
@@ -642,13 +712,29 @@ function StaffPage() {
         licensePlateLabel={viewingSessionDetail?.licensePlateLabel}
         showCheckoutAction={viewingSessionDetail?.session?.status === "ACTIVE"}
         onCheckout={handleCheckoutSession}
-        isCheckingOut={checkoutSessionMutation.isPending}
+        isCheckingOut={
+          checkoutSessionMutation.isPending || createBillQrMutation.isPending
+        }
         open={viewingSessionSlotId !== null}
         onOpenChange={(open) => {
           if (!open) {
             setViewingSessionSlotId(null);
           }
         }}
+      />
+
+      <StaffPaymentQrDialog
+        open={paymentBill !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPaymentBill(null);
+            setPaymentBillPlate(undefined);
+          }
+        }}
+        bill={paymentBill}
+        licensePlate={paymentBillPlate}
+        isConfirming={checkPaymentMutation.isPending}
+        onConfirmPayment={handleConfirmQrPayment}
       />
 
       <StaffWalkInCheckInDialog

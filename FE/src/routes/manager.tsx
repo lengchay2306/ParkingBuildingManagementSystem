@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { DashboardStatsPanel } from "@/components/DashboardStatsPanel";
 import { ParkingSessionListPanel } from "@/components/ParkingSessionListPanel";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -7,7 +8,7 @@ import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { DashboardHeader, DashboardMain, DashboardTabs } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 
-type ManagerTab = "overview" | "reservations" | "sessions";
+type ManagerTab = "stats" | "overview" | "reservations" | "sessions";
 
 export const Route = createFileRoute("/manager")({
   beforeLoad: async () => {
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/manager")({
 });
 
 function ManagerPage() {
-  const [activeTab, setActiveTab] = useState<ManagerTab>("overview");
+  const [activeTab, setActiveTab] = useState<ManagerTab>("stats");
 
   return (
     <div className="min-h-screen">
@@ -34,11 +35,12 @@ function ManagerPage() {
       <DashboardMain>
         <DashboardHeader
           title="Bảng điều khiển quản lý"
-          description="Theo dõi người dùng và quản lý đặt chỗ theo ngày."
+          description="Theo dõi thống kê, người dùng và quản lý đặt chỗ theo ngày."
         />
 
         <DashboardTabs
           tabs={[
+            { id: "stats", label: "Thống kê" },
             { id: "overview", label: "Người dùng" },
             { id: "reservations", label: "Đặt chỗ" },
             { id: "sessions", label: "Phiên đỗ xe" },
@@ -47,12 +49,14 @@ function ManagerPage() {
           onChange={setActiveTab}
         />
 
-        {activeTab === "overview" ? (
+        {activeTab === "stats" ? (
+          <DashboardStatsPanel />
+        ) : activeTab === "overview" ? (
           <UserDirectoryPanel compact />
         ) : activeTab === "reservations" ? (
           <ReservationListPanel tableOnly className="min-h-[640px]" />
         ) : (
-          <ParkingSessionListPanel tableOnly className="min-h-[640px]" />
+          <ParkingSessionListPanel tableOnly allowDeleteError className="min-h-[640px]" />
         )}
       </DashboardMain>
     </div>

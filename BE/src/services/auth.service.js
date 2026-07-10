@@ -1,20 +1,27 @@
 import { AuthenticationError, BadRequestError } from "../error/error.js";
+import crypto from 'crypto';
 
 class AuthService {
     #userRepository;
     #tokenService;
     #hashService;
     #roleRepository
+    #passwordResetTokenRepository;
+    #sendgridClient;
     constructor({
         userRepository,
         tokenService,
         hashService,
-        roleRepository
+        roleRepository,
+        passwordResetTokenRepository,
+        sendgridClient,
     }) {
         this.#userRepository = userRepository;
         this.#tokenService = tokenService;
         this.#hashService = hashService;
         this.#roleRepository = roleRepository
+        this.#passwordResetTokenRepository = passwordResetTokenRepository;
+        this.#sendgridClient = sendgridClient;
     }
 
     login = async ({
@@ -177,6 +184,53 @@ class AuthService {
             ...newUser,
             password: undefined,
             __v: undefined,
+        }
+    }
+
+    forgotPassword = async ({ email }) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await this.#userRepository.findUserByEmail({ email: normalizedEmail });
+
+        if (!user || user.status === 'LOCKED') {
+            throw new BadRequestError(`This email doesn't exits or this account is banned!`);
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        await this.#passwordResetTokenRepository.saveToken({
+            token: token,
+            userId: user._id,
+        });
+
+        const resetUrl = `${process.env.FE_RESET_PASSWORD_URL}?token=${token}`;
+
+        await this.#sendgridClient.sendPasswordResetEmail({
+            toEmail: normalizedEmail,
+            fullName: user.fullName,
+            resetUrl: resetUrl,
+        });
+
+        return {
+            message: 'Password reset email sent successfully',
+        }
+    }
+
+    resetPassword = async ({ token, newPassword }) => {
+        const userId = await this.#passwordResetTokenRepository.findUserByToken({ token: token });
+        if (!userId) {
+            throw new BadRequestError(`Invalid or expired token!`);
+        }
+
+        const hashedPassword = await this.#hashService.hash({ string: newPassword });
+
+        await this.#userRepository.changePassword({
+            userId,
+            newPassword: hashedPassword,
+        });
+
+        await this.#passwordResetTokenRepository.deleteToken({ token: token });
+
+        return {
+            message: 'Password reset successfully',
         }
     }
 }

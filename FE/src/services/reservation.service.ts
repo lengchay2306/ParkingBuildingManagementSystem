@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-fetch";
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type ReservationStatus = "PENDING" | "CLAIMED" | "EXPIRED" | "CANCELLED";
@@ -141,7 +143,7 @@ export const getMyReservations = async (status?: ReservationStatus) => {
     params.set("status", status);
   }
   const query = params.toString();
-  const response = await fetch(`${API_BASE}/api/v1/reservations/my${query ? `?${query}` : ""}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/reservations/my${query ? `?${query}` : ""}`, {
     method: "GET",
     credentials: "include",
   });
@@ -171,7 +173,7 @@ export const getAllReservations = async ({
     params.set("status", status);
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/reservations?${params.toString()}`, {
+  const response = await authFetch(`${API_BASE}/api/v1/reservations?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });
@@ -202,7 +204,7 @@ export const getAllReservations = async ({
 };
 
 export const createReservation = async (request: CreateReservationPayload) => {
-  const response = await fetch(`${API_BASE}/api/v1/reservations`, {
+  const response = await authFetch(`${API_BASE}/api/v1/reservations`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -232,7 +234,7 @@ export const recommendSlots = async ({
   expectedArrival,
   limit = 3,
 }: RecommendSlotsPayload) => {
-  const response = await fetch(`${API_BASE}/api/v1/reservations/recommend-slots`, {
+  const response = await authFetch(`${API_BASE}/api/v1/reservations/recommend-slots`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -257,7 +259,7 @@ export const recommendSlots = async ({
 };
 
 export const cancelReservation = async (reservationId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/reservations/${encodeURIComponent(reservationId)}`,
     {
       method: "DELETE",
@@ -278,7 +280,7 @@ export const cancelReservation = async (reservationId: string) => {
 
 /** ADMIN / MANAGER / STAFF — hard-delete a PENDING reservation. */
 export const deleteReservationByManage = async (reservationId: string) => {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/api/v1/reservations/manage/${encodeURIComponent(reservationId)}`,
     {
       method: "DELETE",
@@ -295,6 +297,44 @@ export const deleteReservationByManage = async (reservationId: string) => {
   }
 
   return payload.data?.deletedReservation ?? null;
+};
+
+/** GET /api/v1/reservations/by-plate/:licensePlate — ADMIN | MANAGER | STAFF */
+export const getReservationsByPlate = async (
+  licensePlate: string,
+  status?: ReservationStatus,
+) => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+
+  const response = await authFetch(
+    `${API_BASE}/api/v1/reservations/by-plate/${encodeURIComponent(licensePlate.trim())}${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{
+    vehicle?: {
+      _id: string;
+      licensePlate?: string;
+      vehicleTypeId?: string | { _id?: string; type?: string };
+    };
+    reservations?: Reservation[];
+  }>(response);
+
+  if (!response.ok) {
+    throw new ReservationApiError(
+      response.status,
+      payload.message || reservationErrorMessage(response.status),
+    );
+  }
+
+  return {
+    vehicle: payload.data?.vehicle ?? null,
+    reservations: payload.data?.reservations ?? [],
+  };
 };
 
 /** @deprecated Use deleteReservationByManage */
