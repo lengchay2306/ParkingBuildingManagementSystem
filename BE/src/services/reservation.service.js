@@ -63,15 +63,15 @@ class ReservationService {
         return reservation;
     }
 
-    getMyReservations = async ({ driverId, status }) => {
+    getMyReservations = async ({ driverId, status, page = 1, limit = 10 }) => {
         await this.#expireOverdueReservations();
 
-        const reservations = await this.#reservationRepository.findReservationsByDriverId({
+        return this.#reservationRepository.findReservationsByDriverId({
             driverId,
             status,
+            page,
+            limit,
         });
-
-        return reservations;
     }
 
     getAllReservations = async ({ page, limit, status }) => {
@@ -85,21 +85,23 @@ class ReservationService {
         return await this.#reservationRepository.getAllReservations({ filter, page, limit });
     }
 
-    getAllReservationsByVehiclePlate = async ({ licensePlate, status }) => {
+    getAllReservationsByVehiclePlate = async ({ licensePlate, status, page = 1, limit = 10 }) => {
         await this.#expireOverdueReservations();
 
         const normalizedLicensePlate = licensePlate.trim().replace(/\s+/g, ' ').toUpperCase();
 
-        const { vehicle, reservations } = await this.#reservationRepository.getAllReservationsByVehiclePlate({
+        const { vehicle, reservations, pagination } = await this.#reservationRepository.getAllReservationsByVehiclePlate({
             licensePlate: normalizedLicensePlate,
             status,
+            page,
+            limit,
         });
 
         if (!vehicle) {
             throw new NotFoundError("Vehicle not found");
         }
 
-        return { vehicle, reservations };
+        return { vehicle, reservations, pagination };
     }
 
     cancelReservation = async ({ driverId, reservationId }) => {

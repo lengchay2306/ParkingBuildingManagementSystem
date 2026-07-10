@@ -61,8 +61,14 @@ const adminUpdateVehicleSchema = Joi.object({
     'object.min': 'At least one field must be provided',
 })
 
+const getMyVehiclesQuerySchema = Joi.object({
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
+})
+
 export {
     createVehicleSchema,
     updateVehicleSchema,
     adminUpdateVehicleSchema,
+    getMyVehiclesQuerySchema,
 }

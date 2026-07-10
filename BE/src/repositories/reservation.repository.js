@@ -114,24 +114,41 @@ class ReservationRepository {
         return Reservation.findById(reservationId).lean();
     }
 
-    findReservationsByDriverId = async ({ driverId, status }) => {
+    findReservationsByDriverId = async ({ driverId, status, page = 1, limit = 10 }) => {
         const filter = { driverId };
         if (status) filter.status = status;
 
-        return Reservation.find(filter)
-            .populate({
-                path: 'vehicleId',
-                populate: { path: 'vehicleTypeId' },
-            })
-            .populate({
-                path: 'parkingSlotId',
-                populate: {
-                    path: 'floorId',
+        const skip = (page - 1) * limit;
+
+        const [reservations, totalCount] = await Promise.all([
+            Reservation.find(filter)
+                .populate({
+                    path: 'vehicleId',
                     populate: { path: 'vehicleTypeId' },
-                },
-            })
-            .sort({ createdAt: -1 })
-            .lean();
+                })
+                .populate({
+                    path: 'parkingSlotId',
+                    populate: {
+                        path: 'floorId',
+                        populate: { path: 'vehicleTypeId' },
+                    },
+                })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Reservation.countDocuments(filter),
+        ]);
+
+        return {
+            reservations,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
     }
 
     getAllReservations = async ({ filter = {}, page = 1, limit = 10 }) => {
@@ -187,11 +204,20 @@ class ReservationRepository {
         return deletedReservation;
     }
 
-    getAllReservationsByVehiclePlate = async ({ licensePlate, status }) => {
+    getAllReservationsByVehiclePlate = async ({ licensePlate, status, page = 1, limit = 10 }) => {
         const vehicle = await Vehicle.findOne({ licensePlate }).lean();
 
         if (!vehicle) {
-            return { vehicle: null, reservations: [] };
+            return {
+                vehicle: null,
+                reservations: [],
+                pagination: {
+                    page,
+                    limit,
+                    totalCount: 0,
+                    totalPages: 0,
+                },
+            };
         }
 
         const filter = { vehicleId: vehicle._id };
@@ -199,23 +225,39 @@ class ReservationRepository {
             filter.status = status;
         }
 
-        const reservations = await Reservation.find(filter)
-            .populate('driverId', '-password')
-            .populate({
-                path: 'vehicleId',
-                populate: { path: 'vehicleTypeId' },
-            })
-            .populate({
-                path: 'parkingSlotId',
-                populate: {
-                    path: 'floorId',
-                    populate: { path: 'vehicleTypeId' },
-                },
-            })
-            .sort({ reservedAt: -1 })
-            .lean();
+        const skip = (page - 1) * limit;
 
-        return { vehicle, reservations };
+        const [reservations, totalCount] = await Promise.all([
+            Reservation.find(filter)
+                .populate('driverId', '-password')
+                .populate({
+                    path: 'vehicleId',
+                    populate: { path: 'vehicleTypeId' },
+                })
+                .populate({
+                    path: 'parkingSlotId',
+                    populate: {
+                        path: 'floorId',
+                        populate: { path: 'vehicleTypeId' },
+                    },
+                })
+                .sort({ reservedAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Reservation.countDocuments(filter),
+        ]);
+
+        return {
+            vehicle,
+            reservations,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
     }
 
     findAvailableSlotsForVehicleType = async ({ vehicleTypeId }) => {
