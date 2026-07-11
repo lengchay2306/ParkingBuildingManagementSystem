@@ -4,13 +4,14 @@ import { AccountProfileBanner } from "@/components/AccountProfileBanner";
 import { AdminResourcesPanel } from "@/components/AdminResourcesPanel";
 import { DashboardStatsPanel } from "@/components/DashboardStatsPanel";
 import { ParkingSessionListPanel } from "@/components/ParkingSessionListPanel";
+import { PaymentListPanel } from "@/components/PaymentListPanel";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { UserDirectoryPanel } from "@/components/UserDirectoryPanel";
 import { DashboardHeader, DashboardMain, DashboardTabs } from "@/components/dashboard-ui";
 import { requireRole } from "@/lib/auth";
 
-type AdminTab = "stats" | "users" | "reservations" | "sessions" | "resources";
+type AdminTab = "stats" | "users" | "reservations" | "sessions" | "payments" | "resources";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
@@ -53,6 +54,7 @@ function AdminPage() {
             { id: "users", label: "Người dùng" },
             { id: "reservations", label: "Đặt chỗ" },
             { id: "sessions", label: "Phiên đỗ xe" },
+            { id: "payments", label: "Thanh toán" },
             { id: "resources", label: "Cấu hình" },
           ]}
           activeTab={activeTab}
@@ -70,6 +72,13 @@ function AdminPage() {
           <ParkingSessionListPanel
             tableOnly
             allowDeleteError
+            className="min-h-[calc(100vh-12rem)]"
+          />
+        ) : activeTab === "payments" ? (
+          <PaymentListPanel
+            tableOnly
+            allowCancel
+            allowDelete
             className="min-h-[calc(100vh-12rem)]"
           />
         ) : (
