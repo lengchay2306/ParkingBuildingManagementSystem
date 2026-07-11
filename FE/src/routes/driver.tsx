@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
-  CreditCard,
   CarFront,
-  CheckCircle2,
   ChevronDown,
-  CircleDashed,
-  Clock3,
   LoaderCircle,
   Mail,
   MapPin,
@@ -18,18 +13,20 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Trash2,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { DriverVehicleReserveDialog } from "@/components/driver/DriverVehicleReserveDialog";
+import {
+  DriverVehicleCard,
+  findPendingReservationForVehicle,
+} from "@/components/driver/DriverVehicleCard";
 import { SiteHeader } from "@/components/SiteHeader";
 import { DriverChatbotWidget } from "@/components/chatbot/DriverChatbotWidget";
 import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import {
-  DashboardEmptyState,
   DashboardClientPagination,
-  DashboardLegend,
   DashboardMain,
   DashboardSection,
   DashboardSectionHeader,
@@ -63,7 +60,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
 import { requireRole } from "@/lib/auth";
 import {
   fetchParkingSessionsForVehicleIds,
@@ -72,8 +68,6 @@ import {
   getReservationVehicleId,
   type ParkingFloor,
   type ParkingSession,
-  type ParkingSlot,
-  type ParkingSlotStatus,
 } from "@/services/parking.service";
 import { createSubscriptionCheckoutLink } from "@/services/payment.service";
 import {
@@ -117,55 +111,8 @@ export const Route = createFileRoute("/driver")({
   component: DriverPage,
 });
 
-type QuickAction = {
-  id: "reserve" | "my-reservations";
-  title: string;
-  icon: LucideIcon;
-  highlighted?: boolean;
-};
-
-const quickActions: QuickAction[] = [
-  {
-    id: "reserve",
-    title: "Đặt chỗ đỗ xe",
-    icon: MapPin,
-    highlighted: true,
-  },
-  {
-    id: "my-reservations",
-    title: "Đặt chỗ của tôi",
-    icon: Clock3,
-  },
-];
-
-const reservedByYouButtonStyle =
-  "border-status-yours/50 bg-status-yours/15 text-status-yours";
 const reservedByYouBadgeStyle =
   "border-status-yours/45 bg-status-yours/15 text-status-yours";
-
-const slotStatusText: Record<ParkingSlotStatus, string> = {
-  AVAILABLE: "Trống",
-  RESERVED: "Đã đặt",
-  UNAVAILABLE: "Không khả dụng",
-  "CURRENTLY-IN-USED": "Đang sử dụng",
-};
-
-const slotStatusBadge: Record<ParkingSlotStatus, string> = {
-  AVAILABLE: "bg-status-empty/20 text-status-empty border-status-empty/40",
-  RESERVED: "bg-status-reserved/15 text-status-reserved border-status-reserved/45",
-  UNAVAILABLE: "bg-muted text-muted-foreground border-border",
-  "CURRENTLY-IN-USED": "bg-status-full/20 text-status-full border-status-full/45",
-};
-
-const slotButtonStyles: Record<ParkingSlotStatus, string> = {
-  AVAILABLE:
-    "border-status-empty/50 bg-status-empty/15 text-status-empty hover:border-status-empty hover:bg-status-empty/20",
-  RESERVED:
-    "cursor-not-allowed border-status-reserved/50 bg-status-reserved/15 text-status-reserved opacity-70",
-  UNAVAILABLE: "cursor-not-allowed border-border bg-secondary text-muted-foreground",
-  "CURRENTLY-IN-USED":
-    "cursor-not-allowed border-status-full/50 bg-status-full/15 text-status-full",
-};
 
 const vehicleTypesQueryKey = ["vehicle-types"] as const;
 const myVehiclesQueryKey = ["my-vehicles"] as const;
@@ -176,7 +123,6 @@ const myVehicleParkingSessionsQueryKey = ["my-vehicle-parking-sessions"] as cons
 const emptyVehicleTypes: VehicleType[] = [];
 const emptyVehicles: Vehicle[] = [];
 const emptyParkingFloors: ParkingFloor[] = [];
-const emptyParkingSlots: ParkingSlot[] = [];
 const emptyReservations: Reservation[] = [];
 const RESERVATION_HISTORY_PAGE_SIZE = 5;
 const VEHICLE_PAGE_SIZE = 5;
@@ -184,10 +130,8 @@ const VEHICLE_PAGE_SIZE = 5;
 function DriverPage() {
   const queryClient = useQueryClient();
   const [hasMounted, setHasMounted] = useState(false);
-  const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
-  const [selectedFloorId, setSelectedFloorId] = useState<string>("");
-  const [selectedReservationVehicleId, setSelectedReservationVehicleId] = useState<string>("");
-  const [activeQuickAction, setActiveQuickAction] = useState<QuickAction["id"] | null>(null);
+  const [reservingVehicle, setReservingVehicle] = useState<Vehicle | null>(null);
+  const [isReserveDialogOpen, setIsReserveDialogOpen] = useState(false);
   const [licensePlate, setLicensePlate] = useState("");
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [vehicleFormError, setVehicleFormError] = useState<string | null>(null);
@@ -210,18 +154,11 @@ function DriverPage() {
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
   const [subscribingVehicleId, setSubscribingVehicleId] = useState<string | null>(null);
-  const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(false);
+  const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(true);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
   const [reservationHistoryPage, setReservationHistoryPage] = useState(1);
   const [vehiclePage, setVehiclePage] = useState(1);
   const [viewingHistoryReservation, setViewingHistoryReservation] = useState<Reservation | null>(null);
-  const [expectedArrivalDate, setExpectedArrivalDate] = useState(getDefaultExpectedArrivalDate);
-  const [expectedArrivalTime, setExpectedArrivalTime] = useState(getDefaultExpectedArrivalTime);
-  const minExpectedArrivalTime =
-    expectedArrivalDate === getLocalDateInputValue()
-      ? toLocalTimeInputValue(Date.now() + 60_000)
-      : undefined;
-  const reserveSectionRef = useRef<HTMLDivElement | null>(null);
   const reservationSectionRef = useRef<HTMLElement | null>(null);
   const vehiclesSectionRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
@@ -410,14 +347,21 @@ function DriverPage() {
     mutationFn: createReservation,
     onSuccess: async (reservation) => {
       const reservationSlotId = getReservationSlotId(reservation);
-      const reservedSlotLabel =
-        reservationSlotId && floorSlots.some((slot) => slot._id === reservationSlotId)
-          ? floorSlots.find((slot) => slot._id === reservationSlotId)?.slotNumber
-          : selectedSpot?.slotNumber;
+      let reservedSlotLabel: string | undefined;
+      if (reservationSlotId) {
+        for (const floor of parkingFloorsQuery.data ?? []) {
+          const slot = floor.slots?.find((item) => item._id === reservationSlotId);
+          if (slot) {
+            reservedSlotLabel = `${slot.slotNumber} · ${floor.floorName}`;
+            break;
+          }
+        }
+      }
       toast.success("Đặt chỗ thành công", {
         description: `${reservedSlotLabel ?? "Chỗ đã chọn"} đã được đặt thành công.`,
       });
-      setSelectedSpotId(null);
+      setIsReserveDialogOpen(false);
+      setReservingVehicle(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: myReservationsQueryKey }),
         queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
@@ -435,7 +379,6 @@ function DriverPage() {
       toast.success("Đã hủy đặt chỗ", {
         description: "Đặt chỗ đã chọn đã được hủy.",
       });
-      setSelectedSpotId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: myReservationsQueryKey }),
         queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
@@ -449,23 +392,8 @@ function DriverPage() {
   });
 
   const parkingFloors = parkingFloorsQuery.data ?? emptyParkingFloors;
-  const selectedFloor = useMemo(() => {
-    if (parkingFloors.length === 0) {
-      return null;
-    }
-    return parkingFloors.find((floor) => floor._id === selectedFloorId) ?? parkingFloors[0] ?? null;
-  }, [parkingFloors, selectedFloorId]);
-  const floorSlots = selectedFloor?.slots ?? emptyParkingSlots;
-  const selectedSpot = useMemo(
-    () => floorSlots.find((slot) => slot._id === selectedSpotId) ?? null,
-    [floorSlots, selectedSpotId],
-  );
   const vehicleTypes = vehicleTypesQuery.data ?? emptyVehicleTypes;
   const vehicles = vehiclesQuery.data ?? emptyVehicles;
-  const activeVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status !== "INACTIVE"),
-    [vehicles],
-  );
   const reservations = myReservationsQuery.data ?? emptyReservations;
   const sessionsByVehicleId = vehicleParkingSessionsQuery.data ?? new Map<string, ParkingSession>();
   const vehicleParkingSessions = useMemo(
@@ -510,43 +438,23 @@ function DriverPage() {
       if (!slotId) {
         continue;
       }
-      const slot = floorSlots.find((item) => item._id === slotId);
-      if (slot?.status === "CURRENTLY-IN-USED") {
+
+      let slotStatus: string | undefined;
+      for (const floor of parkingFloors) {
+        const slot = floor.slots?.find((item) => item._id === slotId);
+        if (slot) {
+          slotStatus = slot.status;
+          break;
+        }
+      }
+
+      if (slotStatus === "CURRENTLY-IN-USED") {
         continue;
       }
       map.set(slotId, reservation);
     }
     return map;
-  }, [myPendingReservations, floorSlots]);
-  const selectedReservation = selectedSpot
-    ? (reservationBySlotId.get(selectedSpot._id) ?? null)
-    : null;
-  const selectedFloorVehicleTypeId = selectedFloor?.vehicleType?._id ?? null;
-  const compatibleVehicles = useMemo(
-    () =>
-      activeVehicles.filter((vehicle) => {
-        const typeId = getVehicleTypeId(vehicle);
-        if (!selectedFloorVehicleTypeId) {
-          return Boolean(typeId);
-        }
-        return typeId === selectedFloorVehicleTypeId;
-      }),
-    [activeVehicles, selectedFloorVehicleTypeId],
-  );
-  const selectedReservationVehicle = compatibleVehicles.find(
-    (vehicle) => vehicle._id === selectedReservationVehicleId,
-  );
-  const selectedVehicleReserveBlockReason = useMemo(() => {
-    if (!selectedReservationVehicle) {
-      return null;
-    }
-    return getVehicleReserveBlockReason(
-      selectedReservationVehicle._id,
-      selectedReservationVehicle.licensePlate,
-      reservations,
-      vehicleParkingSessions,
-    );
-  }, [selectedReservationVehicle, reservations, vehicleParkingSessions]);
+  }, [myPendingReservations, parkingFloors]);
   const profile = profileQuery.data ?? null;
   const viewingHistoryReservationDetail = useMemo(() => {
     if (!viewingHistoryReservation) {
@@ -568,11 +476,6 @@ function DriverPage() {
     return findSessionForReservation(viewingHistoryReservation, sessionsByVehicleId);
   }, [viewingHistoryReservation, sessionsByVehicleId]);
 
-  const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
-  const reservedCount = floorSlots.filter((slot) => slot.status === "RESERVED").length;
-  const unavailableCount = floorSlots.filter((slot) => slot.status === "UNAVAILABLE").length;
-  const inUsedCount = floorSlots.filter((slot) => slot.status === "CURRENTLY-IN-USED").length;
-
   const isVehicleTypeLoading = vehicleTypesQuery.isLoading && vehicleTypes.length === 0;
 
   useEffect(() => {
@@ -581,34 +484,6 @@ function DriverPage() {
       setVehicleTypeId(vehicleTypes[0]._id);
     }
   }, [vehicleTypeId, vehicleTypes]);
-
-  useEffect(() => {
-    if (parkingFloors.length === 0) {
-      return;
-    }
-    const selectedFloorStillExists = parkingFloors.some((floor) => floor._id === selectedFloorId);
-    if (!selectedFloorStillExists) {
-      setSelectedFloorId(parkingFloors[0]._id);
-    }
-  }, [parkingFloors, selectedFloorId]);
-
-  useEffect(() => {
-    setSelectedSpotId(null);
-  }, [selectedFloorId]);
-
-  useEffect(() => {
-    if (compatibleVehicles.length === 0) {
-      setSelectedReservationVehicleId("");
-      return;
-    }
-
-    const selectedVehicleStillCompatible = compatibleVehicles.some(
-      (vehicle) => vehicle._id === selectedReservationVehicleId,
-    );
-    if (!selectedVehicleStillCompatible) {
-      setSelectedReservationVehicleId(compatibleVehicles[0]._id);
-    }
-  }, [compatibleVehicles, selectedReservationVehicleId]);
 
   const handleVehicleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -715,10 +590,6 @@ function DriverPage() {
   const profileError = profileQuery.error
     ? getErrorMessage(profileQuery.error, "Không thể tải hồ sơ.")
     : null;
-  const parkingFloorsError =
-    parkingFloorsQuery.isError && !parkingFloorsQuery.data
-      ? getErrorMessage(parkingFloorsQuery.error, "Không thể tải danh sách chỗ đỗ.")
-      : null;
 
   const handleVehicleFormOpenChange = (open: boolean) => {
     setIsVehicleFormOpen(open);
@@ -843,80 +714,22 @@ function DriverPage() {
     myReservationsQuery.isError && !myReservationsQuery.data
       ? getErrorMessage(myReservationsQuery.error, "Không thể tải đặt chỗ của bạn.")
       : null;
-  const isReservationActionPending =
-    reserveSlotMutation.isPending || cancelReservationMutation.isPending;
 
-  const handleReserveSelectedSlot = () => {
-    if (!selectedSpot) {
-      toast.error("Hãy chọn một chỗ trước.");
-      return;
-    }
-    if (selectedReservation) {
-      toast.error("Chỗ này đã được bạn đặt rồi.");
-      return;
-    }
-    if (selectedSpot.status !== "AVAILABLE") {
-      toast.error("Chỗ này không khả dụng.");
-      return;
-    }
-    if (!selectedReservationVehicle) {
-      toast.error("Hãy chọn xe phù hợp trước.");
-      return;
-    }
+  const handleOpenReserveForVehicle = (vehicle: Vehicle) => {
+    setReservingVehicle(vehicle);
+    setIsReserveDialogOpen(true);
+  };
 
-    const blockReason = getVehicleReserveBlockReason(
-      selectedReservationVehicle._id,
-      selectedReservationVehicle.licensePlate,
-      reservations,
-      vehicleParkingSessions,
-    );
-    if (blockReason) {
-      toast.error("Không thể đặt chỗ", { description: blockReason });
-      return;
-    }
-
-    const expectedArrival = parseExpectedArrival(expectedArrivalDate, expectedArrivalTime);
-    if (!expectedArrival) {
-      toast.error("Chọn thời gian đến hợp lệ.");
-      return;
-    }
-    if (expectedArrival.getTime() <= Date.now()) {
-      toast.error("Thời gian đến phải ở tương lai.");
-      return;
-    }
-
-    reserveSlotMutation.mutate({
-      vehicleId: selectedReservationVehicle._id,
-      parkingSlotId: selectedSpot._id,
-      expectedArrival: expectedArrival.toISOString(),
-    });
+  const handleReserveFromDialog = (payload: {
+    vehicleId: string;
+    parkingSlotId: string;
+    expectedArrival: string;
+  }) => {
+    reserveSlotMutation.mutate(payload);
   };
 
   const handleCancelReservationById = (reservationId: string) => {
     cancelReservationMutation.mutate(reservationId);
-  };
-
-  const handleQuickActionClick = (actionId: QuickAction["id"]) => {
-    const nextAction = activeQuickAction === actionId ? null : actionId;
-    setActiveQuickAction(nextAction);
-
-    if (!nextAction) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      if (nextAction === "my-reservations") {
-        reservationSectionRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-        return;
-      }
-      reserveSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
   };
 
   return (
@@ -1468,119 +1281,47 @@ function DriverPage() {
           </Dialog>
 
           {isVehiclesExpanded ? (
-            <div className="dashboard-panel mt-4">
+            <div className="driver-vehicle-list mt-4 space-y-3">
             {vehiclesQuery.isLoading ? (
-              <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
                 Đang tải xe của bạn...
               </div>
             ) : vehicleListError ? (
-              <div className="p-4 text-sm text-destructive">{vehicleListError}</div>
+              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                {vehicleListError}
+              </div>
             ) : vehicles.length > 0 ? (
               <>
-              {vehiclePagination.items.map((vehicle) => {
-                const isInactive = vehicle.status === "INACTIVE";
-                return (
-                <div
+              {vehiclePagination.items.map((vehicle) => (
+                <DriverVehicleCard
                   key={vehicle._id}
-                  className={`ui-vehicle-row flex flex-wrap items-center justify-between gap-3 p-4 first:border-t-0 ${
-                    isInactive ? "opacity-50" : ""
-                  }`}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary/10">
-                      <CarFront className={`size-5 ${isInactive ? "text-muted-foreground" : "text-primary"}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-sm font-semibold tracking-wide">
-                        {vehicle.licensePlate}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {getVehicleTypeName(vehicle, vehicleTypes)} |{" "}
-                        {formatRegisteredDate(vehicle.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {isInactive ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                        <CircleDashed className="size-3.5" />
-                        Ngừng hoạt động
-                      </span>
-                    ) : (
-                      <>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-xs font-medium text-status-empty">
-                          <CheckCircle2 className="size-3.5" />
-                          {vehicle.monthlyCardId ? "Thẻ tháng" : "Đã đăng ký"}
-                        </span>
-                        {!vehicle.monthlyCardId ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleBuyMonthlyCard(vehicle)}
-                            disabled={
-                              subscribeMonthlyMutation.isPending &&
-                              subscribingVehicleId === vehicle._id
-                            }
-                            className="h-8 rounded-lg px-2.5 text-xs"
-                          >
-                            {subscribeMonthlyMutation.isPending &&
-                            subscribingVehicleId === vehicle._id ? (
-                              <>
-                                <LoaderCircle className="size-3.5 animate-spin" />
-                                Đang tạo link...
-                              </>
-                            ) : (
-                              <>
-                                <CreditCard className="size-3.5" />
-                                Mua thẻ tháng
-                              </>
-                            )}
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleStartEditVehicle(vehicle)}
-                          className="size-8 rounded-lg"
-                          aria-label={`Sửa ${vehicle.licensePlate}`}
-                        >
-                          <Pencil className="size-3.5" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDeleteVehicle(vehicle)}
-                          disabled={deletingVehicleId === vehicle._id}
-                          className="size-8 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={`Xóa ${vehicle.licensePlate}`}
-                        >
-                          {deletingVehicleId === vehicle._id ? (
-                            <LoaderCircle className="size-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-3.5" />
-                          )}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-              })}
+                  vehicle={vehicle}
+                  vehicleTypes={vehicleTypes}
+                  pendingReservation={findPendingReservationForVehicle(vehicle._id, reservations)}
+                  parkingSession={sessionsByVehicleId.get(vehicle._id) ?? null}
+                  reservations={reservations}
+                  vehicleParkingSessions={vehicleParkingSessions}
+                  isDeleting={deletingVehicleId === vehicle._id}
+                  isSubscribing={
+                    subscribeMonthlyMutation.isPending && subscribingVehicleId === vehicle._id
+                  }
+                  onReserve={() => handleOpenReserveForVehicle(vehicle)}
+                  onBuyMonthlyCard={() => handleBuyMonthlyCard(vehicle)}
+                  onEdit={() => handleStartEditVehicle(vehicle)}
+                  onDelete={() => handleDeleteVehicle(vehicle)}
+                />
+              ))}
               <DashboardClientPagination
                 page={vehiclePagination.page}
                 totalPages={vehiclePagination.totalPages}
                 totalItems={vehiclePagination.totalItems}
                 onPageChange={setVehiclePage}
                 disabled={vehiclesQuery.isFetching}
-                className="px-4 pb-4"
               />
               </>
             ) : (
-              <div className="p-4 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
                 Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
               </div>
             )}
@@ -1588,38 +1329,10 @@ function DriverPage() {
           ) : null}
         </DashboardSection>
 
-        <DashboardSection compact className="p-3">
-          <div className="grid gap-2 md:grid-cols-2">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              const isActionHighlighted = action.id === activeQuickAction;
-              return (
-                <TogglePressedButton
-                  key={action.title}
-                  type="button"
-                  pressed={isActionHighlighted}
-                  onClick={() => handleQuickActionClick(action.id)}
-                  className={`rounded-xl border px-4 py-4 text-left transition ${
-                    isActionHighlighted
-                      ? "border-primary/55 bg-primary/15 shadow-[0_10px_24px_-14px_hsl(var(--primary))]"
-                      : "border-border/80 bg-secondary/80 hover:-translate-y-px hover:border-primary/35 hover:bg-secondary"
-                  }`}
-                >
-                  <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
-                    <Icon className="size-4 text-primary" />
-                  </div>
-                  <h2 className="text-base font-semibold tracking-tight">{action.title}</h2>
-                </TogglePressedButton>
-              );
-            })}
-          </div>
-        </DashboardSection>
-
-        {activeQuickAction === "my-reservations" ? (
-          <DashboardSection ref={reservationSectionRef}>
-            <DashboardSectionHeader
-              kicker="Đặt chỗ của tôi"
-              title="Lịch sử đặt chỗ"
+        <DashboardSection ref={reservationSectionRef}>
+          <DashboardSectionHeader
+            kicker="Đặt chỗ của tôi"
+            title="Lịch sử đặt chỗ"
               actions={
                 <Button
                   type="button"
@@ -1788,268 +1501,25 @@ function DriverPage() {
                 Không có đặt chỗ nào vào {formatReservationHistoryDateLabel(reservationHistoryDate)}.
               </div>
             )}
-          </DashboardSection>
-        ) : null}
-
-        {activeQuickAction === "reserve" ? (
-          <div ref={reserveSectionRef}>
-            <DashboardSection>
-              <DashboardSectionHeader
-                kicker="Xem thông tin đỗ xe"
-                title={selectedFloor?.floorName ?? "Sơ đồ tầng"}
-                actions={
-                  <>
-                    <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
-                    <DashboardLegend label={`Đã đặt ${reservedCount}`} tone="bg-status-reserved" />
-                    <DashboardLegend label={`Không khả dụng ${unavailableCount}`} tone="bg-status-maintenance" />
-                    <DashboardLegend label={`Đang dùng ${inUsedCount}`} tone="bg-status-full" />
-                  </>
-                }
-              />
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-[240px_auto]">
-                <div className="space-y-2">
-                  <Label htmlFor="driver-floor-filter">Tầng</Label>
-                  <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
-                    <SelectTrigger id="driver-floor-filter" className="h-10 rounded-xl">
-                      <SelectValue placeholder="Chọn tầng" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {parkingFloors.map((floor) => (
-                        <SelectItem key={floor._id} value={floor._id}>
-                          {floor.floorName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => void parkingFloorsQuery.refetch()}
-                    disabled={parkingFloorsQuery.isFetching}
-                    className="h-10 rounded-xl"
-                  >
-                    <RefreshCw
-                      className={`size-4 ${parkingFloorsQuery.isFetching ? "animate-spin" : ""}`}
-                    />
-                    Làm mới chỗ đỗ
-                  </Button>
-                </div>
-              </div>
-
-              {parkingFloorsQuery.isLoading ? (
-                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-background/40 px-4 py-3 text-sm text-muted-foreground">
-                  <LoaderCircle className="size-4 animate-spin" />
-                  Đang tải chỗ đỗ theo tầng...
-                </div>
-              ) : parkingFloorsError ? (
-                <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {parkingFloorsError}
-                </div>
-              ) : floorSlots.length > 0 ? (
-                <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 xl:grid-cols-10">
-                  {floorSlots.map((slot) => {
-                    const isAvailable = slot.status === "AVAILABLE";
-                    const isReserved = slot.status === "RESERVED";
-                    const isReservedByMe = reservationBySlotId.has(slot._id);
-                    const isSelectable = isAvailable || isReservedByMe;
-                    const isSelected = selectedSpotId === slot._id;
-                    const slotLabel = isReservedByMe
-                      ? "Bạn đã đặt"
-                      : slotStatusText[slot.status];
-                    const slotStyle = isReservedByMe
-                      ? reservedByYouButtonStyle
-                      : slotButtonStyles[slot.status];
-                    const statusLabel = isReservedByMe
-                      ? "Của bạn"
-                      : isReserved
-                        ? "Đã đặt"
-                        : null;
-                    return (
-                      <button
-                        key={slot._id}
-                        type="button"
-                        disabled={!isSelectable}
-                        onClick={() => setSelectedSpotId(slot._id)}
-                        className={`relative flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center text-sm font-semibold shadow-[0_10px_24px_-18px_hsl(var(--primary))] transition-all ${slotStyle} ${
-                          isSelected ? "border-primary ring-2 ring-inset ring-primary/70" : ""
-                        } ${isSelectable ? "cursor-pointer" : ""}`}
-                        aria-label={`${slot.slotNumber} (${slotLabel})`}
-                      >
-                        <span className="font-mono text-[11px] leading-none">{slot.slotNumber}</span>
-                        {statusLabel ? (
-                          <span className="min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] opacity-100">
-                            {statusLabel}
-                          </span>
-                        ) : (
-                          <span
-                            className="min-h-[10px] font-mono text-[8px] uppercase leading-none tracking-[0.1em] opacity-0"
-                            aria-hidden="true"
-                          >
-                            —
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <DashboardEmptyState className="mt-4 text-left">
-                  Không có chỗ đỗ nào trên tầng này.
-                </DashboardEmptyState>
-              )}
-            </DashboardSection>
-          </div>
-        ) : null}
+        </DashboardSection>
       </DashboardMain>
 
-      <Dialog
-        open={selectedSpot !== null}
+      <DriverVehicleReserveDialog
+        open={isReserveDialogOpen}
         onOpenChange={(open) => {
+          setIsReserveDialogOpen(open);
           if (!open) {
-            setSelectedSpotId(null);
+            setReservingVehicle(null);
           }
         }}
-      >
-        <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
-          {selectedSpot ? (
-            <>
-              <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
-                <DialogHeader>
-                  <DialogTitle>Đặt chỗ đỗ xe</DialogTitle>
-                  <DialogDescription>
-                    Slot {selectedSpot.slotNumber}
-                    {selectedFloor ? ` · ${selectedFloor.floorName}` : ""}
-                  </DialogDescription>
-                </DialogHeader>
-              </div>
-
-              <div className="space-y-3 px-6 py-4">
-              <div className="flex items-center justify-between rounded-xl border border-primary/25 bg-primary/10 px-4 py-3">
-                <span className="font-mono text-sm font-semibold">{selectedSpot.slotNumber}</span>
-                <span
-                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                    selectedReservation
-                      ? reservedByYouBadgeStyle
-                      : slotStatusBadge[selectedSpot.status]
-                  }`}
-                >
-                  {selectedReservation ? "Bạn đã đặt" : slotStatusText[selectedSpot.status]}
-                </span>
-              </div>
-
-              {myReservationsError ? (
-                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {myReservationsError}
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="driver-reserve-vehicle">Xe</Label>
-                  <Select
-                    value={selectedReservationVehicleId}
-                    onValueChange={setSelectedReservationVehicleId}
-                    disabled={compatibleVehicles.length === 0 || Boolean(selectedReservation)}
-                  >
-                    <SelectTrigger id="driver-reserve-vehicle" className="h-10 rounded-xl">
-                      <SelectValue placeholder="Chọn xe của bạn" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {compatibleVehicles.map((vehicle) => (
-                        <SelectItem key={vehicle._id} value={vehicle._id}>
-                          {vehicle.licensePlate} · {getVehicleTypeName(vehicle, vehicleTypes)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="driver-expected-arrival-date">Ngày đến</Label>
-                    <Input
-                      id="driver-expected-arrival-date"
-                      type="date"
-                      value={expectedArrivalDate}
-                      onChange={(event) => setExpectedArrivalDate(event.target.value)}
-                      min={getLocalDateInputValue()}
-                      disabled={Boolean(selectedReservation)}
-                      className="h-10 rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="driver-expected-arrival-time">Giờ đến</Label>
-                    <Input
-                      id="driver-expected-arrival-time"
-                      type="time"
-                      value={expectedArrivalTime}
-                      onChange={(event) => setExpectedArrivalTime(event.target.value)}
-                      min={minExpectedArrivalTime}
-                      disabled={Boolean(selectedReservation)}
-                      className="h-10 rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                {selectedReservation ? (
-                  <div className="rounded-xl border border-status-yours/45 bg-status-yours/10 px-3 py-2 text-sm">
-                    <p className="font-medium text-status-yours">Đặt chỗ hiện tại</p>
-                    <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                      <p>Xe: {getReservationVehicleLabel(selectedReservation) ?? "Không có"}</p>
-                      <p>
-                        Thời gian đến:{" "}
-                        {selectedReservation.expectedArrival
-                          ? formatDateTime(selectedReservation.expectedArrival)
-                          : "Không có"}
-                      </p>
-                      <p>
-                        Hết hạn:{" "}
-                        {selectedReservation.expiryAt
-                          ? formatDateTime(selectedReservation.expiryAt)
-                          : "Không có"}
-                      </p>
-                      <p className="text-status-yours/80">Để hủy, vào mục Đặt chỗ của tôi.</p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {selectedVehicleReserveBlockReason ? (
-                  <p className="text-sm text-destructive">{selectedVehicleReserveBlockReason}</p>
-                ) : null}
-
-                <Button
-                  type="button"
-                  onClick={handleReserveSelectedSlot}
-                  disabled={
-                    isReservationActionPending ||
-                    selectedSpot.status !== "AVAILABLE" ||
-                    Boolean(selectedReservation) ||
-                    !selectedReservationVehicle ||
-                    Boolean(selectedVehicleReserveBlockReason)
-                  }
-                  className="h-10 w-full rounded-xl text-sm font-semibold"
-                >
-                  {reserveSlotMutation.isPending ? (
-                    <>
-                      <LoaderCircle className="size-4 animate-spin" />
-                      Đang đặt chỗ...
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="size-4" />
-                      Đặt chỗ này
-                    </>
-                  )}
-                </Button>
-              </div>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+        vehicle={reservingVehicle}
+        vehicleTypes={vehicleTypes}
+        parkingFloors={parkingFloors}
+        reservations={reservations}
+        vehicleParkingSessions={vehicleParkingSessions}
+        isSubmitting={reserveSlotMutation.isPending}
+        onReserve={handleReserveFromDialog}
+      />
 
       <ReservationDetailDialog
         reservation={viewingHistoryReservationDetail}
@@ -2115,30 +1585,6 @@ function formatReservationHistoryDateLabel(dateKey: string) {
     month: "2-digit",
     year: "numeric",
   }).format(new Date(year, month - 1, day));
-}
-
-function parseExpectedArrival(dateValue: string, timeValue: string) {
-  if (!dateValue || !timeValue) {
-    return null;
-  }
-
-  const date = new Date(`${dateValue}T${timeValue}`);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getDefaultExpectedArrivalDate() {
-  return getLocalDateInputValue(new Date(Date.now() + 60 * 60_000));
-}
-
-function getDefaultExpectedArrivalTime() {
-  return toLocalTimeInputValue(Date.now() + 60 * 60_000);
-}
-
-function toLocalTimeInputValue(timestamp: number) {
-  const date = new Date(timestamp);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
 }
 
 function formatDateTime(value: string) {
@@ -2372,22 +1818,6 @@ function ToggleExpandedButton({
     </button>
   ) : (
     <button {...props} aria-expanded="false">
-      {children}
-    </button>
-  );
-}
-
-function TogglePressedButton({
-  pressed,
-  children,
-  ...props
-}: ComponentPropsWithoutRef<"button"> & { pressed: boolean }) {
-  return pressed ? (
-    <button {...props} aria-pressed="true">
-      {children}
-    </button>
-  ) : (
-    <button {...props} aria-pressed="false">
       {children}
     </button>
   );
