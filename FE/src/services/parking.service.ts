@@ -330,22 +330,41 @@ export const fetchParkingSessionsForVehicleIds = async (vehicleIds: string[]) =>
   return map;
 };
 
-/** Staff: all ACTIVE sessions (any check-in date) + today's COMPLETED for stale slot fallback. */
-export const fetchStaffOccupancySessions = async () => {
-  const today = new Date();
-  const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+/** BE always filters parking-sessions by check-in date; staff needs a rolling window. */
+const STAFF_OCCUPANCY_LOOKBACK_DAYS = 14;
 
-  const [activeResult, completedResult] = await Promise.all([
-    getParkingSessionsSafe({ page: 1, limit: 300, status: "ACTIVE" }),
-    getParkingSessionsSafe({ page: 1, limit: 100, status: "COMPLETED", date: dateKey }),
-  ]);
+const formatLocalDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const buildRecentLocalDateKeys = (days: number) => {
+  const today = new Date();
+  const keys: string[] = [];
+
+  for (let offset = 0; offset < days; offset += 1) {
+    const day = new Date(today);
+    day.setDate(day.getDate() - offset);
+    keys.push(formatLocalDateKey(day));
+  }
+
+  return keys;
+};
+
+/** Staff: ACTIVE + COMPLETED over recent days (BE requires an explicit check-in date). */
+export const fetchStaffOccupancySessions = async () => {
+  const dateKeys = buildRecentLocalDateKeys(STAFF_OCCUPANCY_LOOKBACK_DAYS);
+
+  const results = await Promise.all(
+    dateKeys.flatMap((date) => [
+      getParkingSessionsSafe({ page: 1, limit: 300, status: "ACTIVE", date }),
+      getParkingSessionsSafe({ page: 1, limit: 100, status: "COMPLETED", date }),
+    ]),
+  );
 
   const byId = new Map<string, ParkingSession>();
-  for (const session of completedResult.parkingSessions) {
-    byId.set(session._id, session);
-  }
-  for (const session of activeResult.parkingSessions) {
-    byId.set(session._id, session);
+  for (const result of results) {
+    for (const session of result.parkingSessions) {
+      byId.set(session._id, session);
+    }
   }
 
   return [...byId.values()];
