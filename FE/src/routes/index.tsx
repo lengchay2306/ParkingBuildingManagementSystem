@@ -104,7 +104,7 @@ function Index() {
             </p>
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-4 text-primary" />
-              123 Nguyễn Văn Linh, Q.7, TP.HCM
+              Huỳnh Khương An, Gò Vấp,TP.HCM  (nhà anh Huy rô nan đô)
             </p>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
