@@ -298,6 +298,54 @@ export const getActiveUserParkingSession = async (
   return payload.data?.parkingSession ?? null;
 };
 
+/** Staff gate: active session for a license plate (404 → not in lot). */
+export const getActiveSessionByPlate = async (
+  licensePlate: string,
+): Promise<ParkingSession | null> => {
+  const normalized = licensePlate.trim().toUpperCase();
+  const response = await authFetch(
+    `${API_BASE}/api/v1/parking/active-session-by-plate/${encodeURIComponent(normalized)}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new ParkingApiError(
+      response.status,
+      payload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  return payload.data?.parkingSession ?? null;
+};
+
+/** First AVAILABLE slot on a floor matching vehicle type (walk-in check-in). */
+export const findFirstAvailableSlotForVehicleType = (
+  floors: ParkingFloor[],
+  vehicleTypeId: string,
+): { slot: ParkingSlot; floor: ParkingFloor } | null => {
+  for (const floor of floors) {
+    const floorTypeId = floor.vehicleType?._id;
+    if (!floorTypeId || floorTypeId !== vehicleTypeId) {
+      continue;
+    }
+
+    const slot = floor.slots?.find((item) => item.status === "AVAILABLE");
+    if (slot) {
+      return { slot, floor };
+    }
+  }
+
+  return null;
+};
+
 export const getParkingSessionsSafe = async (params: GetParkingSessionsParams = {}) => {
   try {
     return await getParkingSessions(params);
