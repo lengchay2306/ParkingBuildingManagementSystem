@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
 import { cn } from "@/lib/utils";
 import { getReservationVehicleId } from "@/services/parking.service";
 import type { ParkingSession } from "@/services/parking.service";
@@ -27,8 +26,6 @@ type DriverVehicleCardProps = {
   vehicleTypes: VehicleType[];
   pendingReservation: Reservation | null;
   parkingSession: ParkingSession | null;
-  reservations: Reservation[];
-  vehicleParkingSessions: ParkingSession[];
   isDeleting?: boolean;
   isSubscribing?: boolean;
   onReserve: () => void;
@@ -42,8 +39,6 @@ export function DriverVehicleCard({
   vehicleTypes,
   pendingReservation,
   parkingSession,
-  reservations,
-  vehicleParkingSessions,
   isDeleting = false,
   isSubscribing = false,
   onReserve,
@@ -58,13 +53,6 @@ export function DriverVehicleCard({
   const vehicleTypeName = getVehicleTypeName(vehicle, vehicleTypes);
   const monthlyCard = resolveMonthlyCard(vehicle.monthlyCardId);
   const isInLot = parkingSession?.status === "ACTIVE";
-  const canReserve =
-    getVehicleReserveBlockReason(
-      vehicle._id,
-      vehicle.licensePlate,
-      reservations,
-      vehicleParkingSessions,
-    ) === null;
 
   const handleToggleExpanded = () => {
     setIsExpanded((open) => {
@@ -226,17 +214,15 @@ export function DriverVehicleCard({
 
       {!isInactive ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-border/60 bg-background/30 px-4 py-3 sm:px-5">
-          {canReserve ? (
-            <Button
-              type="button"
-              size="sm"
-              onClick={onReserve}
-              className="h-9 rounded-xl px-3 text-xs font-semibold"
-            >
-              <MapPin className="size-3.5" />
-              Đặt chỗ
-            </Button>
-          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            onClick={onReserve}
+            className="h-9 rounded-xl px-3 text-xs font-semibold"
+          >
+            <MapPin className="size-3.5" />
+            Đặt chỗ
+          </Button>
           {!hasMonthlyCard ? (
             <Button
               type="button"

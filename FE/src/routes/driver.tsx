@@ -1219,8 +1219,6 @@ function DriverPage() {
                         vehicleTypes={vehicleTypes}
                         pendingReservation={findPendingReservationForVehicle(vehicle._id, reservations)}
                         parkingSession={sessionsByVehicleId.get(vehicle._id) ?? null}
-                        reservations={reservations}
-                        vehicleParkingSessions={vehicleParkingSessions}
                         isDeleting={deletingVehicleId === vehicle._id}
                         isSubscribing={
                           subscribeMonthlyMutation.isPending && subscribingVehicleId === vehicle._id
