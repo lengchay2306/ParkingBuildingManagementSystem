@@ -68,7 +68,7 @@ export function AdminResourcesPanel({ className }: AdminResourcesPanelProps) {
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex flex-wrap gap-2">
+      <div className="api-toolbar flex flex-wrap gap-2">
         {(
           [
             ["floors", "Tầng"],
@@ -81,8 +81,9 @@ export function AdminResourcesPanel({ className }: AdminResourcesPanelProps) {
             key={id}
             type="button"
             size="sm"
-            variant={tab === id ? "default" : "outline"}
-            className="rounded-xl"
+            variant="ghost"
+            className="api-tab rounded-xl"
+            data-active={tab === id}
             onClick={() => setTab(id)}
           >
             {label}
@@ -204,7 +205,7 @@ function FloorsAdmin() {
         empty="Chưa có tầng."
         items={floorsQuery.data?.floors ?? []}
         renderItem={(floor: Floor) => (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+          <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
               type="button"
               className="min-w-0 flex-1 text-left"
@@ -408,7 +409,7 @@ function PricePoliciesAdmin() {
         empty="Chưa có bảng giá."
         items={policiesQuery.data?.pricePolicies ?? []}
         renderItem={(policy: AdminPricePolicy) => (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+          <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
               type="button"
               className="min-w-0 flex-1 text-left"
@@ -627,7 +628,7 @@ function SlotsAdmin() {
               ? slot.floorId.floorName
               : floorNameById.get(floorKey) ?? floorKey;
           return (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+            <div className="api-row flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3">
               <button
                 type="button"
                 className="min-w-0 flex-1 text-left"
@@ -809,7 +810,7 @@ function SessionsAdmin() {
         empty="Chưa có phiên admin."
         items={sessionsQuery.data?.parkingSessions ?? []}
         renderItem={(session: AdminParkingSession) => (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
+          <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
               type="button"
               className="min-w-0 flex-1 text-left"
@@ -890,8 +891,8 @@ function AdminCrudShell({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="api-section space-y-4 p-4 md:p-5">
+      <div className="api-header -mx-4 -mt-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3 md:-mx-5 md:-mt-5 md:px-5">
         <h3 className="text-lg font-semibold">{title}</h3>
         <Button type="button" size="sm" variant="outline" className="rounded-xl" onClick={onRefresh}>
           <RefreshCw className="size-3.5" />

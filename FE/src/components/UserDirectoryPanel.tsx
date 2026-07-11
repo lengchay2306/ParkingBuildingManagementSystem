@@ -459,7 +459,7 @@ export function UserDirectoryPanel({
   return (
     <section
       className={cn(
-        tableOnly ? "flex h-full min-h-0 flex-col" : "dashboard-section overflow-hidden p-0",
+        tableOnly ? "flex h-full min-h-0 flex-col" : "api-section overflow-hidden p-0",
         className,
       )}
     >
@@ -504,7 +504,7 @@ export function UserDirectoryPanel({
           </div>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-5 py-4">
+        <div className="api-header flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div>
             <div className="flex items-center gap-2 text-base font-semibold text-foreground">
               <UsersRound className="size-4 text-primary" />
@@ -546,7 +546,7 @@ export function UserDirectoryPanel({
 
       <div
         className={cn(
-          "grid gap-2 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+          "api-table-head grid gap-2 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
           allowDelete
             ? "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_48px]"
             : "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr]",
@@ -628,8 +628,8 @@ export function UserDirectoryPanel({
       </div>
 
       <Dialog open={isDetailOpen} onOpenChange={handleDetailOpenChange}>
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-2xl">
-          <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-2xl">
+          <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
             <DialogHeader>
               <DialogTitle>{isEditing ? "Sửa người dùng" : "Chi tiết người dùng"}</DialogTitle>
               <DialogDescription>
@@ -745,7 +745,7 @@ export function UserDirectoryPanel({
                       Xe đã đăng ký ({selectedUser.vehicles?.length ?? 0})
                     </span>
                   </Label>
-                  <div className="rounded-xl border border-border">
+                  <div className="rounded-xl border border-border/70 bg-card/60">
                     {(selectedUser.vehicles ?? []).length > 0 ? (
                       <div className="divide-y divide-border">
                         {(selectedUser.vehicles ?? []).map((vehicle) => (
@@ -809,7 +809,7 @@ export function UserDirectoryPanel({
                                   </Select>
                                 </div>
 
-                                <div className="rounded-xl border border-border bg-background/40 p-3">
+                                <div className="rounded-xl border border-border/70 bg-background/50 p-3">
                                   <Label className="text-xs">Thẻ tháng</Label>
                                   <div className="mt-1">
                                     <MonthlyCardDetails vehicle={vehicle} detailed />
@@ -957,8 +957,8 @@ export function UserDirectoryPanel({
       </Dialog>
 
       <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-2xl">
-          <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-2xl">
+          <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
             <DialogHeader>
               <DialogTitle>Tạo tài khoản</DialogTitle>
               <DialogDescription>
@@ -1110,7 +1110,7 @@ export function UserDirectoryPanel({
           }
         }}
       >
-        <AlertDialogContent className="rounded-2xl border-border bg-card">
+        <AlertDialogContent className="rounded-2xl border-border/70 bg-card">
           <AlertDialogHeader>
             <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1164,7 +1164,7 @@ function UserRow({
   const rowContent = (
     <>
       <div className="flex min-w-0 items-center gap-2.5">
-        <div className="grid size-7 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] font-semibold">
+        <div className="grid size-7 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/15 font-mono text-[11px] font-semibold text-primary">
           {getInitials(user.fullName)}
         </div>
         <span className="truncate font-medium">{user.fullName}</span>
@@ -1194,14 +1194,14 @@ function UserRow({
     return (
       <div
         className={cn(
-          "grid items-center gap-2 px-5 py-3.5 text-sm transition-colors hover:bg-secondary/60",
+          "api-row grid items-center gap-2 px-5 py-3.5 text-sm transition-colors",
           "grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr_48px]",
         )}
       >
         <button
           type="button"
           onClick={onSelect}
-          className="col-span-5 grid cursor-pointer grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 rounded-lg text-left transition-colors hover:bg-background/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="col-span-5 grid cursor-pointer grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 rounded-lg text-left transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={`Xem hồ sơ ${user.fullName}`}
         >
           {rowContent}
@@ -1227,7 +1227,7 @@ function UserRow({
       type="button"
       onClick={onSelect}
       className={cn(
-        "grid w-full grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 px-5 py-3.5 text-left text-sm transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "api-row grid w-full grid-cols-[1.2fr_1.1fr_0.7fr_0.7fr_0.75fr] items-center gap-2 px-5 py-3.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
       )}
       aria-label={`Xem hồ sơ ${user.fullName}`}
     >

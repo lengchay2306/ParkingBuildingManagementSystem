@@ -63,17 +63,19 @@ export function ParkingSessionDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Thông tin xe đang gửi</DialogTitle>
-          <DialogDescription>
-            Slot {resolvedSlotNumber}
-            {floorName ? ` · ${floorName}` : ""}
-            {isGuest ? " · Khách vãng lai" : ""}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
+        <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+          <DialogHeader>
+            <DialogTitle>Thông tin xe đang gửi</DialogTitle>
+            <DialogDescription>
+              Slot {resolvedSlotNumber}
+              {floorName ? ` · ${floorName}` : ""}
+              {isGuest ? " · Khách vãng lai" : ""}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
           <section className="space-y-3">
             <SectionHeading>Trạng thái</SectionHeading>
             <Badge className="border border-emerald-400/40 bg-emerald-500/10 text-emerald-500" variant="outline">
@@ -154,16 +156,12 @@ export function ParkingSessionDetailDialog({
 }
 
 function SectionHeading({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-      {children}
-    </h3>
-  );
+  return <h3 className="ui-section-kicker">{children}</h3>;
 }
 
 function DetailGrid({ children }: { children: ReactNode }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 rounded-xl border border-border bg-secondary/50 p-4 sm:grid-cols-[120px_1fr]">
+    <dl className="ui-detail-grid grid grid-cols-1 gap-x-3 gap-y-2.5 p-4 sm:grid-cols-[120px_1fr]">
       {children}
     </dl>
   );

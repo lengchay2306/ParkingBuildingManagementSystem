@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import {
+  CalendarDays,
   CreditCard,
   CarFront,
   CheckCircle2,
@@ -27,10 +28,12 @@ import { DriverChatbotWidget } from "@/components/chatbot/DriverChatbotWidget";
 import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import {
   DashboardEmptyState,
+  DashboardClientPagination,
   DashboardLegend,
   DashboardMain,
   DashboardSection,
   DashboardSectionHeader,
+  paginateItems,
 } from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,6 +178,8 @@ const emptyVehicles: Vehicle[] = [];
 const emptyParkingFloors: ParkingFloor[] = [];
 const emptyParkingSlots: ParkingSlot[] = [];
 const emptyReservations: Reservation[] = [];
+const RESERVATION_HISTORY_PAGE_SIZE = 5;
+const VEHICLE_PAGE_SIZE = 5;
 
 function DriverPage() {
   const queryClient = useQueryClient();
@@ -207,6 +212,8 @@ function DriverPage() {
   const [subscribingVehicleId, setSubscribingVehicleId] = useState<string | null>(null);
   const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(false);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
+  const [reservationHistoryPage, setReservationHistoryPage] = useState(1);
+  const [vehiclePage, setVehiclePage] = useState(1);
   const [viewingHistoryReservation, setViewingHistoryReservation] = useState<Reservation | null>(null);
   const [expectedArrivalDate, setExpectedArrivalDate] = useState(getDefaultExpectedArrivalDate);
   const [expectedArrivalTime, setExpectedArrivalTime] = useState(getDefaultExpectedArrivalTime);
@@ -472,6 +479,27 @@ function DriverPage() {
       ),
     [reservations, reservationHistoryDate],
   );
+  const reservationHistoryPagination = useMemo(
+    () =>
+      paginateItems(
+        filteredHistoryReservations,
+        reservationHistoryPage,
+        RESERVATION_HISTORY_PAGE_SIZE,
+      ),
+    [filteredHistoryReservations, reservationHistoryPage],
+  );
+  const vehiclePagination = useMemo(
+    () => paginateItems(vehicles, vehiclePage, VEHICLE_PAGE_SIZE),
+    [vehicles, vehiclePage],
+  );
+
+  useEffect(() => {
+    setReservationHistoryPage(1);
+  }, [reservationHistoryDate]);
+
+  useEffect(() => {
+    setVehiclePage(1);
+  }, [vehicles.length]);
   const myPendingReservations = reservations.filter(
     (reservation) => reservation.status === "PENDING",
   );
@@ -892,7 +920,7 @@ function DriverPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="portal-shell portal-shell--driver min-h-screen">
       <SiteHeader />
       <DashboardMain wide>
         <DashboardSection>
@@ -900,11 +928,11 @@ function DriverPage() {
             <button
               type="button"
               onClick={() => handleProfileOpenChange(true)}
-              className="flex min-h-[5.5rem] min-w-0 flex-1 cursor-pointer items-center gap-4 rounded-2xl border border-transparent p-4 text-left transition-colors hover:border-border hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-w-[280px]"
+              className="ui-profile-hero flex min-h-[5.5rem] min-w-0 flex-1 cursor-pointer items-center gap-4 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:min-w-[280px]"
               aria-label="Xem hồ sơ"
             >
               <div className="relative">
-                <div className="grid size-20 place-items-center rounded-full border border-border bg-secondary">
+                <div className="ui-profile-avatar grid size-20 place-items-center">
                   <UserRound className="size-10 text-muted-foreground" />
                 </div>
                 <span className="absolute bottom-1 right-1 size-3 rounded-full bg-status-empty ring-2 ring-card" />
@@ -923,8 +951,8 @@ function DriverPage() {
 
             <div className="flex flex-wrap items-center gap-2 self-center">
               <Dialog open={isProfileOpen} onOpenChange={handleProfileOpenChange}>
-                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 sm:max-w-lg">
-                  <div className="shrink-0 border-b border-border px-6 pb-4 pt-6">
+                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-lg">
+                  <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
                     <DialogHeader>
                       <DialogTitle>Hồ sơ của tôi</DialogTitle>
                       <DialogDescription>Thông tin tài khoản của tài xế hiện tại.</DialogDescription>
@@ -943,7 +971,30 @@ function DriverPage() {
                       </div>
                     ) : profile ? (
                       <div className="space-y-6">
-                        <div className="grid gap-4">
+                        <div className="ui-dialog-summary">
+                          <div className="ui-profile-avatar grid size-14 shrink-0 place-items-center">
+                            <UserRound className="size-7 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-semibold">{profile.fullName}</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                                {getProfileRoleName(profile)}
+                              </span>
+                              <span
+                                className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                                  profile.status === "ACTIVE"
+                                    ? "border-status-empty/45 bg-status-empty/15 text-status-empty"
+                                    : "border-border bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {profile.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="ui-detail-grid grid gap-4 p-4">
                           <div className="grid gap-2">
                             <Label htmlFor="profile-full-name">Họ tên</Label>
                             <Input
@@ -958,11 +1009,13 @@ function DriverPage() {
                             <div className="grid gap-2">
                               <Label htmlFor="profile-email">Email</Label>
                               <div className="relative">
-                                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <div className="ui-field-icon pointer-events-none absolute left-2 top-1/2 size-7 -translate-y-1/2">
+                                  <Mail className="size-3.5" />
+                                </div>
                                 <Input
                                   id="profile-email"
                                   value={profile.email}
-                                  className="h-11 rounded-xl pl-9"
+                                  className="h-11 rounded-xl pl-11"
                                   readOnly
                                 />
                               </div>
@@ -971,36 +1024,16 @@ function DriverPage() {
                             <div className="grid gap-2">
                               <Label htmlFor="profile-phone">Số điện thoại</Label>
                               <div className="relative">
-                                <Phone className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <div className="ui-field-icon pointer-events-none absolute left-2 top-1/2 size-7 -translate-y-1/2">
+                                  <Phone className="size-3.5" />
+                                </div>
                                 <Input
                                   id="profile-phone"
                                   value={profile.phone}
-                                  className="h-11 rounded-xl pl-9"
+                                  className="h-11 rounded-xl pl-11"
                                   readOnly
                                 />
                               </div>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            <div className="grid gap-2">
-                              <Label htmlFor="profile-role">Vai trò</Label>
-                              <Input
-                                id="profile-role"
-                                value={getProfileRoleName(profile)}
-                                className="h-11 rounded-xl"
-                                readOnly
-                              />
-                            </div>
-
-                            <div className="grid gap-2">
-                              <Label htmlFor="profile-status">Trạng thái</Label>
-                              <Input
-                                id="profile-status"
-                                value={profile.status}
-                                className="h-11 rounded-xl"
-                                readOnly
-                              />
                             </div>
                           </div>
 
@@ -1032,15 +1065,17 @@ function DriverPage() {
               </Dialog>
 
               <Dialog open={isChangePasswordOpen} onOpenChange={handleChangePasswordOpenChange}>
-                <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Đổi mật khẩu</DialogTitle>
-                    <DialogDescription>
-                      Nhập mật khẩu hiện tại và mật khẩu mới để cập nhật.
-                    </DialogDescription>
-                  </DialogHeader>
+                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+                  <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                    <DialogHeader>
+                      <DialogTitle>Đổi mật khẩu</DialogTitle>
+                      <DialogDescription>
+                        Nhập mật khẩu hiện tại và mật khẩu mới để cập nhật.
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
 
-                  <form onSubmit={handleChangePasswordSubmit} className="grid gap-4">
+                  <form onSubmit={handleChangePasswordSubmit} className="grid gap-4 px-6 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="profile-old-password">Mật khẩu hiện tại</Label>
                       <Input
@@ -1132,13 +1167,15 @@ function DriverPage() {
                     Sửa hồ sơ
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Sửa hồ sơ</DialogTitle>
-                    <DialogDescription>Cập nhật họ tên và số điện thoại của bạn.</DialogDescription>
-                  </DialogHeader>
+                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+                  <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                    <DialogHeader>
+                      <DialogTitle>Sửa hồ sơ</DialogTitle>
+                      <DialogDescription>Cập nhật họ tên và số điện thoại của bạn.</DialogDescription>
+                    </DialogHeader>
+                  </div>
 
-                  <form onSubmit={handleEditProfileSubmit} className="grid gap-4">
+                  <form onSubmit={handleEditProfileSubmit} className="grid gap-4 px-6 py-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-profile-full-name">Họ tên</Label>
                       <Input
@@ -1231,7 +1268,7 @@ function DriverPage() {
                 aria-label="Làm mới danh sách xe"
                 onClick={() => void vehiclesQuery.refetch()}
                 disabled={vehiclesQuery.isFetching}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-secondary text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary transition-all hover:-translate-y-px hover:bg-primary/18 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw className={`size-4 ${vehiclesQuery.isFetching ? "animate-spin" : ""}`} />
               </button>
@@ -1243,49 +1280,63 @@ function DriverPage() {
                     Thêm xe
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Thêm xe mới</DialogTitle>
-                    <DialogDescription>
-                      Nhập biển số và loại xe để đăng ký vào tài khoản của bạn.
-                    </DialogDescription>
-                  </DialogHeader>
+                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+                  <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                    <DialogHeader>
+                      <DialogTitle>Thêm xe mới</DialogTitle>
+                      <DialogDescription>
+                        Nhập biển số và loại xe để đăng ký vào tài khoản của bạn.
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
 
-                  <form onSubmit={handleVehicleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="vehicle-license-plate">Biển số</Label>
-                      <Input
-                        id="vehicle-license-plate"
-                        value={licensePlate}
-                        onChange={(event) => setLicensePlate(event.target.value.toUpperCase())}
-                        autoCapitalize="characters"
-                        autoComplete="off"
-                        inputMode="text"
-                        placeholder="51A-12345"
-                        className="h-11 rounded-xl font-mono tracking-wide"
-                      />
-                    </div>
+                  <form onSubmit={handleVehicleSubmit} className="space-y-4 px-6 py-4">
+                    <div className="ui-form-panel space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="ui-field-icon size-10">
+                          <CarFront className="size-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">Đăng ký xe mới</p>
+                          <p className="text-xs text-muted-foreground">Nhập biển số và chọn loại xe phù hợp.</p>
+                        </div>
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="vehicle-type">Loại xe</Label>
-                      <Select
-                        value={vehicleTypeId}
-                        onValueChange={setVehicleTypeId}
-                        disabled={isVehicleTypeLoading}
-                      >
-                        <SelectTrigger id="vehicle-type" className="h-11 rounded-xl">
-                          <SelectValue
-                            placeholder={isVehicleTypeLoading ? "Đang tải loại xe..." : "Chọn loại xe"}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vehicleTypes.map((type) => (
-                            <SelectItem key={type._id} value={type._id}>
-                              {type.type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicle-license-plate">Biển số</Label>
+                        <Input
+                          id="vehicle-license-plate"
+                          value={licensePlate}
+                          onChange={(event) => setLicensePlate(event.target.value.toUpperCase())}
+                          autoCapitalize="characters"
+                          autoComplete="off"
+                          inputMode="text"
+                          placeholder="51A-12345"
+                          className="h-11 rounded-xl font-mono tracking-wide"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicle-type">Loại xe</Label>
+                        <Select
+                          value={vehicleTypeId}
+                          onValueChange={setVehicleTypeId}
+                          disabled={isVehicleTypeLoading}
+                        >
+                          <SelectTrigger id="vehicle-type" className="h-11 rounded-xl">
+                            <SelectValue
+                              placeholder={isVehicleTypeLoading ? "Đang tải loại xe..." : "Chọn loại xe"}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicleTypes.map((type) => (
+                              <SelectItem key={type._id} value={type._id}>
+                                {type.type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     {vehicleFormError || vehicleTypeError ? (
@@ -1332,47 +1383,61 @@ function DriverPage() {
           </div>
 
           <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
-            <DialogContent className="rounded-2xl border-border bg-card sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Sửa xe</DialogTitle>
-                <DialogDescription>Cập nhật biển số hoặc loại xe.</DialogDescription>
-              </DialogHeader>
+            <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+              <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                <DialogHeader>
+                  <DialogTitle>Sửa xe</DialogTitle>
+                  <DialogDescription>Cập nhật biển số hoặc loại xe.</DialogDescription>
+                </DialogHeader>
+              </div>
 
-              <form onSubmit={handleEditVehicleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-vehicle-license-plate">Biển số</Label>
-                  <Input
-                    id="edit-vehicle-license-plate"
-                    value={editVehicleLicensePlate}
-                    onChange={(event) =>
-                      setEditVehicleLicensePlate(event.target.value.toUpperCase())
-                    }
-                    autoCapitalize="characters"
-                    autoComplete="off"
-                    inputMode="text"
-                    placeholder="51A-12345"
-                    className="h-11 rounded-xl font-mono tracking-wide"
-                  />
-                </div>
+              <form onSubmit={handleEditVehicleSubmit} className="space-y-4 px-6 py-4">
+                <div className="ui-form-panel space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="ui-field-icon size-10">
+                      <CarFront className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Thông tin xe</p>
+                      <p className="text-xs text-muted-foreground">Cập nhật biển số và loại xe đã đăng ký.</p>
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="edit-vehicle-type">Loại xe</Label>
-                  <Select
-                    value={editVehicleTypeId}
-                    onValueChange={setEditVehicleTypeId}
-                    disabled={vehicleTypesQuery.isLoading && vehicleTypes.length === 0}
-                  >
-                    <SelectTrigger id="edit-vehicle-type" className="h-11 rounded-xl">
-                      <SelectValue placeholder="Chọn loại xe" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicleTypes.map((type) => (
-                        <SelectItem key={type._id} value={type._id}>
-                          {type.type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-vehicle-license-plate">Biển số</Label>
+                    <Input
+                      id="edit-vehicle-license-plate"
+                      value={editVehicleLicensePlate}
+                      onChange={(event) =>
+                        setEditVehicleLicensePlate(event.target.value.toUpperCase())
+                      }
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      inputMode="text"
+                      placeholder="51A-12345"
+                      className="h-11 rounded-xl font-mono tracking-wide"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-vehicle-type">Loại xe</Label>
+                    <Select
+                      value={editVehicleTypeId}
+                      onValueChange={setEditVehicleTypeId}
+                      disabled={vehicleTypesQuery.isLoading && vehicleTypes.length === 0}
+                    >
+                      <SelectTrigger id="edit-vehicle-type" className="h-11 rounded-xl">
+                        <SelectValue placeholder="Chọn loại xe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicleTypes.map((type) => (
+                          <SelectItem key={type._id} value={type._id}>
+                            {type.type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {editVehicleError ? (
@@ -1403,7 +1468,7 @@ function DriverPage() {
           </Dialog>
 
           {isVehiclesExpanded ? (
-            <div className="dashboard-panel mt-4 max-h-72 overflow-y-auto">
+            <div className="dashboard-panel mt-4">
             {vehiclesQuery.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
                 <LoaderCircle className="size-4 animate-spin" />
@@ -1412,17 +1477,18 @@ function DriverPage() {
             ) : vehicleListError ? (
               <div className="p-4 text-sm text-destructive">{vehicleListError}</div>
             ) : vehicles.length > 0 ? (
-              vehicles.map((vehicle) => {
+              <>
+              {vehiclePagination.items.map((vehicle) => {
                 const isInactive = vehicle.status === "INACTIVE";
                 return (
                 <div
                   key={vehicle._id}
-                  className={`flex flex-wrap items-center justify-between gap-3 border-t border-border/70 p-4 first:border-t-0 ${
+                  className={`ui-vehicle-row flex flex-wrap items-center justify-between gap-3 p-4 first:border-t-0 ${
                     isInactive ? "opacity-50" : ""
                   }`}
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-background/65">
+                    <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary/10">
                       <CarFront className={`size-5 ${isInactive ? "text-muted-foreground" : "text-primary"}`} />
                     </div>
                     <div className="min-w-0">
@@ -1503,7 +1569,16 @@ function DriverPage() {
                   </div>
                 </div>
               );
-              })
+              })}
+              <DashboardClientPagination
+                page={vehiclePagination.page}
+                totalPages={vehiclePagination.totalPages}
+                totalItems={vehiclePagination.totalItems}
+                onPageChange={setVehiclePage}
+                disabled={vehiclesQuery.isFetching}
+                className="px-4 pb-4"
+              />
+              </>
             ) : (
               <div className="p-4 text-sm text-muted-foreground">
                 Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
@@ -1526,11 +1601,11 @@ function DriverPage() {
                   onClick={() => handleQuickActionClick(action.id)}
                   className={`rounded-xl border px-4 py-4 text-left transition ${
                     isActionHighlighted
-                      ? "border-primary/50 bg-primary/15 shadow-sm"
-                      : "border-border bg-secondary hover:bg-secondary/80"
+                      ? "border-primary/55 bg-primary/15 shadow-[0_10px_24px_-14px_hsl(var(--primary))]"
+                      : "border-border/80 bg-secondary/80 hover:-translate-y-px hover:border-primary/35 hover:bg-secondary"
                   }`}
                 >
-                  <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card">
+                  <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
                     <Icon className="size-4 text-primary" />
                   </div>
                   <h2 className="text-base font-semibold tracking-tight">{action.title}</h2>
@@ -1569,16 +1644,19 @@ function DriverPage() {
               }
             />
 
-            <div className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="mt-4 flex flex-wrap items-end gap-3 ui-filter-row">
               <div className="space-y-2">
                 <Label htmlFor="reservation-history-date">Ngày</Label>
-                <Input
-                  id="reservation-history-date"
-                  type="date"
-                  value={reservationHistoryDate}
-                  onChange={(event) => setReservationHistoryDate(event.target.value)}
-                  className="h-10 w-full min-w-[180px] rounded-xl sm:w-auto"
-                />
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+                  <Input
+                    id="reservation-history-date"
+                    type="date"
+                    value={reservationHistoryDate}
+                    onChange={(event) => setReservationHistoryDate(event.target.value)}
+                    className="h-10 w-full min-w-[180px] rounded-xl pr-10 sm:w-auto"
+                  />
+                </div>
               </div>
               {reservationHistoryDate !== getLocalDateInputValue() ? (
                 <Button
@@ -1593,8 +1671,8 @@ function DriverPage() {
             </div>
 
             {myReservationsQuery.isLoading ? (
-              <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border bg-background/40 px-4 py-3 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin" />
+              <div className="api-empty mt-4 flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                <LoaderCircle className="size-4 animate-spin text-primary" />
                 Đang tải đặt chỗ...
               </div>
             ) : myReservationsError ? (
@@ -1603,7 +1681,7 @@ function DriverPage() {
               </div>
             ) : filteredHistoryReservations.length > 0 ? (
               <div className="mt-4 space-y-3">
-                {filteredHistoryReservations.map((reservation) => {
+                {reservationHistoryPagination.items.map((reservation) => {
                   const reservationSlotId = getReservationSlotId(reservation);
                   const parkingSession = findSessionForReservation(
                     reservation,
@@ -1623,25 +1701,30 @@ function DriverPage() {
                           setViewingHistoryReservation(reservation);
                         }
                       }}
-                      className="w-full cursor-pointer rounded-xl border border-border bg-secondary p-4 text-left transition hover:border-primary/40 hover:bg-secondary/80"
+                      className="ui-reservation-card w-full cursor-pointer p-4 text-left"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-mono text-sm font-semibold">
-                            {getReservationSlotLabel(reservation)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Xe: {getReservationVehicleLabel(reservation) ?? "Không có"}
-                          </p>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="ui-slot-chip size-11 shrink-0">
+                            <MapPin className="size-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-mono text-sm font-semibold">
+                              {getReservationSlotLabel(reservation)}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              Xe: {getReservationVehicleLabel(reservation) ?? "Không có"}
+                            </p>
+                          </div>
                         </div>
                         <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getReservationStatusBadge(displayStatus)}`}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getReservationStatusBadge(displayStatus)}`}
                         >
                           {getReservationStatusLabel(displayStatus)}
                         </span>
                       </div>
 
-                      <div className="mt-3 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground sm:grid-cols-2">
                         <p>
                           Thời gian đến:{" "}
                           {reservation.expectedArrival
@@ -1692,11 +1775,18 @@ function DriverPage() {
                     </div>
                   );
                 })}
+                <DashboardClientPagination
+                  page={reservationHistoryPagination.page}
+                  totalPages={reservationHistoryPagination.totalPages}
+                  totalItems={reservationHistoryPagination.totalItems}
+                  onPageChange={setReservationHistoryPage}
+                  disabled={myReservationsQuery.isFetching}
+                />
               </div>
             ) : (
-              <DashboardEmptyState className="mt-4 text-left">
+              <div className="api-empty mt-4 px-4 py-8 text-center text-sm text-muted-foreground">
                 Không có đặt chỗ nào vào {formatReservationHistoryDateLabel(reservationHistoryDate)}.
-              </DashboardEmptyState>
+              </div>
             )}
           </DashboardSection>
         ) : null}
@@ -1783,7 +1873,7 @@ function DriverPage() {
                         type="button"
                         disabled={!isSelectable}
                         onClick={() => setSelectedSpotId(slot._id)}
-                        className={`relative flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center text-sm font-semibold transition ${slotStyle} ${
+                        className={`relative flex h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1.5 py-1 text-center text-sm font-semibold shadow-[0_10px_24px_-18px_hsl(var(--primary))] transition-all ${slotStyle} ${
                           isSelected ? "border-primary ring-2 ring-inset ring-primary/70" : ""
                         } ${isSelectable ? "cursor-pointer" : ""}`}
                         aria-label={`${slot.slotNumber} (${slotLabel})`}
@@ -1823,18 +1913,21 @@ function DriverPage() {
           }
         }}
       >
-        <DialogContent className="max-w-md rounded-2xl border-border bg-card">
+        <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
           {selectedSpot ? (
             <>
-              <DialogHeader>
-                <DialogTitle>Đặt chỗ đỗ xe</DialogTitle>
-                <DialogDescription>
-                  Slot {selectedSpot.slotNumber}
-                  {selectedFloor ? ` · ${selectedFloor.floorName}` : ""}
-                </DialogDescription>
-              </DialogHeader>
+              <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                <DialogHeader>
+                  <DialogTitle>Đặt chỗ đỗ xe</DialogTitle>
+                  <DialogDescription>
+                    Slot {selectedSpot.slotNumber}
+                    {selectedFloor ? ` · ${selectedFloor.floorName}` : ""}
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-border bg-secondary px-4 py-3">
+              <div className="space-y-3 px-6 py-4">
+              <div className="flex items-center justify-between rounded-xl border border-primary/25 bg-primary/10 px-4 py-3">
                 <span className="font-mono text-sm font-semibold">{selectedSpot.slotNumber}</span>
                 <span
                   className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
@@ -1951,6 +2044,7 @@ function DriverPage() {
                     </>
                   )}
                 </Button>
+              </div>
               </div>
             </>
           ) : null}

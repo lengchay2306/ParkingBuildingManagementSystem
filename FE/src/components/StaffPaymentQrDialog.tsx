@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, QrCode } from "lucide-react";
 
 import { VietQrImage } from "@/components/VietQrImage";
 import { Button } from "@/components/ui/button";
@@ -34,41 +34,40 @@ export function StaffPaymentQrDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-md overflow-y-auto rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Thanh toán VietQR</DialogTitle>
-          <DialogDescription>
-            Quét mã để thanh toán phí gửi xe
-            {licensePlate ? ` · ${licensePlate}` : ""}. Sau khi khách chuyển khoản, bấm xác nhận.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
+        <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+          <DialogHeader>
+            <DialogTitle>Thanh toán VietQR</DialogTitle>
+            <DialogDescription>
+              Quét mã để thanh toán phí gửi xe
+              {licensePlate ? ` · ${licensePlate}` : ""}. Sau khi khách chuyển khoản, bấm xác nhận.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-secondary/50 p-4">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
+          <div className="ui-detail-grid grid grid-cols-2 gap-3 p-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Số tiền
-              </p>
+              <p className="ui-section-kicker">Số tiền</p>
               <p className="mt-1 text-lg font-semibold text-primary">{formatVnd(bill.amount)}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Thời gian
-              </p>
+              <p className="ui-section-kicker">Thời gian</p>
               <p className="mt-1 text-lg font-semibold">
                 {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} giờ` : "—"}
               </p>
             </div>
             <div className="col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                Mã đơn
-              </p>
+              <p className="ui-section-kicker">Mã đơn</p>
               <p className="mt-1 font-mono text-sm font-medium">{bill.orderCode}</p>
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-4">
-            <VietQrImage qrCode={bill.qrCode} size={280} className="size-[280px]" />
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4">
+            <div className="ui-field-icon size-10">
+              <QrCode className="size-5" />
+            </div>
+            <VietQrImage qrCode={bill.qrCode} size={280} className="size-[280px] rounded-xl" />
             <p className="text-center text-xs text-muted-foreground">
               Khách quét bằng app ngân hàng. Không đóng hộp thoại trước khi xác nhận.
             </p>
@@ -76,7 +75,7 @@ export function StaffPaymentQrDialog({
 
           <Button
             type="button"
-            className="w-full rounded-xl"
+            className="h-11 w-full rounded-xl text-[13px] font-semibold"
             disabled={isConfirming}
             onClick={onConfirmPayment}
           >

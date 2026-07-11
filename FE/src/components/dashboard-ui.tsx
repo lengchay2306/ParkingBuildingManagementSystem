@@ -1,5 +1,7 @@
 import { forwardRef, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type DashboardMainProps = {
@@ -64,11 +66,12 @@ export function DashboardTabs<T extends string>({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
+            data-active={isActive}
             className={cn(
-              "rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+              "rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                ? "border-primary/50 bg-primary/15 text-primary shadow-[0_8px_22px_-14px_hsl(var(--primary))]"
+                : "border-transparent text-muted-foreground hover:border-border hover:bg-secondary hover:text-foreground",
             )}
           >
             {tab.label}
@@ -177,4 +180,80 @@ export function DashboardLoadingState({ label }: { label: string }) {
       {label}
     </div>
   );
+}
+
+type DashboardClientPaginationProps = {
+  page: number;
+  totalPages: number;
+  totalItems?: number;
+  onPageChange: (page: number) => void;
+  disabled?: boolean;
+  className?: string;
+};
+
+export function DashboardClientPagination({
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+  disabled = false,
+  className,
+}: DashboardClientPaginationProps) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const canGoBack = page > 1;
+  const canGoNext = page < totalPages;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between border-t border-border pt-4",
+        className,
+      )}
+    >
+      <span className="font-mono text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
+        Trang {page} / {totalPages}
+        {totalItems !== undefined ? ` · ${totalItems} mục` : ""}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!canGoBack || disabled}
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          className="h-8 rounded-xl px-3"
+        >
+          <ChevronLeft className="size-3.5" />
+          Trước
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={!canGoNext || disabled}
+          onClick={() => onPageChange(page + 1)}
+          className="h-8 rounded-xl px-3"
+        >
+          Sau
+          <ChevronRight className="size-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function paginateItems<T>(items: T[], page: number, pageSize: number) {
+  const totalPages = Math.max(Math.ceil(items.length / pageSize), 1);
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    totalPages,
+    page: safePage,
+    totalItems: items.length,
+  };
 }
