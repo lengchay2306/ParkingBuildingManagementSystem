@@ -34,18 +34,20 @@ class ParkingController {
     createNewParkingSession = async (req, res, next) => {
         try {
             const { 
-                phone, 
-                licensePlate,
-                // parkingSlotId,
+                // phone, 
+                // licensePlate,
+                // // parkingSlotId,
+                reservationId,
             } = req.body
 
             const { userId } = req.user
 
             const newParkingSession = await this.#parkingService.createNewParkingSession({
-                phone,
-                licensePlate,
+                // phone,
+                // licensePlate,
                 staffId: userId,
                 // parkingSlotId,
+                reservationId,
             })
 
             res.status(201).json({
