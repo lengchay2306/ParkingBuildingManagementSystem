@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { MapPin, RefreshCw, X } from "lucide-react";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
+import {
+  StaffLotSlotFilterDialog,
+  type LotSlotFilterSelection,
+} from "@/components/staff/StaffLotSlotFilterDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,24 +46,38 @@ export function StaffLotSessionsPanel({
   isCheckingOut = false,
 }: StaffLotSessionsPanelProps) {
   const [search, setSearch] = useState("");
+  const [selectedSlotFilter, setSelectedSlotFilter] = useState<LotSlotFilterSelection | null>(null);
+  const [isSlotFilterOpen, setIsSlotFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [viewingSession, setViewingSession] = useState<ParkingSession | null>(null);
 
   const activeSessions = useMemo(
-    () => sessions.filter((session) => session.status === "ACTIVE"),
+    () =>
+      sortSessionsByCheckInAsc(
+        sessions.filter((session) => session.status === "ACTIVE"),
+      ),
     [sessions],
   );
 
   const filtered = useMemo(() => {
-    const query = search.trim().toUpperCase();
-    if (!query) {
-      return activeSessions;
+    let list = activeSessions;
+
+    if (selectedSlotFilter) {
+      list = list.filter(
+        (session) => getParkingSessionSlotId(session) === selectedSlotFilter.slotId,
+      );
     }
-    return activeSessions.filter((session) => {
-      const plate = getSessionLicensePlate(session)?.toUpperCase() ?? "";
-      return plate.includes(query);
-    });
-  }, [activeSessions, search]);
+
+    const query = search.trim().toUpperCase();
+    if (query) {
+      list = list.filter((session) => {
+        const plate = getSessionLicensePlate(session)?.toUpperCase() ?? "";
+        return plate.includes(query);
+      });
+    }
+
+    return list;
+  }, [activeSessions, search, selectedSlotFilter]);
 
   const pagination = paginateItems(filtered, page, pageSize);
   const viewingSlotId = viewingSession ? getParkingSessionSlotId(viewingSession) : null;
@@ -92,23 +110,66 @@ export function StaffLotSessionsPanel({
         </Button>
       </div>
 
-      <div className="mb-4 max-w-md space-y-2">
-        <Label htmlFor="lot-plate-search">Tìm biển số</Label>
-        <Input
-          id="lot-plate-search"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          placeholder="51A-123.45"
-          className="rounded-xl font-mono"
-        />
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+        <div className="w-full min-w-[200px] max-w-md flex-1 space-y-2">
+          <Label htmlFor="lot-plate-search">Tìm biển số</Label>
+          <Input
+            id="lot-plate-search"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="51A-123.45"
+            className="rounded-xl font-mono"
+          />
+        </div>
+
+        <div className="w-full min-w-[200px] max-w-md flex-1 space-y-2">
+          <Label htmlFor="lot-slot-filter-trigger">Tìm theo ô</Label>
+          <div className="flex items-center gap-2">
+            <Button
+              id="lot-slot-filter-trigger"
+              type="button"
+              variant="secondary"
+              onClick={() => setIsSlotFilterOpen(true)}
+              className="h-10 min-w-0 flex-1 justify-start rounded-xl px-3 font-normal"
+            >
+              <MapPin className="size-4 shrink-0 text-primary" />
+              <span className="truncate font-mono text-sm">
+                {selectedSlotFilter
+                  ? `${selectedSlotFilter.slotNumber} · ${selectedSlotFilter.floor.floorName}`
+                  : "Chọn ô đỗ"}
+              </span>
+            </Button>
+            {selectedSlotFilter ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedSlotFilter(null);
+                  setPage(1);
+                }}
+                className="size-10 shrink-0 rounded-xl"
+                aria-label="Xóa lọc theo ô"
+              >
+                <X className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <DashboardEmptyState>
-          {search.trim() ? "Không tìm thấy xe khớp biển số." : "Hiện không có xe trong bãi."}
+          {search.trim() && selectedSlotFilter
+            ? "Không tìm thấy xe khớp biển số tại ô đã chọn."
+            : search.trim()
+              ? "Không tìm thấy xe khớp biển số."
+              : selectedSlotFilter
+                ? `Không có xe ACTIVE tại ô ${selectedSlotFilter.slotNumber}.`
+                : "Hiện không có xe trong bãi."}
         </DashboardEmptyState>
       ) : (
         <>
@@ -178,6 +239,17 @@ export function StaffLotSessionsPanel({
         </>
       )}
 
+      <StaffLotSlotFilterDialog
+        open={isSlotFilterOpen}
+        onOpenChange={setIsSlotFilterOpen}
+        parkingFloors={parkingFloors}
+        selectedSlotId={selectedSlotFilter?.slotId}
+        onSelect={(selection) => {
+          setSelectedSlotFilter(selection);
+          setPage(1);
+        }}
+      />
+
       <ParkingSessionDetailDialog
         session={viewingSession}
         slotNumber={
@@ -208,6 +280,22 @@ export function StaffLotSessionsPanel({
       />
     </div>
   );
+}
+
+function sortSessionsByCheckInAsc(sessions: ParkingSession[]) {
+  return [...sessions].sort((left, right) => {
+    const leftTime = getSessionSortTime(left);
+    const rightTime = getSessionSortTime(right);
+    return leftTime - rightTime;
+  });
+}
+
+function getSessionSortTime(session: ParkingSession) {
+  if (!session.checkInTime) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const time = new Date(session.checkInTime).getTime();
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
 }
 
 function formatDateTime(value: string) {
