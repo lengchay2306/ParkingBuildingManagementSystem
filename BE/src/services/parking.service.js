@@ -112,21 +112,40 @@ class ParkingService {
     }
 
     createNewParkingSession = async ({
-        phone,
-        licensePlate,
+        // phone,
+        // licensePlate,
         staffId,
         // parkingSlotId,
+        reservationId,
     }) => {
-        const existingUser = await this.#userRepository.findUser({
-            phone: phone,
+        await this.#reservationRepository.expireOverdueReservations();
+
+        const pendingReservation = await this.#reservationRepository.findReservationById({
+            reservationId,
+        })
+
+        if (!pendingReservation) {
+            throw new BadRequestError(`Reservation not found!`)
+        }
+
+        if (pendingReservation.status !== 'PENDING') {
+            throw new BadRequestError(`This reservation is not active pending!`)
+        }
+
+        if (new Date(pendingReservation.expiryAt) <= new Date()) {
+            throw new BadRequestError(`This reservation has expired!`)
+        }
+
+        const existingUser = await this.#userRepository.findByUserId({
+            userId: pendingReservation.driverId,
         })
 
         if (!existingUser) {
             throw new BadRequestError(`Wrong phone number or this user doesn't exist!`)
         }
 
-        const usersVehicles = await this.#vehicleRepository.getVehicleByLicensePlate({
-            licensePlate: licensePlate
+        const usersVehicles = await this.#vehicleRepository.getVehicleById({
+            vehicleId: pendingReservation.vehicleId,
         })
 
         if (!usersVehicles) {
@@ -137,7 +156,7 @@ class ParkingService {
             throw new BadRequestError(`This vehicle doesn't belong to this customer!`)
         }
 
-        const normalizedLicensePlate = licensePlate.trim().toUpperCase()
+        const normalizedLicensePlate = usersVehicles.licensePlate.trim().toUpperCase()
 
         const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
             //because when input user vehicleId, it will include all old parking sessions
@@ -151,18 +170,6 @@ class ParkingService {
 
         if (isAlreadyInParkingSession.length > 0) {
             throw new BadRequestError(`This vehicle already in parking building!`)
-        }
-
-        //xem thang nay den co dung gio khong
-        await this.#reservationRepository.expireOverdueReservations();
-
-        const pendingReservation = await this.#reservationRepository.findPendingReservationByVehicleAndDriver({
-            vehicleId: usersVehicles._id,
-            driverId: existingUser._id,
-        })
-
-        if (!pendingReservation) {
-            throw new BadRequestError(`This vehicle has no active pending reservation!`)
         }
 
         const parkingSlotId = pendingReservation.parkingSlotId;

@@ -17,16 +17,17 @@ const queryParkingSessionsSchema = Joi.object({
 })
 
 const parkingSessionSchema = Joi.object({
-    phone: Joi.string()
-                .pattern(/^(03|05|07|08|09)\d{8}$/)
-                .required()
-                .messages({
-                    'string.pattern.base': 'Wrong phone format',
-                }),
-    licensePlate: Joi.string().required(),
+    // phone: Joi.string()
+    //             .pattern(/^(03|05|07|08|09)\d{8}$/)
+    //             .required()
+    //             .messages({
+    //                 'string.pattern.base': 'Wrong phone format',
+    //             }),
+    // licensePlate: Joi.string().required(),
     // parkingSlotId: Joi.string()
     //                     .custom(validateMongoObjectId)
     //                     .required(),
+    reservationId: Joi.string().custom(validateMongoObjectId).required(),
 });
 
 const guestParkingSessionSchema = Joi.object({
