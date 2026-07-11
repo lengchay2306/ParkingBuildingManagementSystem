@@ -395,31 +395,68 @@ class ParkingService {
     }) => {
         const existingParkingSession = await this.#parkingRepository.findParkingSession({
             vehicleId: vehicleId,
+            status: 'ACTIVE',
         })
 
         if (!existingParkingSession) {
-            throw new BadRequestError(`This parking session does not exist`)
+            throw new NotFoundError(`This parking session does not exist`)
         }
 
         return {
             ...existingParkingSession,
-            checkInUserId: {
-                ...existingParkingSession.checkInUserId,
-                password: undefined,
-            },
-            checkOutUserId: {
-                ...existingParkingSession.checkOutUserId,
-                password: undefined,
-            },
-            checkInStaffId: {
-                ...existingParkingSession.checkInStaffId,
-                password: undefined,
-            },
-            checkOutStaffId: {
-                ...existingParkingSession.checkOutStaffId,
-                password: undefined,
-            },
+            checkInUserId: existingParkingSession.checkInUserId
+                ? { ...existingParkingSession.checkInUserId, password: undefined }
+                : null,
+            checkOutUserId: existingParkingSession.checkOutUserId
+                ? { ...existingParkingSession.checkOutUserId, password: undefined }
+                : null,
+            checkInStaffId: existingParkingSession.checkInStaffId
+                ? { ...existingParkingSession.checkInStaffId, password: undefined }
+                : null,
+            checkOutStaffId: existingParkingSession.checkOutStaffId
+                ? { ...existingParkingSession.checkOutStaffId, password: undefined }
+                : null,
         }
+    }
+
+    getSessionActiveByLicensePlate = async ({
+        licensePlate,
+    }) => {
+        const normalizedLicensePlate = licensePlate.trim().replace(/\s+/g, ' ').toUpperCase();
+
+        const vehicle = await this.#vehicleRepository.getVehicleByLicensePlate({
+            licensePlate: normalizedLicensePlate,
+        });
+
+        const orConditions = [{ licensePlate: normalizedLicensePlate }];
+        if (vehicle?._id) {
+            orConditions.push({ vehicleId: vehicle._id });
+        }
+
+        const existingParkingSession = await this.#parkingRepository.findParkingSession({
+            status: 'ACTIVE',
+            $or: orConditions,
+        });
+
+        if (!existingParkingSession) {
+            throw new NotFoundError(`No active parking session found for this license plate`);
+        }
+
+        return {
+            ...existingParkingSession,
+            checkInUserId: existingParkingSession.checkInUserId
+                ? { ...existingParkingSession.checkInUserId, password: undefined }
+                : null,
+            checkOutUserId: existingParkingSession.checkOutUserId
+                ? { ...existingParkingSession.checkOutUserId, password: undefined }
+                : null,
+            checkInStaffId: existingParkingSession.checkInStaffId
+                ? { ...existingParkingSession.checkInStaffId, password: undefined }
+                : null,
+            checkOutStaffId: existingParkingSession.checkOutStaffId
+                ? { ...existingParkingSession.checkOutStaffId, password: undefined }
+                : null,
+        };
     }
 
     //-----------------

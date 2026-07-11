@@ -150,7 +150,28 @@ class ParkingController {
                 status: 'success',
                 data: {
                     parkingSession,
-                }
+                },
+                message: 'Parking session fetched successfully',
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    getSessionActiveByLicensePlate = async (req, res, next) => {
+        try {
+            const { licensePlate } = req.params
+
+            const parkingSession = await this.#parkingService.getSessionActiveByLicensePlate({
+                licensePlate,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: {
+                    parkingSession,
+                },
+                message: 'Active parking session fetched successfully',
             })
         } catch (error) {
             next(error)

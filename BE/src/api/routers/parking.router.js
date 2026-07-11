@@ -5,6 +5,7 @@ import {
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
     guestParkingSessionSchema,
+    getActiveSessionByLicensePlateParamsSchema,
 } from '../../validators/parking.validator.js'
 
 const router = express.Router();
@@ -268,6 +269,116 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/parking/active-session-by-plate/{licensePlate}:
+ *   get:
+ *     summary: Get active parking session by license plate
+ *     description: |
+ *       Look up the current **ACTIVE** parking session for a license plate.
+ *       Works for both registered vehicles and guest walk-in sessions (`isGuest: true`).
+ *
+ *       Matching rules:
+ *       - Session `licensePlate` equals the given plate (normalized uppercase), **or**
+ *       - Session `vehicleId` belongs to a registered vehicle with that plate.
+ *
+ *       Accessible by CUSTOMER, MANAGER, ADMIN, and STAFF.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: licensePlate
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Vehicle license plate (format 51A-123.45)
+ *         example: "51A-123.45"
+ *     responses:
+ *       200:
+ *         description: Active parking session fetched successfully
+ *         content:
+ *           application/json:
+ *             examples:
+ *               registeredVehicle:
+ *                 summary: Registered customer session
+ *                 value:
+ *                   status: success
+ *                   data:
+ *                     parkingSession:
+ *                       _id: "6670..."
+ *                       licensePlate: "51A-123.45"
+ *                       isGuest: false
+ *                       vehicleId:
+ *                         _id: "666a..."
+ *                         licensePlate: "51A-123.45"
+ *                         vehicleTypeId:
+ *                           _id: "665b..."
+ *                           type: "SEDAN"
+ *                       parkingSlotId:
+ *                         _id: "666b..."
+ *                         slotNumber: "A-01"
+ *                         status: "CURRENTLY-IN-USED"
+ *                         floorId:
+ *                           _id: "665e..."
+ *                           floorName: "Tầng 1 - Sedan"
+ *                           vehicleTypeId:
+ *                             _id: "665b..."
+ *                             type: "SEDAN"
+ *                       sessionType: "DAILY"
+ *                       checkInUserId:
+ *                         _id: "666c..."
+ *                         fullName: "Nguyen Van A"
+ *                         phone: "0901234567"
+ *                       checkInStaffId:
+ *                         _id: "666d..."
+ *                         fullName: "Staff 1"
+ *                       checkInTime: "2026-06-18T08:00:00.000Z"
+ *                       checkOutTime: null
+ *                       status: "ACTIVE"
+ *                   message: "Active parking session fetched successfully"
+ *               guestWalkIn:
+ *                 summary: Guest walk-in session
+ *                 value:
+ *                   status: success
+ *                   data:
+ *                     parkingSession:
+ *                       _id: "6671..."
+ *                       licensePlate: "30H-999.88"
+ *                       isGuest: true
+ *                       vehicleId: null
+ *                       checkInUserId: null
+ *                       parkingSlotId:
+ *                         _id: "666b..."
+ *                         slotNumber: "T03"
+ *                         status: "CURRENTLY-IN-USED"
+ *                       sessionType: "DAILY"
+ *                       checkInStaffId:
+ *                         _id: "666d..."
+ *                         fullName: "Staff 1"
+ *                       checkInTime: "2026-06-18T09:15:00.000Z"
+ *                       status: "ACTIVE"
+ *                   message: "Active parking session fetched successfully"
+ *       400:
+ *         description: Invalid license plate format
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (insufficient role)
+ *       404:
+ *         description: No active parking session found for this license plate
+ */
+router.get(
+    '/active-session-by-plate/:licensePlate',
+    authentication,
+    authorizationByRole(['CUSTOMER', 'MANAGER', 'ADMIN', 'STAFF']),
+    validateData(getActiveSessionByLicensePlateParamsSchema, 'params'),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController')
+        await parkingController.getSessionActiveByLicensePlate(req, res, next)
+    }
+)
+
+/**
+ * @swagger
  * /api/v1/parking/create-parking-session:
  *   post:
  *     summary: Create a new parking session (reservation check-in)
@@ -295,8 +406,8 @@ router.get(
  *                 example: "0901234567"
  *               licensePlate:
  *                 type: string
- *                 description: Vehicle license plate
- *                 example: "51A-12345"
+ *                 description: Vehicle license plate (format 51A-123.45)
+ *                 example: "51A-123.45"
  *     responses:
  *       201:
  *         description: Parking session created successfully
