@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DashboardClientPagination } from "@/components/dashboard-ui";
 import { cn } from "@/lib/utils";
 import {
   createFloor,
@@ -55,6 +56,8 @@ type AdminResourcesPanelProps = {
 };
 
 type ResourceTab = "floors" | "prices" | "slots" | "sessions";
+
+const ADMIN_LIST_PAGE_SIZE = 10;
 
 const slotStatuses: AdminParkingSlotStatus[] = [
   "AVAILABLE",
@@ -101,9 +104,10 @@ export function AdminResourcesPanel({ className }: AdminResourcesPanelProps) {
 
 function FloorsAdmin() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const floorsQuery = useQuery({
-    queryKey: ["admin-floors"],
-    queryFn: () => getAllFloors({ page: 1, limit: 100 }),
+    queryKey: ["admin-floors", page],
+    queryFn: () => getAllFloors({ page, limit: ADMIN_LIST_PAGE_SIZE }),
   });
   const typesQuery = useQuery({
     queryKey: ["vehicle-types"],
@@ -199,11 +203,16 @@ function FloorsAdmin() {
         </form>
       }
     >
-      <ResourceList
+      <PaginatedResourceList
         loading={floorsQuery.isLoading}
         error={floorsQuery.error}
         empty="Chưa có tầng."
         items={floorsQuery.data?.floors ?? []}
+        page={page}
+        totalPages={Math.max(floorsQuery.data?.pagination?.totalPages ?? 1, 1)}
+        totalItems={floorsQuery.data?.pagination?.totalCount}
+        onPageChange={setPage}
+        isFetching={floorsQuery.isFetching}
         renderItem={(floor: Floor) => (
           <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
@@ -270,9 +279,10 @@ function FloorsAdmin() {
 
 function PricePoliciesAdmin() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const policiesQuery = useQuery({
-    queryKey: ["admin-price-policies"],
-    queryFn: () => getAdminPricePolicies({ page: 1, limit: 100 }),
+    queryKey: ["admin-price-policies", page],
+    queryFn: () => getAdminPricePolicies({ page, limit: ADMIN_LIST_PAGE_SIZE }),
   });
   const typesQuery = useQuery({
     queryKey: ["vehicle-types"],
@@ -403,11 +413,16 @@ function PricePoliciesAdmin() {
         </form>
       }
     >
-      <ResourceList
+      <PaginatedResourceList
         loading={policiesQuery.isLoading}
         error={policiesQuery.error}
         empty="Chưa có bảng giá."
         items={policiesQuery.data?.pricePolicies ?? []}
+        page={page}
+        totalPages={Math.max(policiesQuery.data?.pagination?.totalPages ?? 1, 1)}
+        totalItems={policiesQuery.data?.pagination?.totalCount}
+        onPageChange={setPage}
+        isFetching={policiesQuery.isFetching}
         renderItem={(policy: AdminPricePolicy) => (
           <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
@@ -483,13 +498,14 @@ function PricePoliciesAdmin() {
 
 function SlotsAdmin() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const floorsQuery = useQuery({
-    queryKey: ["admin-floors"],
+    queryKey: ["admin-floors", "options"],
     queryFn: () => getAllFloors({ page: 1, limit: 100 }),
   });
   const slotsQuery = useQuery({
-    queryKey: ["admin-parking-slots"],
-    queryFn: () => getAdminParkingSlots({ page: 1, limit: 100 }),
+    queryKey: ["admin-parking-slots", page],
+    queryFn: () => getAdminParkingSlots({ page, limit: ADMIN_LIST_PAGE_SIZE }),
   });
 
   const [floorId, setFloorId] = useState("");
@@ -615,11 +631,16 @@ function SlotsAdmin() {
         </form>
       }
     >
-      <ResourceList
+      <PaginatedResourceList
         loading={slotsQuery.isLoading}
         error={slotsQuery.error}
         empty="Chưa có chỗ đỗ."
         items={slotsQuery.data?.parkingSlots ?? []}
+        page={page}
+        totalPages={Math.max(slotsQuery.data?.pagination?.totalPages ?? 1, 1)}
+        totalItems={slotsQuery.data?.pagination?.totalCount}
+        onPageChange={setPage}
+        isFetching={slotsQuery.isFetching}
         renderItem={(slot: AdminParkingSlot) => {
           const floorKey =
             typeof slot.floorId === "string" ? slot.floorId : slot.floorId?._id ?? "";
@@ -692,17 +713,18 @@ function SlotsAdmin() {
 
 function SessionsAdmin() {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const profileQuery = useQuery({
     queryKey: ["my-profile"],
     queryFn: getMyProfile,
   });
   const slotsQuery = useQuery({
-    queryKey: ["admin-parking-slots"],
+    queryKey: ["admin-parking-slots", "options"],
     queryFn: () => getAdminParkingSlots({ page: 1, limit: 100 }),
   });
   const sessionsQuery = useQuery({
-    queryKey: ["admin-parking-sessions"],
-    queryFn: () => getAdminParkingSessions({ page: 1, limit: 50 }),
+    queryKey: ["admin-parking-sessions", page],
+    queryFn: () => getAdminParkingSessions({ page, limit: ADMIN_LIST_PAGE_SIZE }),
   });
 
   const [parkingSlotId, setParkingSlotId] = useState("");
@@ -804,11 +826,16 @@ function SessionsAdmin() {
         </form>
       }
     >
-      <ResourceList
+      <PaginatedResourceList
         loading={sessionsQuery.isLoading}
         error={sessionsQuery.error}
         empty="Chưa có phiên admin."
         items={sessionsQuery.data?.parkingSessions ?? []}
+        page={page}
+        totalPages={Math.max(sessionsQuery.data?.pagination?.totalPages ?? 1, 1)}
+        totalItems={sessionsQuery.data?.pagination?.totalCount}
+        onPageChange={setPage}
+        isFetching={sessionsQuery.isFetching}
         renderItem={(session: AdminParkingSession) => (
           <div className="api-row flex items-center justify-between gap-3 rounded-xl px-4 py-3">
             <button
@@ -910,6 +937,49 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <div className="space-y-1.5">
       <Label className="text-[10px] uppercase tracking-[0.14em]">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function PaginatedResourceList<T extends { _id: string }>({
+  loading,
+  error,
+  empty,
+  items,
+  renderItem,
+  page,
+  totalPages,
+  totalItems,
+  onPageChange,
+  isFetching = false,
+}: {
+  loading: boolean;
+  error: unknown;
+  empty: string;
+  items: T[];
+  renderItem: (item: T) => React.ReactNode;
+  page: number;
+  totalPages: number;
+  totalItems?: number;
+  onPageChange: (page: number) => void;
+  isFetching?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <ResourceList
+        loading={loading}
+        error={error}
+        empty={empty}
+        items={items}
+        renderItem={renderItem}
+      />
+      <DashboardClientPagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={onPageChange}
+        disabled={loading || isFetching}
+      />
     </div>
   );
 }

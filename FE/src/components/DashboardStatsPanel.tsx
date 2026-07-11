@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle, RefreshCw } from "lucide-react";
 
+import { DashboardClientPagination, paginateItems } from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,11 +33,13 @@ const formatVnd = (amount: number) =>
 
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth() + 1;
+const REVENUE_BREAKDOWN_PAGE_SIZE = 10;
 
 export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
   const [year, setYear] = useState(String(currentYear));
   const [month, setMonth] = useState(String(currentMonth));
   const [groupBy, setGroupBy] = useState<"none" | "day" | "month">("day");
+  const [revenuePage, setRevenuePage] = useState(1);
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard-stats"],
@@ -54,11 +57,21 @@ export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
       }),
   });
 
+  useEffect(() => {
+    setRevenuePage(1);
+  }, [year, month, groupBy]);
+
   const modelCards = useMemo(() => {
     const stats = dashboardQuery.data;
     if (!stats) return [];
     return buildModelCards(stats);
   }, [dashboardQuery.data]);
+
+  const revenueBreakdown = revenueQuery.data?.breakdown ?? [];
+  const revenuePagination = useMemo(
+    () => paginateItems(revenueBreakdown, revenuePage, REVENUE_BREAKDOWN_PAGE_SIZE),
+    [revenueBreakdown, revenuePage],
+  );
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -124,7 +137,10 @@ export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
               min={2000}
               max={2100}
               value={year}
-              onChange={(event) => setYear(event.target.value)}
+              onChange={(event) => {
+                setYear(event.target.value);
+                setRevenuePage(1);
+              }}
               className="h-9 w-28 rounded-xl"
             />
           </div>
@@ -137,7 +153,10 @@ export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
                 min={1}
                 max={12}
                 value={month}
-                onChange={(event) => setMonth(event.target.value)}
+                onChange={(event) => {
+                  setMonth(event.target.value);
+                  setRevenuePage(1);
+                }}
                 className="h-9 w-24 rounded-xl"
               />
             </div>
@@ -146,7 +165,10 @@ export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
             <Label>Nhóm theo</Label>
             <Select
               value={groupBy}
-              onValueChange={(value) => setGroupBy(value as "none" | "day" | "month")}
+              onValueChange={(value) => {
+                setGroupBy(value as "none" | "day" | "month");
+                setRevenuePage(1);
+              }}
             >
               <SelectTrigger className="h-9 w-40 rounded-xl">
                 <SelectValue />
@@ -189,28 +211,37 @@ export function DashboardStatsPanel({ className }: DashboardStatsPanelProps) {
                 </p>
               </div>
             </div>
-            {revenueQuery.data.breakdown && revenueQuery.data.breakdown.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/60">
-                <table className="w-full min-w-[320px] text-left text-sm">
-                  <thead className="api-table-head text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">
-                        {revenueQuery.data.groupBy === "month" ? "Tháng" : "Ngày"}
-                      </th>
-                      <th className="px-3 py-2 font-semibold">Doanh thu</th>
-                      <th className="px-3 py-2 font-semibold">GD</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {revenueQuery.data.breakdown.map((row) => (
-                      <tr key={`${row.day ?? row.month}`} className="border-t border-border">
-                        <td className="px-3 py-2 tabular-nums">{row.day ?? row.month}</td>
-                        <td className="px-3 py-2">{formatVnd(row.totalAmount)}</td>
-                        <td className="px-3 py-2 tabular-nums">{row.transactionCount}</td>
+            {revenueBreakdown.length > 0 ? (
+              <div className="space-y-3">
+                <div className="overflow-x-auto rounded-xl border border-border/70 bg-card/60">
+                  <table className="w-full min-w-[320px] text-left text-sm">
+                    <thead className="api-table-head text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold">
+                          {revenueQuery.data.groupBy === "month" ? "Tháng" : "Ngày"}
+                        </th>
+                        <th className="px-3 py-2 font-semibold">Doanh thu</th>
+                        <th className="px-3 py-2 font-semibold">GD</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {revenuePagination.items.map((row) => (
+                        <tr key={`${row.day ?? row.month}`} className="border-t border-border">
+                          <td className="px-3 py-2 tabular-nums">{row.day ?? row.month}</td>
+                          <td className="px-3 py-2">{formatVnd(row.totalAmount)}</td>
+                          <td className="px-3 py-2 tabular-nums">{row.transactionCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <DashboardClientPagination
+                  page={revenuePagination.page}
+                  totalPages={revenuePagination.totalPages}
+                  totalItems={revenuePagination.totalItems}
+                  onPageChange={setRevenuePage}
+                  disabled={revenueQuery.isFetching}
+                />
               </div>
             ) : null}
           </div>
