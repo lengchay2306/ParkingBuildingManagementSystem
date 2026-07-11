@@ -52,9 +52,20 @@ const checkParkingSessionSchema = Joi.object({
                 }),
 });
 
+const getActiveSessionByLicensePlateParamsSchema = Joi.object({
+    licensePlate: Joi.string()
+        .pattern(/^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/)
+        .required()
+        .messages({
+            'string.pattern.base': 'License plate must follow format: 51A-123.45',
+            'any.required': 'License plate is required',
+        }),
+});
+
 export {
     parkingSessionSchema,
     guestParkingSessionSchema,
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
+    getActiveSessionByLicensePlateParamsSchema,
 }
