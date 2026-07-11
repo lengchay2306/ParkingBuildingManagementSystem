@@ -431,35 +431,17 @@ export const getReservationVehiclePlate = (reservation: Reservation) => {
   return null;
 };
 
-export const buildCreateSessionPayloadFromReservation = (
-  reservation: Reservation,
-  parkingSlotId: string,
-) => {
-  const phone = normalizeStaffPhone(getReservationDriverPhone(reservation));
-  const licensePlate = getReservationVehiclePlate(reservation)?.trim() ?? "";
-  if (!phone || !licensePlate) {
-    return null;
-  }
-  return { phone, licensePlate, parkingSlotId };
-};
+export const buildReservationCheckInPayload = (reservation: Reservation) => ({
+  reservationId: reservation._id,
+});
 
 export const getCreateSessionDisabledReasonFromReservation = (reservation: Reservation) => {
-  if (reservation.status !== "PENDING" && reservation.status !== "CLAIMED") {
-    return "Chỉ tạo session từ reservation PENDING hoặc CLAIMED.";
+  if (reservation.status !== "PENDING") {
+    return "Chỉ check-in từ đặt chỗ đang chờ (PENDING).";
   }
 
-  const phone = normalizeStaffPhone(getReservationDriverPhone(reservation));
-  const licensePlate = getReservationVehiclePlate(reservation);
-  const parkingSlotId = getReservationSlotId(reservation);
-
-  if (!parkingSlotId) {
-    return "Không xác định được slot.";
-  }
-  if (!phone) {
-    return "Reservation thiếu số điện thoại hợp lệ (03/05/07/08/09 + 8 số).";
-  }
-  if (!licensePlate?.trim()) {
-    return "Reservation thiếu biển số xe.";
+  if (reservation.expiryAt && new Date(reservation.expiryAt) <= new Date()) {
+    return "Đặt chỗ đã hết hạn.";
   }
 
   return undefined;

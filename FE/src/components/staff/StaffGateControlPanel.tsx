@@ -52,10 +52,9 @@ import {
   type StaffBillQrResult,
 } from "@/services/payment.service";
 import {
-  buildCreateSessionPayloadFromReservation,
+  buildReservationCheckInPayload,
   getCreateSessionDisabledReasonFromReservation,
   getReservationDriverName,
-  getReservationSlotId,
   getReservationsByPlate,
   type Reservation,
 } from "@/services/reservation.service";
@@ -163,15 +162,11 @@ export function StaffGateControlPanel({
       }
 
       if (reservation) {
-        const slotId = getReservationSlotId(reservation);
-        if (!slotId) {
-          throw new Error("Không xác định được chỗ đặt.");
+        const disabledReason = getCreateSessionDisabledReasonFromReservation(reservation);
+        if (disabledReason) {
+          throw new Error(disabledReason);
         }
-        const payload = buildCreateSessionPayloadFromReservation(reservation, slotId);
-        if (!payload) {
-          throw new Error("Thiếu SĐT hoặc biển số từ đặt chỗ.");
-        }
-        return createParkingSession(payload);
+        return createParkingSession(buildReservationCheckInPayload(reservation));
       }
 
       if (!walkInVehicleTypeId) {
