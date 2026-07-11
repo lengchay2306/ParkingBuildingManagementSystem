@@ -518,9 +518,7 @@ export const getManageReservationDisplayStatus = (
 };
 
 export type CreateParkingSessionPayload = {
-  phone: string;
-  licensePlate: string;
-  parkingSlotId: string;
+  reservationId: string;
 };
 
 export type CreateGuestParkingSessionPayload = {
@@ -537,7 +535,7 @@ export const createParkingSession = async (payload: CreateParkingSessionPayload)
       "content-type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ reservationId: payload.reservationId }),
   });
   const body = await parseJson<{ parkingSession?: ParkingSession }>(response);
 
