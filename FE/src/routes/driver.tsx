@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   CarFront,
-  ChevronDown,
   LoaderCircle,
   Mail,
   MapPin,
@@ -29,7 +28,6 @@ import {
   DashboardClientPagination,
   DashboardMain,
   DashboardSection,
-  DashboardSectionHeader,
   paginateItems,
 } from "@/components/dashboard-ui";
 import { Button } from "@/components/ui/button";
@@ -154,36 +152,20 @@ function DriverPage() {
   const [editVehicleError, setEditVehicleError] = useState<string | null>(null);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
   const [subscribingVehicleId, setSubscribingVehicleId] = useState<string | null>(null);
-  const [isVehiclesExpanded, setIsVehiclesExpanded] = useState(true);
+  const [isVehiclesPanelOpen, setIsVehiclesPanelOpen] = useState(false);
+  const [isReservationsPanelOpen, setIsReservationsPanelOpen] = useState(false);
   const [reservationHistoryDate, setReservationHistoryDate] = useState(() => getLocalDateInputValue());
   const [reservationHistoryPage, setReservationHistoryPage] = useState(1);
   const [vehiclePage, setVehiclePage] = useState(1);
   const [viewingHistoryReservation, setViewingHistoryReservation] = useState<Reservation | null>(null);
-  const reservationSectionRef = useRef<HTMLElement | null>(null);
-  const vehiclesSectionRef = useRef<HTMLElement | null>(null);
+  const reservationDateInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  useEffect(() => {
-    const node = vehiclesSectionRef.current;
-    if (!node) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry?.isIntersecting) {
-          setIsVehiclesExpanded(true);
-        }
-      },
-      { threshold: 0.2 },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+  const openReservationDatePicker = () => {
+    reservationDateInputRef.current?.showPicker?.();
+  };
 
   const profileQuery = useQuery({
     queryKey: myProfileQueryKey,
@@ -1050,152 +1032,414 @@ function DriverPage() {
           </div>
         </DashboardSection>
 
-        <DashboardSection ref={vehiclesSectionRef} compact>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <ToggleExpandedButton
+        <DashboardSection compact>
+          <div className="grid gap-3 md:grid-cols-2">
+            <button
               type="button"
-              expanded={isVehiclesExpanded}
-              onClick={() => setIsVehiclesExpanded((expanded) => !expanded)}
-              className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left transition hover:opacity-90"
+              onClick={() => setIsVehiclesPanelOpen(true)}
+              className="rounded-2xl border border-border/80 bg-secondary/80 px-4 py-4 text-left transition hover:-translate-y-px hover:border-primary/35 hover:bg-secondary"
             >
-              <div className="min-w-0 space-y-1">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  Xe của tôi
-                </h2>
-                <p className="text-sm text-muted-foreground">
+              <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+                <CarFront className="size-4 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold tracking-tight md:text-lg">Xe của tôi và Đặt chỗ</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {vehiclesQuery.isLoading
+                  ? "Đang tải danh sách xe..."
+                  : `${vehicles.length} xe đã đăng ký`}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsReservationsPanelOpen(true)}
+              className="rounded-2xl border border-border/80 bg-secondary/80 px-4 py-4 text-left transition hover:-translate-y-px hover:border-primary/35 hover:bg-secondary"
+            >
+              <div className="mb-3 inline-flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+                <MapPin className="size-4 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold tracking-tight md:text-lg">Chỗ đã đặt</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {myReservationsQuery.isLoading
+                  ? "Đang tải đặt chỗ..."
+                  : `${filteredHistoryReservations.length} đặt chỗ · ${formatReservationHistoryDateLabel(reservationHistoryDate)}`}
+              </p>
+            </button>
+          </div>
+        </DashboardSection>
+
+        <Dialog open={isVehiclesPanelOpen} onOpenChange={setIsVehiclesPanelOpen}>
+          <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
+            <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+              <DialogHeader>
+                <DialogTitle>Xe của tôi và Đặt chỗ </DialogTitle>
+                <DialogDescription>
                   {vehiclesQuery.isLoading
                     ? "Đang tải danh sách xe..."
-                    : `${vehicles.length} xe đã đăng ký`}
-                </p>
-              </div>
-              <ChevronDown
-                className={`mt-1 size-5 shrink-0 text-muted-foreground transition-transform ${
-                  isVehiclesExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </ToggleExpandedButton>
+                    : `${vehicles.length} xe đã đăng ký trong tài khoản của bạn.`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  aria-label="Làm mới danh sách xe"
+                  onClick={() => void vehiclesQuery.refetch()}
+                  disabled={vehiclesQuery.isFetching}
+                  className="inline-flex size-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary transition-all hover:-translate-y-px hover:bg-primary/18 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw className={`size-4 ${vehiclesQuery.isFetching ? "animate-spin" : ""}`} />
+                </button>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                aria-label="Làm mới danh sách xe"
-                onClick={() => void vehiclesQuery.refetch()}
-                disabled={vehiclesQuery.isFetching}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary transition-all hover:-translate-y-px hover:bg-primary/18 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <RefreshCw className={`size-4 ${vehiclesQuery.isFetching ? "animate-spin" : ""}`} />
-              </button>
-
-              <Dialog open={isVehicleFormOpen} onOpenChange={handleVehicleFormOpenChange}>
-                <DialogTrigger asChild>
-                  <Button type="button" variant="secondary" className="h-9 rounded-xl px-4 text-[13px] font-semibold">
-                    <Plus className="size-4" />
-                    Thêm xe
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
-                  <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
-                    <DialogHeader>
-                      <DialogTitle>Thêm xe mới</DialogTitle>
-                      <DialogDescription>
-                        Nhập biển số và loại xe để đăng ký vào tài khoản của bạn.
-                      </DialogDescription>
-                    </DialogHeader>
-                  </div>
-
-                  <form onSubmit={handleVehicleSubmit} className="space-y-4 px-6 py-4">
-                    <div className="ui-form-panel space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="ui-field-icon size-10">
-                          <CarFront className="size-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Đăng ký xe mới</p>
-                          <p className="text-xs text-muted-foreground">Nhập biển số và chọn loại xe phù hợp.</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="vehicle-license-plate">Biển số</Label>
-                        <Input
-                          id="vehicle-license-plate"
-                          value={licensePlate}
-                          onChange={(event) => setLicensePlate(event.target.value.toUpperCase())}
-                          autoCapitalize="characters"
-                          autoComplete="off"
-                          inputMode="text"
-                          placeholder="51A-12345"
-                          className="h-11 rounded-xl font-mono tracking-wide"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="vehicle-type">Loại xe</Label>
-                        <Select
-                          value={vehicleTypeId}
-                          onValueChange={setVehicleTypeId}
-                          disabled={isVehicleTypeLoading}
-                        >
-                          <SelectTrigger id="vehicle-type" className="h-11 rounded-xl">
-                            <SelectValue
-                              placeholder={isVehicleTypeLoading ? "Đang tải loại xe..." : "Chọn loại xe"}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {vehicleTypes.map((type) => (
-                              <SelectItem key={type._id} value={type._id}>
-                                {type.type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                <Dialog open={isVehicleFormOpen} onOpenChange={handleVehicleFormOpenChange}>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="secondary" className="h-9 rounded-xl px-4 text-[13px] font-semibold">
+                      <Plus className="size-4" />
+                      Thêm xe
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+                    <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+                      <DialogHeader>
+                        <DialogTitle>Thêm xe mới</DialogTitle>
+                        <DialogDescription>
+                          Nhập biển số và loại xe để đăng ký vào tài khoản của bạn.
+                        </DialogDescription>
+                      </DialogHeader>
                     </div>
 
-                    {vehicleFormError || vehicleTypeError ? (
-                      <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                        {vehicleFormError ?? vehicleTypeError}
+                    <form onSubmit={handleVehicleSubmit} className="space-y-4 px-6 py-4">
+                      <div className="ui-form-panel space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="ui-field-icon size-10">
+                            <CarFront className="size-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">Đăng ký xe mới</p>
+                            <p className="text-xs text-muted-foreground">Nhập biển số và chọn loại xe phù hợp.</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="vehicle-license-plate">Biển số</Label>
+                          <Input
+                            id="vehicle-license-plate"
+                            value={licensePlate}
+                            onChange={(event) => setLicensePlate(event.target.value.toUpperCase())}
+                            autoCapitalize="characters"
+                            autoComplete="off"
+                            inputMode="text"
+                            placeholder="51A-12345"
+                            className="h-11 rounded-xl font-mono tracking-wide"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="vehicle-type">Loại xe</Label>
+                          <Select
+                            value={vehicleTypeId}
+                            onValueChange={setVehicleTypeId}
+                            disabled={isVehicleTypeLoading}
+                          >
+                            <SelectTrigger id="vehicle-type" className="h-11 rounded-xl">
+                              <SelectValue
+                                placeholder={isVehicleTypeLoading ? "Đang tải loại xe..." : "Chọn loại xe"}
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vehicleTypes.map((type) => (
+                                <SelectItem key={type._id} value={type._id}>
+                                  {type.type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    ) : null}
 
-                    {vehicleTypes.length === 0 && !isVehicleTypeLoading ? (
+                      {vehicleFormError || vehicleTypeError ? (
+                        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                          {vehicleFormError ?? vehicleTypeError}
+                        </div>
+                      ) : null}
+
+                      {vehicleTypes.length === 0 && !isVehicleTypeLoading ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => void vehicleTypesQuery.refetch()}
+                          className="h-10 w-full rounded-xl text-[13px] font-semibold"
+                        >
+                          <RefreshCw
+                            className={`size-4 ${vehicleTypesQuery.isFetching ? "animate-spin" : ""}`}
+                          />
+                          Làm mới loại xe
+                        </Button>
+                      ) : null}
+
                       <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => void vehicleTypesQuery.refetch()}
-                        className="h-10 w-full rounded-xl text-[13px] font-semibold"
+                        type="submit"
+                        disabled={createVehicleMutation.isPending || isVehicleTypeLoading}
+                        className="h-11 w-full rounded-xl text-[13px] font-semibold"
                       >
-                        <RefreshCw
-                          className={`size-4 ${vehicleTypesQuery.isFetching ? "animate-spin" : ""}`}
-                        />
-                        Làm mới loại xe
+                        {createVehicleMutation.isPending ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" />
+                            Đang đăng ký...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="size-4" />
+                            Thêm xe
+                          </>
+                        )}
                       </Button>
-                    ) : null}
-
-                    <Button
-                      type="submit"
-                      disabled={createVehicleMutation.isPending || isVehicleTypeLoading}
-                      className="h-11 w-full rounded-xl text-[13px] font-semibold"
-                    >
-                      {createVehicleMutation.isPending ? (
-                        <>
-                          <LoaderCircle className="size-4 animate-spin" />
-                          Đang đăng ký...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="size-4" />
-                          Thêm xe
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
-          </div>
 
-          <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+              <div className="driver-vehicle-list space-y-3">
+                {vehiclesQuery.isLoading ? (
+                  <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
+                    <LoaderCircle className="size-4 animate-spin" />
+                    Đang tải xe của bạn...
+                  </div>
+                ) : vehicleListError ? (
+                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                    {vehicleListError}
+                  </div>
+                ) : vehicles.length > 0 ? (
+                  <>
+                    {vehiclePagination.items.map((vehicle) => (
+                      <DriverVehicleCard
+                        key={vehicle._id}
+                        vehicle={vehicle}
+                        vehicleTypes={vehicleTypes}
+                        pendingReservation={findPendingReservationForVehicle(vehicle._id, reservations)}
+                        parkingSession={sessionsByVehicleId.get(vehicle._id) ?? null}
+                        reservations={reservations}
+                        vehicleParkingSessions={vehicleParkingSessions}
+                        isDeleting={deletingVehicleId === vehicle._id}
+                        isSubscribing={
+                          subscribeMonthlyMutation.isPending && subscribingVehicleId === vehicle._id
+                        }
+                        onReserve={() => handleOpenReserveForVehicle(vehicle)}
+                        onBuyMonthlyCard={() => handleBuyMonthlyCard(vehicle)}
+                        onEdit={() => handleStartEditVehicle(vehicle)}
+                        onDelete={() => handleDeleteVehicle(vehicle)}
+                      />
+                    ))}
+                    <DashboardClientPagination
+                      page={vehiclePagination.page}
+                      totalPages={vehiclePagination.totalPages}
+                      totalItems={vehiclePagination.totalItems}
+                      onPageChange={setVehiclePage}
+                      disabled={vehiclesQuery.isFetching}
+                    />
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
+                    Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isReservationsPanelOpen} onOpenChange={setIsReservationsPanelOpen}>
+          <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
+            <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+              <DialogHeader>
+                <DialogTitle>Đặt chỗ của tôi</DialogTitle>
+                <DialogDescription>Lịch sử và đặt chỗ theo ngày bạn chọn.</DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() =>
+                    void Promise.all([
+                      myReservationsQuery.refetch(),
+                      parkingFloorsQuery.refetch(),
+                      vehicleParkingSessionsQuery.refetch(),
+                    ])
+                  }
+                  disabled={
+                    myReservationsQuery.isFetching || vehicleParkingSessionsQuery.isFetching
+                  }
+                  className="h-10 rounded-xl"
+                >
+                  <RefreshCw
+                    className={`size-4 ${myReservationsQuery.isFetching ? "animate-spin" : ""}`}
+                  />
+                  Làm mới
+                </Button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-end gap-3 ui-filter-row">
+                <div className="space-y-2">
+                  <Label htmlFor="reservation-history-date">Ngày</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      ref={reservationDateInputRef}
+                      id="reservation-history-date"
+                      type="date"
+                      value={reservationHistoryDate}
+                      onChange={(event) => setReservationHistoryDate(event.target.value)}
+                      className="h-10 w-full min-w-[180px] rounded-xl sm:w-auto [&::-webkit-calendar-picker-indicator]:hidden"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      onClick={openReservationDatePicker}
+                      className="size-10 shrink-0 rounded-xl"
+                      aria-label="Chọn ngày"
+                    >
+                      <CalendarDays className="size-4 text-primary" />
+                    </Button>
+                  </div>
+                </div>
+                {reservationHistoryDate !== getLocalDateInputValue() ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setReservationHistoryDate(getLocalDateInputValue())}
+                    className="h-10 rounded-xl"
+                  >
+                    Hôm nay
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+              {myReservationsQuery.isLoading ? (
+                <div className="api-empty flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin text-primary" />
+                  Đang tải đặt chỗ...
+                </div>
+              ) : myReservationsError ? (
+                <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {myReservationsError}
+                </div>
+              ) : filteredHistoryReservations.length > 0 ? (
+                <div className="space-y-3">
+                  {reservationHistoryPagination.items.map((reservation) => {
+                    const reservationSlotId = getReservationSlotId(reservation);
+                    const parkingSession = findSessionForReservation(
+                      reservation,
+                      sessionsByVehicleId,
+                    );
+                    const displayStatus = getReservationDisplayStatus(reservation, parkingSession);
+                    const isPending = displayStatus === "PENDING";
+                    return (
+                      <div
+                        key={reservation._id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setViewingHistoryReservation(reservation)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setViewingHistoryReservation(reservation);
+                          }
+                        }}
+                        className="ui-reservation-card w-full cursor-pointer p-4 text-left"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <div className="ui-slot-chip size-11 shrink-0">
+                              <MapPin className="size-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-mono text-sm font-semibold">
+                                {getReservationSlotLabel(reservation)}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                Xe: {getReservationVehicleLabel(reservation) ?? "Không có"}
+                              </p>
+                            </div>
+                          </div>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getReservationStatusBadge(displayStatus)}`}
+                          >
+                            {getReservationStatusLabel(displayStatus)}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground sm:grid-cols-2">
+                          <p>
+                            Thời gian đến:{" "}
+                            {reservation.expectedArrival
+                              ? formatDateTime(reservation.expectedArrival)
+                              : "Không có"}
+                          </p>
+                          <p>
+                            Hết hạn:{" "}
+                            {reservation.expiryAt ? formatDateTime(reservation.expiryAt) : "Không có"}
+                          </p>
+                          {parkingSession?.checkInTime ? (
+                            <p>Check-in: {formatDateTime(parkingSession.checkInTime)}</p>
+                          ) : null}
+                          {parkingSession?.checkOutTime ? (
+                            <p>Check-out: {formatDateTime(parkingSession.checkOutTime)}</p>
+                          ) : null}
+                        </div>
+
+                        {isPending ? (
+                          <div className="mt-3">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCancelReservationById(reservation._id);
+                              }}
+                              disabled={cancelReservationMutation.isPending}
+                              className="h-9 rounded-xl text-sm font-medium"
+                            >
+                              {cancelReservationMutation.isPending ? (
+                                <>
+                                  <LoaderCircle className="size-4 animate-spin" />
+                                  Đang xóa...
+                                </>
+                              ) : (
+                                "Xóa đặt chỗ"
+                              )}
+                            </Button>
+                          </div>
+                        ) : null}
+
+                        {reservationSlotId && reservationBySlotId.has(reservationSlotId) ? (
+                          <p className="mt-2 text-xs text-status-yours">
+                            Chỗ này hiện đang được giữ cho bạn.
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  <DashboardClientPagination
+                    page={reservationHistoryPagination.page}
+                    totalPages={reservationHistoryPagination.totalPages}
+                    totalItems={reservationHistoryPagination.totalItems}
+                    onPageChange={setReservationHistoryPage}
+                    disabled={myReservationsQuery.isFetching}
+                  />
+                </div>
+              ) : (
+                <div className="api-empty px-4 py-8 text-center text-sm text-muted-foreground">
+                  Không có đặt chỗ nào vào {formatReservationHistoryDateLabel(reservationHistoryDate)}.
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditVehicleOpen} onOpenChange={handleEditVehicleOpenChange}>
             <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
               <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
                 <DialogHeader>
@@ -1267,241 +1511,18 @@ function DriverPage() {
                   {updateVehicleMutation.isPending ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
-                          Đang cập nhật...
+                      Đang cập nhật...
                     </>
                   ) : (
                     <>
                       <Save className="size-4" />
-                          Lưu thay đổi
+                      Lưu thay đổi
                     </>
                   )}
                 </Button>
               </form>
             </DialogContent>
           </Dialog>
-
-          {isVehiclesExpanded ? (
-            <div className="driver-vehicle-list mt-4 space-y-3">
-            {vehiclesQuery.isLoading ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin" />
-                Đang tải xe của bạn...
-              </div>
-            ) : vehicleListError ? (
-              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
-                {vehicleListError}
-              </div>
-            ) : vehicles.length > 0 ? (
-              <>
-              {vehiclePagination.items.map((vehicle) => (
-                <DriverVehicleCard
-                  key={vehicle._id}
-                  vehicle={vehicle}
-                  vehicleTypes={vehicleTypes}
-                  pendingReservation={findPendingReservationForVehicle(vehicle._id, reservations)}
-                  parkingSession={sessionsByVehicleId.get(vehicle._id) ?? null}
-                  reservations={reservations}
-                  vehicleParkingSessions={vehicleParkingSessions}
-                  isDeleting={deletingVehicleId === vehicle._id}
-                  isSubscribing={
-                    subscribeMonthlyMutation.isPending && subscribingVehicleId === vehicle._id
-                  }
-                  onReserve={() => handleOpenReserveForVehicle(vehicle)}
-                  onBuyMonthlyCard={() => handleBuyMonthlyCard(vehicle)}
-                  onEdit={() => handleStartEditVehicle(vehicle)}
-                  onDelete={() => handleDeleteVehicle(vehicle)}
-                />
-              ))}
-              <DashboardClientPagination
-                page={vehiclePagination.page}
-                totalPages={vehiclePagination.totalPages}
-                totalItems={vehiclePagination.totalItems}
-                onPageChange={setVehiclePage}
-                disabled={vehiclesQuery.isFetching}
-              />
-              </>
-            ) : (
-              <div className="rounded-2xl border border-border/70 bg-card/60 p-4 text-sm text-muted-foreground">
-                Bạn chưa có xe nào. Bấm &quot;Thêm xe&quot; để đăng ký biển số.
-              </div>
-            )}
-            </div>
-          ) : null}
-        </DashboardSection>
-
-        <DashboardSection ref={reservationSectionRef}>
-          <DashboardSectionHeader
-            kicker="Đặt chỗ của tôi"
-            title="Lịch sử đặt chỗ"
-              actions={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() =>
-                    void Promise.all([
-                      myReservationsQuery.refetch(),
-                      parkingFloorsQuery.refetch(),
-                      vehicleParkingSessionsQuery.refetch(),
-                    ])
-                  }
-                  disabled={
-                    myReservationsQuery.isFetching || vehicleParkingSessionsQuery.isFetching
-                  }
-                  className="h-10 rounded-xl"
-                >
-                  <RefreshCw
-                    className={`size-4 ${myReservationsQuery.isFetching ? "animate-spin" : ""}`}
-                  />
-                  Làm mới
-                </Button>
-              }
-            />
-
-            <div className="mt-4 flex flex-wrap items-end gap-3 ui-filter-row">
-              <div className="space-y-2">
-                <Label htmlFor="reservation-history-date">Ngày</Label>
-                <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
-                  <Input
-                    id="reservation-history-date"
-                    type="date"
-                    value={reservationHistoryDate}
-                    onChange={(event) => setReservationHistoryDate(event.target.value)}
-                    className="h-10 w-full min-w-[180px] rounded-xl pr-10 sm:w-auto"
-                  />
-                </div>
-              </div>
-              {reservationHistoryDate !== getLocalDateInputValue() ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setReservationHistoryDate(getLocalDateInputValue())}
-                  className="h-10 rounded-xl"
-                >
-                  Hôm nay
-                </Button>
-              ) : null}
-            </div>
-
-            {myReservationsQuery.isLoading ? (
-              <div className="api-empty mt-4 flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin text-primary" />
-                Đang tải đặt chỗ...
-              </div>
-            ) : myReservationsError ? (
-              <div className="mt-4 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {myReservationsError}
-              </div>
-            ) : filteredHistoryReservations.length > 0 ? (
-              <div className="mt-4 space-y-3">
-                {reservationHistoryPagination.items.map((reservation) => {
-                  const reservationSlotId = getReservationSlotId(reservation);
-                  const parkingSession = findSessionForReservation(
-                    reservation,
-                    sessionsByVehicleId,
-                  );
-                  const displayStatus = getReservationDisplayStatus(reservation, parkingSession);
-                  const isPending = displayStatus === "PENDING";
-                  return (
-                    <div
-                      key={reservation._id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setViewingHistoryReservation(reservation)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          setViewingHistoryReservation(reservation);
-                        }
-                      }}
-                      className="ui-reservation-card w-full cursor-pointer p-4 text-left"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="ui-slot-chip size-11 shrink-0">
-                            <MapPin className="size-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-mono text-sm font-semibold">
-                              {getReservationSlotLabel(reservation)}
-                            </p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              Xe: {getReservationVehicleLabel(reservation) ?? "Không có"}
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getReservationStatusBadge(displayStatus)}`}
-                        >
-                          {getReservationStatusLabel(displayStatus)}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground sm:grid-cols-2">
-                        <p>
-                          Thời gian đến:{" "}
-                          {reservation.expectedArrival
-                            ? formatDateTime(reservation.expectedArrival)
-                            : "Không có"}
-                        </p>
-                        <p>
-                          Hết hạn:{" "}
-                          {reservation.expiryAt ? formatDateTime(reservation.expiryAt) : "Không có"}
-                        </p>
-                        {parkingSession?.checkInTime ? (
-                          <p>Check-in: {formatDateTime(parkingSession.checkInTime)}</p>
-                        ) : null}
-                        {parkingSession?.checkOutTime ? (
-                          <p>Check-out: {formatDateTime(parkingSession.checkOutTime)}</p>
-                        ) : null}
-                      </div>
-
-                      {isPending ? (
-                        <div className="mt-3">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleCancelReservationById(reservation._id);
-                            }}
-                            disabled={cancelReservationMutation.isPending}
-                            className="h-9 rounded-xl text-sm font-medium"
-                          >
-                            {cancelReservationMutation.isPending ? (
-                              <>
-                                <LoaderCircle className="size-4 animate-spin" />
-                                Đang xóa...
-                              </>
-                            ) : (
-                              "Xóa đặt chỗ"
-                            )}
-                          </Button>
-                        </div>
-                      ) : null}
-
-                      {reservationSlotId && reservationBySlotId.has(reservationSlotId) ? (
-                        <p className="mt-2 text-xs text-status-yours">
-                          Chỗ này hiện đang được giữ cho bạn.
-                        </p>
-                      ) : null}
-                    </div>
-                  );
-                })}
-                <DashboardClientPagination
-                  page={reservationHistoryPagination.page}
-                  totalPages={reservationHistoryPagination.totalPages}
-                  totalItems={reservationHistoryPagination.totalItems}
-                  onPageChange={setReservationHistoryPage}
-                  disabled={myReservationsQuery.isFetching}
-                />
-              </div>
-            ) : (
-              <div className="api-empty mt-4 px-4 py-8 text-center text-sm text-muted-foreground">
-                Không có đặt chỗ nào vào {formatReservationHistoryDateLabel(reservationHistoryDate)}.
-              </div>
-            )}
-        </DashboardSection>
       </DashboardMain>
 
       <DriverVehicleReserveDialog
@@ -1805,20 +1826,4 @@ function getChangePasswordErrorMessage(error: unknown) {
     return error.message || "Không thể đổi mật khẩu.";
   }
   return getErrorMessage(error, "Không thể đổi mật khẩu.");
-}
-
-function ToggleExpandedButton({
-  expanded,
-  children,
-  ...props
-}: ComponentPropsWithoutRef<"button"> & { expanded: boolean }) {
-  return expanded ? (
-    <button {...props} aria-expanded="true">
-      {children}
-    </button>
-  ) : (
-    <button {...props} aria-expanded="false">
-      {children}
-    </button>
-  );
 }

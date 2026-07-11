@@ -110,11 +110,11 @@ function Index() {
           <div className="space-y-2 text-sm text-muted-foreground">
             <p className="flex items-center gap-2">
               <Phone className="size-4 text-primary" />
-              Hotline: 1900 1234
+              Hotline: 0931467562
             </p>
             <p className="flex items-center gap-2">
               <Mail className="size-4 text-primary" />
-              contact@parkingbs.vn
+              huyronaldovapcom@gmail.com
             </p>
           </div>
         </div>
