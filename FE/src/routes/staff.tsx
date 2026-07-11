@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+import { AccountProfileBanner } from "@/components/AccountProfileBanner";
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import { ReservationDetailDialog } from "@/components/ReservationDetailDialog";
 import { StaffCreateParkingSessionDialog } from "@/components/StaffCreateParkingSessionDialog";
@@ -601,9 +602,16 @@ function StaffPage() {
       selectedFloor);
 
   return (
-    <div className="min-h-screen">
+    <div className="portal-shell portal-shell--staff min-h-screen">
       <SiteHeader />
       <DashboardMain wide>
+        <div className="mb-5">
+          <AccountProfileBanner
+            fallbackName="Nhân viên"
+            dialogDescription="Thông tin tài khoản nhân viên đang đăng nhập."
+          />
+        </div>
+
         <DashboardSection>
           <div className="mb-5 flex flex-wrap items-center justify-end gap-2">
             <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
@@ -616,7 +624,7 @@ function StaffPage() {
             <div className="space-y-2">
               <Label htmlFor="staff-floor-filter">Tầng</Label>
               <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
-                <SelectTrigger id="staff-floor-filter" className="h-11 rounded-xl bg-secondary">
+                <SelectTrigger id="staff-floor-filter" className="h-11 rounded-xl border-primary/30 bg-secondary/85">
                   <SelectValue placeholder="Chọn tầng" />
                 </SelectTrigger>
                 <SelectContent>
@@ -665,7 +673,7 @@ function StaffPage() {
                     key={slot._id}
                     type="button"
                     onClick={() => handleSlotClick(slot)}
-                    className={`relative min-h-11 rounded-xl border px-2 py-2.5 text-left text-sm font-semibold transition ${
+                    className={`relative min-h-11 rounded-xl border px-2 py-2.5 text-left text-sm font-semibold shadow-[0_10px_24px_-18px_hsl(var(--primary))] transition-all ${
                       slotButtonStyles[slot.status]
                     } ${isSelected ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : ""} ${
                       slot.status === "AVAILABLE" ||

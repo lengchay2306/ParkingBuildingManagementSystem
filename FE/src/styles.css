@@ -107,6 +107,44 @@
   --pastel-sky: oklch(0.76 0.12 230);
   --pastel-pink: oklch(0.74 0.13 0);
   --pastel-butter: oklch(0.82 0.14 95);
+
+  /* Precomputed blends (avoid color-mix for Chrome < 111) */
+  --blend-primary-border-strong: oklch(0.38 0.04 275);
+  --blend-primary-border: oklch(0.32 0.028 275);
+  --blend-primary-border-mid: oklch(0.30 0.026 275);
+  --blend-primary-border-soft: oklch(0.28 0.022 275);
+  --blend-primary-border-faint: oklch(0.27 0.018 275);
+  --blend-border-primary: oklch(0.27 0.012 275);
+  --blend-mint-border: oklch(0.34 0.03 160);
+  --blend-peach-border: oklch(0.34 0.03 50);
+  --blend-sky-border: oklch(0.33 0.03 230);
+  --blend-primary-glow-xl: oklch(0.58 0.16 275 / 0.18);
+  --blend-primary-glow-lg: oklch(0.58 0.16 275 / 0.15);
+  --blend-primary-glow-md: oklch(0.58 0.16 275 / 0.12);
+  --blend-primary-glow-sm: oklch(0.58 0.16 275 / 0.10);
+  --blend-primary-glow-xs: oklch(0.58 0.16 275 / 0.08);
+  --blend-primary-fill-sm: oklch(0.58 0.16 275 / 0.12);
+  --blend-primary-shadow: oklch(0.58 0.16 275 / 0.50);
+  --blend-mint-glow: oklch(0.78 0.13 160 / 0.16);
+  --blend-peach-glow: oklch(0.78 0.13 50 / 0.16);
+  --blend-sky-glow: oklch(0.76 0.12 230 / 0.28);
+  --blend-lavender-glow: oklch(0.72 0.14 280 / 0.14);
+  --blend-secondary-panel: oklch(0.20 0.004 270 / 0.90);
+  --blend-secondary-panel-soft: oklch(0.20 0.004 270 / 0.88);
+  --blend-secondary-panel-muted: oklch(0.20 0.004 270 / 0.86);
+  --blend-secondary-panel-faint: oklch(0.20 0.004 270 / 0.84);
+  --blend-secondary-panel-empty: oklch(0.20 0.004 270 / 0.80);
+  --blend-card-panel: oklch(0.16 0.004 270 / 0.84);
+  --blend-glass: oklch(0.08 0.005 270 / 0.70);
+  --blend-bg-fade-top: oklch(0.08 0.005 270 / 0.42);
+  --blend-bg-fade-bottom: oklch(0.08 0.005 270 / 0.76);
+  --blend-portal-accent-soft: oklch(0.58 0.16 275 / 0.22);
+  --blend-portal-accent-glow: oklch(0.58 0.16 275 / 0.16);
+  --blend-portal-accent-tint: oklch(0.58 0.16 275 / 0.10);
+  --blend-portal-accent-border: oklch(0.32 0.028 275);
+  --blend-portal-accent-border-soft: oklch(0.30 0.026 275);
+  --blend-portal-accent-border-strong: oklch(0.38 0.04 275);
+  --blend-portal-accent-border-mid: oklch(0.31 0.027 275);
 }
 
 :root.light {
@@ -151,6 +189,43 @@
   --pastel-sky: oklch(0.76 0.12 230);
   --pastel-pink: oklch(0.74 0.13 0);
   --pastel-butter: oklch(0.82 0.14 95);
+
+  --blend-primary-border-strong: oklch(0.72 0.06 275);
+  --blend-primary-border: oklch(0.84 0.04 275);
+  --blend-primary-border-mid: oklch(0.86 0.035 275);
+  --blend-primary-border-soft: oklch(0.88 0.03 275);
+  --blend-primary-border-faint: oklch(0.89 0.025 275);
+  --blend-border-primary: oklch(0.87 0.02 275);
+  --blend-mint-border: oklch(0.84 0.04 160);
+  --blend-peach-border: oklch(0.84 0.04 50);
+  --blend-sky-border: oklch(0.84 0.04 230);
+  --blend-primary-glow-xl: oklch(0.58 0.16 275 / 0.14);
+  --blend-primary-glow-lg: oklch(0.58 0.16 275 / 0.12);
+  --blend-primary-glow-md: oklch(0.58 0.16 275 / 0.10);
+  --blend-primary-glow-sm: oklch(0.58 0.16 275 / 0.08);
+  --blend-primary-glow-xs: oklch(0.58 0.16 275 / 0.06);
+  --blend-primary-fill-sm: oklch(0.58 0.16 275 / 0.10);
+  --blend-primary-shadow: oklch(0.58 0.16 275 / 0.35);
+  --blend-mint-glow: oklch(0.78 0.13 160 / 0.12);
+  --blend-peach-glow: oklch(0.78 0.13 50 / 0.12);
+  --blend-sky-glow: oklch(0.76 0.12 230 / 0.20);
+  --blend-lavender-glow: oklch(0.72 0.14 280 / 0.10);
+  --blend-secondary-panel: oklch(0.95 0.004 260 / 0.95);
+  --blend-secondary-panel-soft: oklch(0.95 0.004 260 / 0.92);
+  --blend-secondary-panel-muted: oklch(0.95 0.004 260 / 0.90);
+  --blend-secondary-panel-faint: oklch(0.95 0.004 260 / 0.88);
+  --blend-secondary-panel-empty: oklch(0.95 0.004 260 / 0.85);
+  --blend-card-panel: oklch(1 0 0 / 0.92);
+  --blend-glass: oklch(0.99 0.002 250 / 0.72);
+  --blend-bg-fade-top: oklch(0.99 0.002 250 / 0.42);
+  --blend-bg-fade-bottom: oklch(0.99 0.002 250 / 0.76);
+  --blend-portal-accent-soft: oklch(0.58 0.16 275 / 0.18);
+  --blend-portal-accent-glow: oklch(0.58 0.16 275 / 0.12);
+  --blend-portal-accent-tint: oklch(0.58 0.16 275 / 0.08);
+  --blend-portal-accent-border: oklch(0.84 0.04 275);
+  --blend-portal-accent-border-soft: oklch(0.86 0.035 275);
+  --blend-portal-accent-border-strong: oklch(0.78 0.06 275);
+  --blend-portal-accent-border-mid: oklch(0.85 0.038 275);
 }
 
 @layer base {
@@ -167,7 +242,7 @@
 
 @layer utilities {
   .glass {
-    background: color-mix(in oklab, var(--background) 70%, transparent);
+    background: var(--blend-glass);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
     backdrop-filter: blur(20px) saturate(140%);
     border-bottom: 1px solid var(--color-hairline);
@@ -282,13 +357,291 @@
     color: var(--color-muted-foreground);
   }
 
+  /* API-driven panels: colorful but still data-first */
+  .api-section {
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--blend-primary-border);
+    background:
+      radial-gradient(circle at 0% 0%, var(--blend-primary-glow-xl), transparent 42%),
+      radial-gradient(circle at 100% 0%, var(--blend-mint-glow), transparent 36%),
+      var(--color-card);
+    box-shadow: var(--shadow-soft);
+  }
+  .api-header {
+    border-bottom: 1px solid var(--blend-primary-border-soft);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-md), transparent 70%),
+      var(--blend-secondary-panel-faint);
+  }
+  .api-toolbar {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-primary-border-mid);
+    background: var(--blend-secondary-panel);
+    padding: 0.625rem;
+  }
+  .api-tab {
+    border-radius: 9999px;
+    border: 1px solid var(--blend-border-primary);
+    background: var(--blend-secondary-panel-soft);
+    color: var(--color-muted-foreground);
+  }
+  .api-tab[data-active="true"] {
+    border-color: var(--blend-primary-border-strong);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-lg), transparent),
+      var(--blend-card-panel);
+    color: var(--color-primary);
+  }
+  .api-grid-card {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-border-primary);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-lg), transparent 60%),
+      var(--blend-secondary-panel-soft);
+  }
+  .api-grid-card:nth-child(2n) {
+    border-color: var(--blend-mint-border);
+    background:
+      linear-gradient(180deg, var(--blend-mint-glow), transparent 60%),
+      var(--blend-secondary-panel-soft);
+  }
+  .api-grid-card:nth-child(3n) {
+    border-color: var(--blend-peach-border);
+    background:
+      linear-gradient(180deg, var(--blend-peach-glow), transparent 60%),
+      var(--blend-secondary-panel-soft);
+  }
+  .api-table-head {
+    border-bottom: 1px solid var(--blend-primary-border-soft);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-md), transparent),
+      var(--blend-secondary-panel);
+  }
+  .api-row {
+    border: 1px solid var(--blend-border-primary);
+    background: var(--blend-secondary-panel-empty);
+  }
+  .api-row:hover {
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-md), transparent),
+      var(--blend-secondary-panel-muted);
+  }
+  .api-dialog-head {
+    border-bottom: 1px solid var(--blend-primary-border-soft);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-sm), transparent),
+      var(--blend-secondary-panel);
+  }
+  .api-empty {
+    border-radius: var(--radius-xl);
+    border: 1px dashed var(--blend-primary-border);
+    background: var(--blend-secondary-panel-empty);
+  }
+
+  /* Per-portal tuning for 4 active role pages */
+  .portal-shell {
+    --portal-accent: var(--color-primary);
+    --portal-soft: var(--blend-portal-accent-soft);
+    --portal-border: var(--blend-portal-accent-border);
+    --portal-border-soft: var(--blend-portal-accent-border-soft);
+    --portal-border-mid: var(--blend-portal-accent-border-mid);
+    --portal-border-strong: var(--blend-portal-accent-border-strong);
+    --portal-glow: var(--blend-portal-accent-glow);
+    --portal-tint: var(--blend-portal-accent-tint);
+  }
+  .portal-shell--driver {
+    --portal-accent: var(--color-pastel-sky);
+    --portal-soft: oklch(0.76 0.12 230 / 0.22);
+    --portal-border: oklch(0.33 0.03 230);
+    --portal-border-soft: oklch(0.31 0.028 230);
+    --portal-border-mid: oklch(0.32 0.029 230);
+    --portal-border-strong: oklch(0.39 0.04 230);
+    --portal-glow: oklch(0.76 0.12 230 / 0.16);
+    --portal-tint: oklch(0.76 0.12 230 / 0.10);
+  }
+  .portal-shell--staff {
+    --portal-accent: var(--color-pastel-mint);
+    --portal-soft: oklch(0.78 0.13 160 / 0.22);
+    --portal-border: oklch(0.34 0.03 160);
+    --portal-border-soft: oklch(0.32 0.028 160);
+    --portal-border-mid: oklch(0.33 0.029 160);
+    --portal-border-strong: oklch(0.40 0.04 160);
+    --portal-glow: oklch(0.78 0.13 160 / 0.16);
+    --portal-tint: oklch(0.78 0.13 160 / 0.10);
+  }
+  .portal-shell--manager {
+    --portal-accent: var(--color-primary);
+    --portal-soft: var(--blend-portal-accent-soft);
+    --portal-border: var(--blend-portal-accent-border);
+    --portal-border-soft: var(--blend-portal-accent-border-soft);
+    --portal-border-mid: var(--blend-portal-accent-border-mid);
+    --portal-border-strong: var(--blend-portal-accent-border-strong);
+    --portal-glow: var(--blend-portal-accent-glow);
+    --portal-tint: var(--blend-portal-accent-tint);
+  }
+  .portal-shell--admin {
+    --portal-accent: var(--color-pastel-peach);
+    --portal-soft: oklch(0.78 0.13 50 / 0.22);
+    --portal-border: oklch(0.34 0.03 50);
+    --portal-border-soft: oklch(0.32 0.028 50);
+    --portal-border-mid: oklch(0.33 0.029 50);
+    --portal-border-strong: oklch(0.40 0.04 50);
+    --portal-glow: oklch(0.78 0.13 50 / 0.16);
+    --portal-tint: oklch(0.78 0.13 50 / 0.10);
+  }
+  .portal-shell .dashboard-main {
+    background:
+      radial-gradient(circle at 7% 6%, var(--portal-glow), transparent 30%),
+      radial-gradient(circle at 88% -8%, var(--blend-lavender-glow), transparent 36%),
+      var(--color-background);
+  }
+  .portal-shell .dashboard-section {
+    border-color: var(--portal-border);
+    background:
+      linear-gradient(180deg, var(--portal-tint), transparent 55%),
+      var(--color-card);
+  }
+  .portal-shell .dashboard-tabs {
+    border-color: var(--portal-border-soft);
+    background:
+      linear-gradient(180deg, var(--portal-tint), transparent),
+      var(--blend-secondary-panel-soft);
+  }
+  .portal-shell .dashboard-tabs button[data-active="true"],
+  .portal-shell .dashboard-tabs button[aria-pressed="true"] {
+    border-color: var(--portal-border-strong);
+  }
+  .portal-shell .dashboard-legend {
+    border-color: var(--portal-border-soft);
+    background: var(--blend-secondary-panel-empty);
+  }
+  .portal-shell .api-section {
+    border-color: var(--portal-border);
+  }
+  .portal-shell .api-header,
+  .portal-shell .api-table-head,
+  .portal-shell .api-dialog-head {
+    border-color: var(--portal-border-soft);
+  }
+  .portal-shell .api-toolbar,
+  .portal-shell .api-tab,
+  .portal-shell .api-row {
+    border-color: var(--portal-border-mid);
+  }
+
+  /* Dialogs, forms & list cards */
+  .ui-dialog-panel {
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--blend-primary-border);
+    background:
+      radial-gradient(circle at 0% 0%, var(--blend-primary-glow-md), transparent 40%),
+      var(--color-card);
+    box-shadow: var(--shadow-pop);
+  }
+  .ui-detail-grid {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-primary-border-soft);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-xs), transparent),
+      var(--blend-secondary-panel-soft);
+  }
+  .ui-section-kicker {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+  }
+  .ui-profile-hero {
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--portal-border, var(--blend-primary-border));
+    background:
+      linear-gradient(135deg, var(--portal-tint, var(--blend-primary-glow-xs)), transparent 58%),
+      var(--blend-secondary-panel-muted);
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .ui-profile-hero:hover {
+    border-color: var(--portal-border-strong, var(--blend-primary-border-strong));
+    transform: translateY(-1px);
+  }
+  .ui-profile-avatar {
+    border-radius: 9999px;
+    border: 2px solid var(--portal-border-mid, var(--blend-primary-border-mid));
+    background:
+      radial-gradient(circle at 30% 20%, var(--portal-soft, var(--blend-primary-glow-sm)), transparent 55%),
+      var(--blend-secondary-panel);
+  }
+  .ui-reservation-card {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-border-primary);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-sm), transparent 65%),
+      var(--blend-secondary-panel-muted);
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+  .ui-reservation-card:hover {
+    border-color: var(--blend-primary-border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -18px var(--blend-primary-shadow);
+  }
+  .ui-filter-row {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-primary-border-mid);
+    background: var(--blend-secondary-panel-soft);
+    padding: 0.75rem;
+  }
+  .ui-vehicle-row {
+    border-top: 1px solid var(--blend-primary-border-faint);
+    transition: background-color 0.2s;
+  }
+  .ui-vehicle-row:hover {
+    background: var(--blend-primary-glow-xs);
+  }
+  .ui-form-panel {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--blend-primary-border-soft);
+    background:
+      linear-gradient(180deg, var(--blend-primary-glow-xs), transparent),
+      var(--blend-secondary-panel-soft);
+    padding: 1rem;
+  }
+  .ui-dialog-summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--portal-border-soft, var(--blend-primary-border-soft));
+    background:
+      linear-gradient(135deg, var(--portal-glow, var(--blend-primary-glow-sm)), transparent 62%),
+      var(--blend-secondary-panel-soft);
+    padding: 1rem;
+  }
+  .ui-field-icon {
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--blend-primary-border-mid);
+    background: var(--blend-primary-fill-sm);
+    color: var(--color-primary);
+  }
+  .ui-slot-chip {
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--blend-sky-border);
+    background:
+      radial-gradient(circle at 30% 20%, var(--blend-sky-glow), transparent 60%),
+      var(--blend-secondary-panel);
+    color: var(--color-pastel-sky);
+  }
+
   .index-hero-image {
     background-image: url("https://images.unsplash.com/photo-1621929747188-0b4dc28498d2?auto=format&fit=crop&w=1400&q=65");
   }
   .index-hero-overlay {
     background: linear-gradient(
       180deg,
-      color-mix(in oklab, var(--background) 42%, transparent),
+      var(--blend-bg-fade-top),
       var(--background) 92%
     );
   }
@@ -299,7 +652,7 @@
     background: linear-gradient(
       180deg,
       transparent 58%,
-      color-mix(in oklab, var(--background) 76%, transparent)
+      var(--blend-bg-fade-bottom)
     );
   }
 }

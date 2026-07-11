@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -55,77 +55,91 @@ export function StaffCreateParkingSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Tạo phiên đỗ xe</DialogTitle>
-          <DialogDescription>
-            Chỗ {slotNumber ?? "—"}
-            {floorName ? ` · ${floorName}` : ""} · Chỉ áp dụng cho chỗ Trống hoặc Đã đặt.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+        <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+          <DialogHeader>
+            <DialogTitle>Tạo phiên đỗ xe</DialogTitle>
+            <DialogDescription>
+              Chỗ {slotNumber ?? "—"}
+              {floorName ? ` · ${floorName}` : ""} · Chỉ áp dụng cho chỗ Trống hoặc Đã đặt.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        {fromReservation ? (
-          <p className="rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
-            Thông tin điền sẵn từ đặt chỗ
-            {reservationDriverName ? ` của ${reservationDriverName}` : ""}. Kiểm tra trước khi tạo
-            phiên đỗ xe.
-          </p>
-        ) : null}
-
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!canSubmit || !parkingSlotId || isSubmitting) {
-              return;
-            }
-            onSubmit({
-              phone: normalizeStaffPhone(phone.trim()) ?? phone.trim(),
-              licensePlate: licensePlate.trim(),
-              parkingSlotId,
-            });
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="staff-session-phone">Số điện thoại</Label>
-            <Input
-              id="staff-session-phone"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="0901234567"
-              className="rounded-xl"
-              autoComplete="tel"
-            />
-            {phoneError ? <p className="text-xs text-destructive">{phoneError}</p> : null}
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 px-4 py-3">
+            <div className="ui-field-icon size-10">
+              <MapPin className="size-5" />
+            </div>
+            <div>
+              <p className="font-mono text-sm font-semibold">{slotNumber ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">{floorName ?? "Chưa chọn tầng"}</p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="staff-session-plate">Biển số xe</Label>
-            <Input
-              id="staff-session-plate"
-              value={licensePlate}
-              onChange={(event) => setLicensePlate(event.target.value)}
-              placeholder="51A-12345"
-              className="rounded-xl font-mono"
-              autoComplete="off"
-            />
-          </div>
+          {fromReservation ? (
+            <p className="rounded-xl border border-status-yours/35 bg-status-yours/10 px-4 py-3 text-sm text-status-yours">
+              Thông tin điền sẵn từ đặt chỗ
+              {reservationDriverName ? ` của ${reservationDriverName}` : ""}. Kiểm tra trước khi tạo
+              phiên đỗ xe.
+            </p>
+          ) : null}
 
-          <Button
-            type="submit"
-            className="w-full rounded-xl"
-            disabled={!canSubmit || isSubmitting}
+          <form
+            className="ui-form-panel space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!canSubmit || !parkingSlotId || isSubmitting) {
+                return;
+              }
+              onSubmit({
+                phone: normalizeStaffPhone(phone.trim()) ?? phone.trim(),
+                licensePlate: licensePlate.trim(),
+                parkingSlotId,
+              });
+            }}
           >
-            {isSubmitting ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" />
-                Đang tạo...
-              </>
-            ) : (
-              "Tạo phiên đỗ xe"
-            )}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="staff-session-phone">Số điện thoại</Label>
+              <Input
+                id="staff-session-phone"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="0901234567"
+                className="h-11 rounded-xl"
+                autoComplete="tel"
+              />
+              {phoneError ? <p className="text-xs text-destructive">{phoneError}</p> : null}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="staff-session-plate">Biển số xe</Label>
+              <Input
+                id="staff-session-plate"
+                value={licensePlate}
+                onChange={(event) => setLicensePlate(event.target.value)}
+                placeholder="51A-12345"
+                className="h-11 rounded-xl font-mono tracking-wide"
+                autoComplete="off"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="h-11 w-full rounded-xl text-[13px] font-semibold"
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Đang tạo...
+                </>
+              ) : (
+                "Tạo phiên đỗ xe"
+              )}
+            </Button>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

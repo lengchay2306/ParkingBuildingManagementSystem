@@ -119,7 +119,7 @@ export function ParkingSessionListPanel({
   const filterToolbar = (
     <div
       className={cn(
-        "flex flex-wrap items-end gap-2",
+        "api-toolbar flex flex-wrap items-end gap-2",
         tableOnly ? "px-1 py-1" : "justify-end",
       )}
     >
@@ -191,11 +191,12 @@ export function ParkingSessionListPanel({
             setStatusFilter(option);
           }}
           className={cn(
-            "rounded-full border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] transition-colors",
+            "api-tab px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] transition-colors",
             statusFilter === option
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border bg-background text-muted-foreground hover:bg-secondary",
+              ? ""
+              : "hover:bg-secondary",
           )}
+          data-active={statusFilter === option}
         >
           {statusFilterLabels[option]}
         </button>
@@ -216,7 +217,7 @@ export function ParkingSessionListPanel({
   return (
     <section
       className={cn(
-        tableOnly ? "flex h-full min-h-0 flex-col" : "dashboard-section overflow-hidden p-0",
+        tableOnly ? "flex h-full min-h-0 flex-col" : "api-section overflow-hidden p-0",
         className,
       )}
     >
@@ -228,7 +229,7 @@ export function ParkingSessionListPanel({
           {filterToolbar}
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/50 px-6 py-5">
+        <div className="api-header flex flex-wrap items-center justify-between gap-3 px-6 py-5">
           <div>
             <h3 className="text-lg font-semibold text-foreground">Phiên đỗ xe</h3>
             <p className="mt-1 text-sm text-muted-foreground">{headerMeta}</p>
@@ -244,7 +245,7 @@ export function ParkingSessionListPanel({
       >
         <div
           className={cn(
-            "grid gap-4 border-b border-border bg-card py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            "api-table-head grid gap-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
             allowDeleteError
               ? "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
               : "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr]",
@@ -261,7 +262,7 @@ export function ParkingSessionListPanel({
 
         <div className={cn("space-y-2 pb-4", tableOnly ? "px-0" : "px-4")}>
           {sessionsQuery.isLoading ? (
-            <div className="flex items-center gap-2 rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
+            <div className="api-empty flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
               Đang tải phiên đỗ xe...
             </div>
@@ -276,7 +277,7 @@ export function ParkingSessionListPanel({
               <div
                 key={session._id}
                 className={cn(
-                  "grid w-full items-center gap-4 rounded-xl border border-border bg-secondary px-5 py-4",
+                  "api-row grid w-full items-center gap-4 rounded-xl px-5 py-4",
                   allowDeleteError
                     ? "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
                     : "grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr]",
@@ -341,7 +342,7 @@ export function ParkingSessionListPanel({
               </div>
             ))
           ) : (
-            <div className="rounded-xl bg-background/40 px-4 py-6 text-sm text-muted-foreground">
+            <div className="api-empty px-4 py-6 text-sm text-muted-foreground">
               {isDateFilterActive
                 ? `Không có phiên đỗ xe nào check-in ngày ${formatSessionDateLabel(sessionDate)}.`
                 : statusFilter === "ALL"

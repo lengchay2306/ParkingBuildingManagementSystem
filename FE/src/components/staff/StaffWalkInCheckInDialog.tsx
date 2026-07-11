@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -27,20 +28,29 @@ export function StaffWalkInCheckInDialog({
 }: StaffWalkInCheckInDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Check-in khách vãng lai</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0 sm:max-w-md">
+        <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
+          <DialogHeader>
+            <DialogTitle>Check-in khách vãng lai</DialogTitle>
+            <DialogDescription>
+              Chỗ {slotNumber ?? "—"}
+              {floorName ? ` · ${floorName}` : ""}
+              {vehicleTypeLabel ? ` · ${vehicleTypeLabel}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <StaffWalkInCheckInPanel
-          open={open}
-          slotNumber={slotNumber}
-          floorName={floorName}
-          vehicleTypeLabel={vehicleTypeLabel}
-          onCreateSession={onCreateSession}
-          isSubmitting={isSubmitting}
-          embedded
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <StaffWalkInCheckInPanel
+            open={open}
+            slotNumber={slotNumber}
+            floorName={floorName}
+            vehicleTypeLabel={vehicleTypeLabel}
+            onCreateSession={onCreateSession}
+            isSubmitting={isSubmitting}
+            embedded
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

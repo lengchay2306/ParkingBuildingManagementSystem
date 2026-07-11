@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { AccountProfileBanner } from "@/components/AccountProfileBanner";
 import { DashboardStatsPanel } from "@/components/DashboardStatsPanel";
 import { ParkingSessionListPanel } from "@/components/ParkingSessionListPanel";
 import { ReservationListPanel } from "@/components/ReservationListPanel";
@@ -30,9 +31,17 @@ function ManagerPage() {
   const [activeTab, setActiveTab] = useState<ManagerTab>("stats");
 
   return (
-    <div className="min-h-screen">
+    <div className="portal-shell portal-shell--manager min-h-screen">
       <SiteHeader />
       <DashboardMain>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <AccountProfileBanner
+            fallbackName="Quản lý"
+            dialogDescription="Thông tin tài khoản quản lý đang đăng nhập."
+            className="sm:max-w-sm"
+          />
+        </div>
+
         <DashboardHeader
           title="Bảng điều khiển quản lý"
           description="Theo dõi thống kê, người dùng và quản lý đặt chỗ theo ngày."
