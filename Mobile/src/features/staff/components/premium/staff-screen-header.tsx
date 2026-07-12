@@ -4,34 +4,32 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffScreenHeaderProps = {
   title: string;
-  subtitle?: string;
   onProfilePress?: () => void;
   rightLabel?: string;
 };
 
 export function StaffScreenHeader({
   title,
-  subtitle,
   onProfilePress,
   rightLabel,
 }: StaffScreenHeaderProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   return (
     <View style={styles.row}>
       <View style={styles.textBlock}>
         <ThemedText style={styles.title}>{title}</ThemedText>
-        {subtitle ? <ThemedText style={styles.subtitle}>{subtitle}</ThemedText> : null}
       </View>
       {onProfilePress ? (
         <Pressable
+          hitSlop={6}
           onPress={onProfilePress}
-          style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.85 }]}>
+          style={({ pressed }) => [styles.profileBtn, pressed && styles.profileBtnPressed]}>
           <Ionicons color={DesignColors.ink} name="person-circle-outline" size={28} />
           {rightLabel ? <ThemedText style={styles.rightLabel}>{rightLabel}</ThemedText> : null}
         </Pressable>
@@ -40,17 +38,16 @@ export function StaffScreenHeader({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'space-between',
       gap: Spacing.md,
     },
     textBlock: {
       flex: 1,
-      gap: 4,
     },
     title: {
       ...Typography.pageTitle,
@@ -58,13 +55,16 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       fontWeight: '700',
       fontSize: 26,
     },
-    subtitle: {
-      ...Typography.bodySm,
-      color: DesignColors.inkMuted,
-    },
     profileBtn: {
+      minWidth: 44,
+      minHeight: 44,
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 2,
+    },
+    profileBtnPressed: {
+      opacity: 0.85,
+      transform: [{ scale: 0.97 }],
     },
     rightLabel: {
       ...Typography.caption,

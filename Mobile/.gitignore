@@ -47,4 +47,6 @@ app-example
 /ios
 /android
 
+# Windows Android build helper (downloaded by setup-android-windows-build.ps1)
+/tools/ninja/ninja.exe
 

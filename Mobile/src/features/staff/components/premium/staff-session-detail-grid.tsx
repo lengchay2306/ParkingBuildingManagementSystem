@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 export type StaffDetailCell = {
   id: string;
@@ -18,7 +18,7 @@ type StaffSessionDetailGridProps = {
 };
 
 export function StaffSessionDetailGrid({ cells }: StaffSessionDetailGridProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   return (
@@ -34,7 +34,7 @@ export function StaffSessionDetailGrid({ cells }: StaffSessionDetailGridProps) {
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     grid: {
       flexDirection: 'row',
@@ -43,14 +43,14 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     cell: {
       width: '47%',
-      flexGrow: 1,
+      maxWidth: '48%',
       backgroundColor: DesignColors.surface2,
       borderRadius: Radius.lg,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       padding: Spacing.md,
       gap: 6,
-      minHeight: 96,
+      minHeight: 88,
     },
     label: {
       ...Typography.caption,

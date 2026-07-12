@@ -46,16 +46,19 @@ type PopulatedSlot = {
 
 export type ParkingSession = {
   _id: string;
-  vehicleId: string | PopulatedVehicle;
+  vehicleId: string | PopulatedVehicle | null;
   parkingSlotId: string | PopulatedSlot;
   sessionType: 'DAILY' | 'MONTH';
-  checkInUserId: string | PopulatedUser;
-  checkInStaffId: string | PopulatedUser;
+  checkInUserId?: string | PopulatedUser | null;
+  checkInStaffId?: string | PopulatedUser;
   checkOutUserId?: string | PopulatedUser;
   checkOutStaffId?: string | PopulatedUser;
   checkInTime: string;
   checkOutTime?: string;
   status: 'ACTIVE' | 'COMPLETED';
+  licensePlate?: string;
+  phone?: string;
+  isGuest?: boolean;
 };
 
 export type ParkingSessionsPagination = {
@@ -74,9 +77,14 @@ export type ParkingSessionsQuery = {
 };
 
 export type CreateParkingSessionPayload = {
-  phone: string;
+  reservationId: string;
+};
+
+export type CreateGuestParkingSessionPayload = {
   licensePlate: string;
   parkingSlotId: string;
+  vehicleTypeId: string;
+  phone?: string;
 };
 
 export type CheckoutParkingSessionPayload = {
@@ -167,7 +175,98 @@ export async function getParkingSessions(params: ParkingSessionsQuery = {}): Pro
   };
 }
 
-/** PATCH /parking/checkout-parking-session/:id — Staff checkout. */
+const STAFF_ACTIVE_SESSION_LOOKBACK_DAYS = 14;
+
+function buildRecentLocalDateKeys(days: number): string[] {
+  const keys: string[] = [];
+  const today = new Date();
+
+  for (let offset = 0; offset < days; offset += 1) {
+    const day = new Date(today);
+    day.setDate(day.getDate() - offset);
+    keys.push(
+      `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`,
+    );
+  }
+
+  return keys;
+}
+
+/**
+ * BE filters parking-sessions by check-in date — active sessions from prior days
+ * are omitted from today's query. Scan a rolling window when resolving by id.
+ */
+export async function findStaffActiveSessionById(sessionId: string): Promise<ParkingSession | null> {
+  const dateKeys = buildRecentLocalDateKeys(STAFF_ACTIVE_SESSION_LOOKBACK_DAYS);
+  const results = await Promise.all(
+    dateKeys.map((date) =>
+      getParkingSessions({ page: 1, limit: 300, status: 'ACTIVE', date }).catch(() => ({
+        sessions: [] as ParkingSession[],
+        pagination: {
+          currentPage: 1,
+          totalPage: 0,
+          totalItems: 0,
+          itemsPerPage: 300,
+        },
+      })),
+    ),
+  );
+
+  for (const result of results) {
+    const match = result.sessions.find(
+      (session) => session._id === sessionId && session.status === 'ACTIVE' && !session.checkOutTime,
+    );
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+}
+
+/** GET /parking/active-session-by-plate/:plate — active session for checkout lookup. */
+export async function getActiveSessionByPlate(licensePlate: string): Promise<ParkingSession | null> {
+  const normalized = normalizePlate(licensePlate);
+  const response = await authenticatedFetch(
+    `/parking/active-session-by-plate/${encodeURIComponent(normalized)}`,
+  );
+  const payload = (await response.json().catch(() => null)) as ApiEnvelope<{
+    parkingSession?: ParkingSession;
+  }> | null;
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.message ?? 'Request failed');
+  }
+
+  return payload?.data?.parkingSession ?? null;
+}
+
+/** First AVAILABLE slot on a floor matching vehicle type (walk-in check-in). */
+export function findFirstAvailableSlotForVehicleType(
+  floors: ParkingFloor[],
+  vehicleTypeId: string,
+): { slot: ParkingSlot; floor: ParkingFloor } | null {
+  for (const floor of floors) {
+    const floorTypeId =
+      typeof floor.vehicleType === 'object' ? floor.vehicleType?._id : floor.vehicleType;
+    if (!floorTypeId || floorTypeId !== vehicleTypeId) {
+      continue;
+    }
+
+    const slot = floor.slots.find((item) => item.status === 'AVAILABLE');
+    if (slot) {
+      return { slot, floor };
+    }
+  }
+
+  return null;
+}
+
+/** PATCH /parking/checkout-parking-session/:id — Monthly card checkout only. */
 export async function checkoutParkingSession(
   payload: CheckoutParkingSessionPayload,
 ): Promise<ParkingSession> {
@@ -187,18 +286,40 @@ export async function checkoutParkingSession(
   return session;
 }
 
-/** POST /parking/create-parking-session — Staff check-in. */
+/** POST /parking/create-parking-session — Reservation check-in. */
 export async function createParkingSession(
   payload: CreateParkingSessionPayload,
 ): Promise<ParkingSession> {
   const response = await authenticatedFetch('/parking/create-parking-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      phone: payload.phone.trim(),
-      licensePlate: normalizePlate(payload.licensePlate),
-      parkingSlotId: payload.parkingSlotId,
-    }),
+    body: JSON.stringify({ reservationId: payload.reservationId.trim() }),
+  });
+  const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
+  const session = result.data?.parkingSession;
+  if (!session) {
+    throw new Error(result.message ?? 'Parking session response is missing data');
+  }
+  return session;
+}
+
+/** POST /parking/create-parking-session/guest — Walk-in / guest check-in. */
+export async function createGuestParkingSession(
+  payload: CreateGuestParkingSessionPayload,
+): Promise<ParkingSession> {
+  const body: Record<string, string> = {
+    licensePlate: normalizePlate(payload.licensePlate),
+    parkingSlotId: payload.parkingSlotId,
+    vehicleTypeId: payload.vehicleTypeId,
+  };
+  if (payload.phone?.trim()) {
+    body.phone = payload.phone.trim();
+  }
+
+  const response = await authenticatedFetch('/parking/create-parking-session/guest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
@@ -217,4 +338,16 @@ export function collectAvailableSlots(floors: ParkingFloor[]): Array<ParkingSlot
         floorName: floor.floorName,
       })),
   );
+}
+
+export function resolveVehicleTypeIdFromSessionOrVehicle(
+  vehicleTypeId?: string | { _id?: string } | null,
+): string | null {
+  if (!vehicleTypeId) {
+    return null;
+  }
+  if (typeof vehicleTypeId === 'string') {
+    return vehicleTypeId;
+  }
+  return vehicleTypeId._id ?? null;
 }

@@ -4,7 +4,9 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +19,7 @@ import {
   vietQrImageUri,
   type StaffBillQrResult,
 } from '@/features/payment/api';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffPaymentQrModalProps = {
   visible: boolean;
@@ -39,14 +41,23 @@ export function StaffPaymentQrModal({
   t,
 }: StaffPaymentQrModalProps) {
   const insets = useSafeAreaInsets();
-  const DesignColors = useDesignColors();
+  const { height: windowHeight } = useWindowDimensions();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const qrUri = bill ? vietQrImageUri(bill.qrCode, 280) : null;
+  const qrUri = bill ? vietQrImageUri(bill.qrCode, 220) : null;
+  const sheetMaxHeight = Math.min(windowHeight * 0.88, 640);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              maxHeight: sheetMaxHeight,
+              paddingBottom: Math.max(insets.bottom, Spacing.md),
+            },
+          ]}>
           <View style={styles.header}>
             <ThemedText style={styles.title}>{t('Thanh toán VietQR', 'VietQR payment')}</ThemedText>
             <Pressable onPress={onClose} hitSlop={12}>
@@ -54,54 +65,61 @@ export function StaffPaymentQrModal({
             </Pressable>
           </View>
 
-          <ThemedText style={styles.subtitle}>
-            {t('Khách quét mã để thanh toán phí gửi xe', 'Customer scans to pay parking fee')}
-            {plate ? ` · ${plate}` : ''}
-          </ThemedText>
+          <ScrollView
+            bounces={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.scroll}>
+            <ThemedText style={styles.subtitle}>
+              {t('Khách quét mã để thanh toán phí gửi xe', 'Customer scans to pay parking fee')}
+              {plate ? ` · ${plate}` : ''}
+            </ThemedText>
 
-          {!bill ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color={DesignColors.primary} />
-            </View>
-          ) : (
-            <>
-              <View style={styles.metaRow}>
-                <View style={styles.metaItem}>
-                  <ThemedText style={styles.metaLabel}>{t('Số tiền', 'Amount')}</ThemedText>
-                  <ThemedText style={styles.metaValue}>{formatVnd(bill.amount)}</ThemedText>
-                </View>
-                <View style={styles.metaItem}>
-                  <ThemedText style={styles.metaLabel}>{t('Thời gian', 'Duration')}</ThemedText>
-                  <ThemedText style={styles.metaValue}>
-                    {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} h` : '—'}
-                  </ThemedText>
-                </View>
+            {!bill ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator color={DesignColors.primary} />
               </View>
-              <ThemedText style={styles.orderCode}>
-                {t('Mã đơn', 'Order')}: {bill.orderCode}
-              </ThemedText>
+            ) : (
+              <>
+                <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <ThemedText style={styles.metaLabel}>{t('Số tiền', 'Amount')}</ThemedText>
+                    <ThemedText style={styles.metaValue}>{formatVnd(bill.amount)}</ThemedText>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <ThemedText style={styles.metaLabel}>{t('Thời gian', 'Duration')}</ThemedText>
+                    <ThemedText style={styles.metaValue}>
+                      {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} h` : '—'}
+                    </ThemedText>
+                  </View>
+                </View>
+                <ThemedText style={styles.orderCode}>
+                  {t('Mã đơn', 'Order')}: {bill.orderCode}
+                </ThemedText>
 
-              <View style={styles.qrWrap}>
-                {qrUri ? (
-                  <Image source={{ uri: qrUri }} style={styles.qrImage} resizeMode="contain" />
-                ) : null}
-              </View>
+                <View style={styles.qrWrap}>
+                  {qrUri ? (
+                    <Image source={{ uri: qrUri }} style={styles.qrImage} resizeMode="contain" />
+                  ) : null}
+                </View>
 
-              <StaffActionButton
-                disabled={isConfirming}
-                loading={isConfirming}
-                label={t('Đã thanh toán — xác nhận ra cổng', 'Paid — confirm exit')}
-                onPress={onConfirm}
-              />
-            </>
-          )}
+                <StaffActionButton
+                  disabled={isConfirming}
+                  loading={isConfirming}
+                  label={t('Đã thanh toán — xác nhận ra cổng', 'Paid — confirm exit')}
+                  onPress={onConfirm}
+                />
+              </>
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -116,12 +134,22 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderColor: DesignColors.hairline,
       paddingHorizontal: Spacing.md,
       paddingTop: Spacing.md,
+      // Hug content — do not stretch to full screen height
+      flexGrow: 0,
+    },
+    scroll: {
+      flexGrow: 0,
+    },
+    scrollContent: {
       gap: Spacing.sm,
+      paddingBottom: Spacing.xs,
+      flexGrow: 0,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      marginBottom: Spacing.xs,
     },
     title: {
       ...Typography.cardTitle,
@@ -137,7 +165,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.inkMuted,
     },
     loadingBox: {
-      height: 200,
+      height: 160,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -177,8 +205,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       marginVertical: Spacing.xs,
     },
     qrImage: {
-      width: 240,
-      height: 240,
+      width: 200,
+      height: 200,
     },
   });
 }

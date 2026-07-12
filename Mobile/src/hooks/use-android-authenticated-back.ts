@@ -11,8 +11,9 @@ const ROOT_TAB_PATHS = new Set<string>([
   CUSTOMER_ROUTES.profile,
   STAFF_ROUTES.home,
   STAFF_ROUTES.slots,
-  STAFF_ROUTES.checkIn,
+  STAFF_ROUTES.scan,
   STAFF_ROUTES.sessions,
+  STAFF_ROUTES.profile,
 ]);
 
 /**

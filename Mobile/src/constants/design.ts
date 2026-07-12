@@ -68,6 +68,21 @@ export type DesignColorPalette = {
   readonly [K in keyof typeof DesignColors]: string;
 };
 
+/** Staff light theme — soft canvas, elevated cards (Linear inverse palette). */
+export const DesignColorsStaffLight: DesignColorPalette = {
+  ...DesignColorsLight,
+  canvas: '#E4E8F0',
+  surface1: '#FFFFFF',
+  surface2: '#F5F7FA',
+  surface3: '#EEF1F6',
+  surface4: '#E2E8F0',
+  hairline: 'rgba(15, 23, 42, 0.07)',
+  hairlineStrong: 'rgba(15, 23, 42, 0.11)',
+  hairlineTertiary: 'rgba(15, 23, 42, 0.15)',
+  glowEmerald: 'rgba(5,150,105,0.12)',
+  glowViolet: 'rgba(94,106,210,0.14)',
+};
+
 export const Radius = {
   xs: 4,
   sm: 6,

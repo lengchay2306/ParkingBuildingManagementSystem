@@ -1,12 +1,17 @@
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/design';
 import { StaffActionButton } from '@/features/staff/components/staff-action-button';
+import { StaffBackButton } from '@/features/staff/components/staff-back-button';
+import {
+  createHiddenStaffTabBarStyle,
+  createStaffTabBarStyle,
+} from '@/features/staff/components/staff-tab-bar';
 import { HeroDestination } from '@/features/staff/components/hero-destination';
 import {
   SLOT_HEADER_BORDER_RADIUS,
@@ -17,7 +22,7 @@ import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-cont
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
 import { formatDurationFrom } from '@/features/staff/lib/utils';
 import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import type { ParkingSlotStatus } from '@/features/staff/api';
 import { staffSessionDetailPath } from '@/roles';
@@ -46,7 +51,7 @@ export default function StaffSlotDetailScreen() {
     floorName?: string;
   }>();
   const { t } = useLanguagePreference();
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
   const { activeSessionsBySlotId, loadActiveSlotSessions } = useStaffWorkspace();
   const [floors, setFloors] = useState<ParkingFloor[]>([]);
@@ -84,17 +89,19 @@ export default function StaffSlotDetailScreen() {
     });
   }, [navigation]);
 
+  const tabBarBottomInset = insets.bottom;
+
   const hideTabBar = useCallback(() => {
     navigation.getParent()?.setOptions({
-      tabBarStyle: { display: 'none' },
+      tabBarStyle: createHiddenStaffTabBarStyle(),
     });
   }, [navigation]);
 
   const restoreTabBar = useCallback(() => {
     navigation.getParent()?.setOptions({
-      tabBarStyle: undefined,
+      tabBarStyle: createStaffTabBarStyle(tabBarBottomInset),
     });
-  }, [navigation]);
+  }, [navigation, tabBarBottomInset]);
 
   React.useEffect(() => {
     hideTabBar();
@@ -109,17 +116,14 @@ export default function StaffSlotDetailScreen() {
     <ThemedView style={styles.container}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + Spacing.md,
+          // Root SafeAreaView already applies top inset.
+          paddingTop: Spacing.sm,
           paddingHorizontal: Spacing.md,
           paddingBottom: insets.bottom + Spacing.xl,
           gap: Spacing.lg,
         }}
         showsVerticalScrollIndicator={false}>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [pressed && styles.buttonPressed]}>
-          <ThemedText style={styles.linkText}>{t('← Quay lại', '← Back')}</ThemedText>
-        </Pressable>
+        <StaffBackButton label={t('Quay lại', 'Back')} onPress={() => router.back()} />
 
         <HeroDestination heroId={slotId} borderRadius={SLOT_HEADER_BORDER_RADIUS}>
           <SlotHeroVisual

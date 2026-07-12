@@ -19,6 +19,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
+import { StaffBackButton } from '@/features/staff/components/staff-back-button';
 import {
   CHECKIN_CAMERA_OVERLAY_INSET,
 } from '@/features/staff/components/staff-check-in-layout';
@@ -29,7 +30,8 @@ import {
   getPlateViewfinderMarginTop,
   getPlateViewfinderScanBandBottom,
 } from '@/features/staff/lib/plate-scanner-viewfinder';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { useThemePreference } from '@/hooks/theme-preference';
 
 type StaffInlinePlateScannerProps = {
   active: boolean;
@@ -37,9 +39,18 @@ type StaffInlinePlateScannerProps = {
   onCancel: () => void;
   t: (vi: string, en: string) => string;
   style?: StyleProp<ViewStyle>;
+  showCloseButton?: boolean;
 };
 
-function PlateScanOverlay({ accentColor }: { accentColor: string }) {
+function PlateScanOverlay({
+  accentColor,
+  dimColor,
+  dimSoftColor,
+}: {
+  accentColor: string;
+  dimColor: string;
+  dimSoftColor: string;
+}) {
   const scanY = useSharedValue(0);
   const { width, height } = PLATE_VIEWFINDER;
   const marginTop = getPlateViewfinderMarginTop();
@@ -70,7 +81,12 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: topGutter }]} />
+      <View
+        style={[
+          overlayStyles.dim,
+          { top: 0, left: 0, right: 0, height: topGutter, backgroundColor: dimColor },
+        ]}
+      />
       {gapBandHeight > 0 ? (
         <View
           style={[
@@ -80,6 +96,7 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
               left: 0,
               right: 0,
               height: `${gapBandHeight * 100}%`,
+              backgroundColor: dimSoftColor,
             },
           ]}
         />
@@ -87,13 +104,25 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
       <View
         style={[
           overlayStyles.dim,
-          { top: topGutter, bottom: hudGutter, left: 0, width: sideGutter },
+          {
+            top: topGutter,
+            bottom: hudGutter,
+            left: 0,
+            width: sideGutter,
+            backgroundColor: dimColor,
+          },
         ]}
       />
       <View
         style={[
           overlayStyles.dim,
-          { top: topGutter, bottom: hudGutter, right: 0, width: sideGutter },
+          {
+            top: topGutter,
+            bottom: hudGutter,
+            right: 0,
+            width: sideGutter,
+            backgroundColor: dimColor,
+          },
         ]}
       />
       <View
@@ -122,11 +151,9 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 const overlayStyles = StyleSheet.create({
   dim: {
     position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   dimSoft: {
     position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   frame: {
     position: 'absolute',
@@ -146,9 +173,14 @@ export function StaffInlinePlateScanner({
   onCancel,
   t,
   style,
+  showCloseButton = true,
 }: StaffInlinePlateScannerProps) {
-  const DesignColors = useDesignColors();
-  const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const DesignColors = useStaffDesignColors();
+  const { resolvedScheme } = useThemePreference();
+  const isDark = resolvedScheme === 'dark';
+  const styles = useMemo(() => createStyles(DesignColors, isDark), [DesignColors, isDark]);
+  const overlayDim = isDark ? 'rgba(0,0,0,0.72)' : 'rgba(228,232,240,0.92)';
+  const overlayDimSoft = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(228,232,240,0.55)';
 
   const {
     cameraRef,
@@ -196,9 +228,7 @@ export function StaffInlinePlateScanner({
       <View style={[rootStyle, styles.centered]}>
         <ThemedText style={styles.hint}>{t('Không mở được camera', 'Camera failed to start')}</ThemedText>
         <ThemedText style={styles.subHint}>{cameraError}</ThemedText>
-        <Pressable onPress={onCancel} style={styles.floatingCancelBtn}>
-          <ThemedText style={styles.cancelText}>{t('Quay lại', 'Go back')}</ThemedText>
-        </Pressable>
+        <StaffBackButton label={t('Quay lại', 'Go back')} onPress={onCancel} />
       </View>
     );
   }
@@ -207,9 +237,7 @@ export function StaffInlinePlateScanner({
     return (
       <View style={[rootStyle, styles.centered]}>
         <ThemedText style={styles.hint}>{t('Cần quyền camera để quét', 'Camera permission required')}</ThemedText>
-        <Pressable onPress={onCancel} style={styles.floatingCancelBtn}>
-          <ThemedText style={styles.cancelText}>{t('Quay lại', 'Go back')}</ThemedText>
-        </Pressable>
+        <StaffBackButton label={t('Quay lại', 'Go back')} onPress={onCancel} />
       </View>
     );
   }
@@ -233,18 +261,26 @@ export function StaffInlinePlateScanner({
             setCameraError(message);
           }}
         />
-        <PlateScanOverlay accentColor={DesignColors.primaryFocus} />
+        <PlateScanOverlay
+          accentColor={DesignColors.primaryFocus}
+          dimColor={overlayDim}
+          dimSoftColor={overlayDimSoft}
+        />
       </View>
 
-      <Pressable
-        accessibilityLabel={t('Đóng', 'Close')}
-        hitSlop={12}
-        onPress={onCancel}
-        style={styles.closeBtn}>
-        <Ionicons color={DesignColors.ink} name="close" size={20} />
-      </Pressable>
+      {showCloseButton ? (
+        <Pressable
+          accessibilityLabel={t('Đóng', 'Close')}
+          hitSlop={12}
+          onPress={onCancel}
+          style={styles.closeBtn}>
+          <Ionicons color={DesignColors.ink} name="close" size={20} />
+        </Pressable>
+      ) : null}
 
-      <ThemedText style={styles.alignLabel}>{t('CĂN CHỈNH BIỂN SỐ...', 'ALIGNING PLATE...')}</ThemedText>
+      {showCloseButton ? (
+        <ThemedText style={styles.alignLabel}>{t('CĂN CHỈNH BIỂN SỐ...', 'ALIGNING PLATE...')}</ThemedText>
+      ) : null}
 
       <View style={styles.liveBadgeAnchor}>
         <View style={styles.liveBadge}>
@@ -290,7 +326,10 @@ export function StaffInlinePlateScanner({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(
+  DesignColors: ReturnType<typeof useStaffDesignColors>,
+  isDark: boolean,
+) {
   const overlayInset = CHECKIN_CAMERA_OVERLAY_INSET;
   const closeBtnSize = 36;
 
@@ -304,7 +343,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     cameraClip: {
       ...StyleSheet.absoluteFillObject,
       overflow: 'hidden',
-      backgroundColor: '#000',
+      backgroundColor: DesignColors.canvas,
     },
     cameraFeed: {
       ...StyleSheet.absoluteFillObject,
@@ -333,7 +372,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       paddingHorizontal: Spacing.md,
       paddingVertical: 8,
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(0,0,0,0.55)',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.92)',
       borderWidth: 1,
       borderColor: DesignColors.hairline,
     },
@@ -352,9 +391,9 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderRadius: closeBtnSize / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.62)',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.62)' : 'rgba(255,255,255,0.92)',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: DesignColors.hairlineStrong,
     },
     alignLabel: {
       position: 'absolute',
@@ -384,7 +423,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: Radius.pill,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.92)',
       borderWidth: 1,
       borderColor: `${DesignColors.neonSuccess}44`,
     },
@@ -413,7 +452,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       color: DesignColors.accentSky,
       fontSize: 10,
       textAlign: 'center',
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.92)',
       paddingVertical: 4,
       paddingHorizontal: 8,
       borderRadius: Radius.md,

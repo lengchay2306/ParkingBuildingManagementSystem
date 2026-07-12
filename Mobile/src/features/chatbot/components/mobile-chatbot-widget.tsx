@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppToast } from '@/components/app-toast';
 import { ChatbotFab } from '@/features/chatbot/components/chatbot-fab';
@@ -13,18 +14,19 @@ import {
 } from '@/features/chatbot/lib/role-config';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useSessionRole } from '@/hooks/session-role';
-import { AUTH_ROUTES } from '@/roles';
+import { AUTH_ROUTES, STAFF_ROUTES } from '@/roles';
 
-const TAB_BAR_CONTENT_HEIGHT = 52;
-const TAB_BAR_VERTICAL_PADDING = 12;
+import { getStaffChatbotFabBottom } from '@/features/staff/components/staff-tab-bar';
 
 export function MobileChatbotWidget() {
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const { role, isAuthenticated, isLoading: isRoleLoading } = useSessionRole();
   const { t } = useLanguagePreference();
   const { showToast } = useAppToast();
 
   const isAuthScreen = pathname === AUTH_ROUTES.signIn || pathname === '/';
+  const isStaffScanScreen = pathname === STAFF_ROUTES.scan;
 
   const audience = useMemo(() => resolveChatbotAudience(role), [role]);
   const presentation = useMemo(
@@ -33,6 +35,12 @@ export function MobileChatbotWidget() {
   );
 
   const chatbot = useMobileChatbot(audience ?? 'customer');
+
+  useEffect(() => {
+    if (isStaffScanScreen && chatbot.isOpen) {
+      chatbot.setIsOpen(false);
+    }
+  }, [chatbot, isStaffScanScreen]);
 
   const handleSendMessage = useCallback(
     async (message: string) => {
@@ -71,17 +79,20 @@ export function MobileChatbotWidget() {
     [chatbot],
   );
 
-  if (isRoleLoading || !isAuthenticated || isAuthScreen || !audience || !presentation) {
+  if (isRoleLoading || !isAuthenticated || isAuthScreen || isStaffScanScreen || !audience || !presentation) {
     return null;
   }
+
+  const staffFabBottom = role === 'STAFF' ? getStaffChatbotFabBottom(insets.bottom) : undefined;
 
   return (
     <>
       <ChatbotFab
+        fixedBottom={staffFabBottom}
         isOpen={chatbot.isOpen}
         label={presentation.fabLabel}
         onPress={() => chatbot.setIsOpen(true)}
-        tabBarOffset={TAB_BAR_CONTENT_HEIGHT + TAB_BAR_VERTICAL_PADDING}
+        tabBarOffset={role === 'STAFF' ? getStaffChatbotFabBottom(insets.bottom) : 64}
       />
       <ChatbotPanel
         activeSessionId={chatbot.activeSessionId}

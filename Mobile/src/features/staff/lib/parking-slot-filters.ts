@@ -1,7 +1,7 @@
 import type { ParkingSlotFilters, ParkingSlotApiStatus, ParkingVehicleType } from '@/features/customer/api/parking';
 
 export type SpotStatusFilter = 'ALL' | ParkingSlotApiStatus;
-export type VehicleTypeFilter = 'ALL' | ParkingVehicleType;
+export type VehicleTypeFilter = 'ALL' | string;
 export type FloorFilter = 'ALL' | string;
 
 export function buildParkingSlotApiFilters({
@@ -22,7 +22,7 @@ export function buildParkingSlotApiFilters({
     filters.floorId = floorId;
   }
   if (vehicleType !== 'ALL') {
-    filters.vehicleType = vehicleType;
+    filters.vehicleType = vehicleType as ParkingVehicleType;
   }
 
   return filters;

@@ -1,19 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
+import {
+  createHiddenStaffTabBarStyle,
+  createStaffTabBarStyle,
+} from '@/features/staff/components/staff-tab-bar';
+import { StaffLoadingLottie } from '@/features/staff/components/staff-loading-lottie';
 import { StaffPlateScannerModal } from '@/features/staff/components/staff-plate-scanner-modal';
 import { StaffScreenHeader } from '@/features/staff/components/premium';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffScreenTitles } from '@/features/staff/lib/staff-screen-titles';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffCheckInPlateStepProps = {
   plateQuery: string;
@@ -32,10 +33,13 @@ export function StaffCheckInPlateStep({
   onPlateScanned,
   t,
 }: StaffCheckInPlateStepProps) {
-  const DesignColors = useDesignColors();
+  const titles = useStaffScreenTitles();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [scannerVisible, setScannerVisible] = useState(false);
+  const tabBarBottomInset = insets.bottom;
 
   useEffect(() => {
     if (!scannerVisible) {
@@ -43,22 +47,16 @@ export function StaffCheckInPlateStep({
     }
 
     const parent = navigation.getParent();
-    parent?.setOptions({ tabBarStyle: { display: 'none' } });
+    parent?.setOptions({ tabBarStyle: createHiddenStaffTabBarStyle() });
 
     return () => {
-      parent?.setOptions({ tabBarStyle: undefined });
+      parent?.setOptions({ tabBarStyle: createStaffTabBarStyle(tabBarBottomInset) });
     };
-  }, [navigation, scannerVisible]);
+  }, [navigation, scannerVisible, tabBarBottomInset]);
 
   return (
     <View style={styles.root}>
-      <StaffScreenHeader
-        subtitle={t(
-          'Quét biển số để kiểm tra đặt chỗ và check-in',
-          'Scan a plate to check reservations and check in',
-        )}
-        title={t('Check-in', 'Check-in')}
-      />
+      <StaffScreenHeader title={titles.checkIn} />
 
       <View style={styles.card}>
         <ThemedText style={styles.label}>{t('Biển số xe', 'License plate')}</ThemedText>
@@ -68,7 +66,7 @@ export function StaffCheckInPlateStep({
             editable={!isSearching}
             onChangeText={onPlateChange}
             onSubmitEditing={onSearch}
-            placeholder="51A-123.45"
+            placeholder="51A-123.44"
             placeholderTextColor={DesignColors.placeholder}
             returnKeyType="search"
             style={[styles.input, styles.plateInput]}
@@ -79,7 +77,7 @@ export function StaffCheckInPlateStep({
             onPress={onSearch}
             style={({ pressed }) => [styles.searchBtn, pressed && styles.btnPressed]}>
             {isSearching ? (
-              <ActivityIndicator color={DesignColors.onPrimary} size="small" />
+              <StaffLoadingLottie animate={false} size={32} />
             ) : (
               <Ionicons color={DesignColors.onPrimary} name="search" size={20} />
             )}
@@ -116,7 +114,7 @@ export function StaffCheckInPlateStep({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     root: {
       gap: Spacing.lg,

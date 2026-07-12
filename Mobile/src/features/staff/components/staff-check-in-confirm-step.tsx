@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
+import { StaffBackButton } from '@/features/staff/components/staff-back-button';
 import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
 import type { ParkingFloor, Reservation, StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
 import { resolveVehicleTypeLabel } from '@/features/staff/api';
@@ -11,7 +12,7 @@ import {
   formatReservationSlotLabel,
   getReservationDriverName,
 } from '@/features/staff/lib/reservation-helpers';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffCheckInConfirmStepProps = {
   vehicle: StaffVehicle;
@@ -28,6 +29,7 @@ type StaffCheckInConfirmStepProps = {
   isLoadingSlots: boolean;
   isDisabled?: boolean;
   t: (vi: string, en: string) => string;
+  hideTopBar?: boolean;
 };
 
 export function StaffCheckInConfirmStep({
@@ -45,8 +47,9 @@ export function StaffCheckInConfirmStep({
   isLoadingSlots,
   isDisabled,
   t,
+  hideTopBar = false,
 }: StaffCheckInConfirmStepProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const hasActiveConflict = !!activeSessionSlotLabel;
   const ticketLabel = vehicle.monthlyCardId
@@ -60,18 +63,15 @@ export function StaffCheckInConfirmStep({
 
   return (
     <View style={styles.root}>
-      <View style={styles.topBar}>
-        <Pressable
-          disabled={isDisabled}
-          onPress={onBack}
-          style={({ pressed }) => [styles.backBtn, pressed && styles.btnPressed]}>
-          <Ionicons color={DesignColors.ink} name="arrow-back" size={22} />
-        </Pressable>
-        <View style={styles.topText}>
-          <ThemedText style={styles.topTitle}>{t('Xác nhận check-in', 'Confirm check-in')}</ThemedText>
-          <ThemedText style={styles.topSubtitle}>{vehicle.licensePlate}</ThemedText>
+      {hideTopBar ? null : (
+        <View style={styles.topBar}>
+          <StaffBackButton disabled={isDisabled} onPress={onBack} size={28} />
+          <View style={styles.topText}>
+            <ThemedText style={styles.topTitle}>{t('Xác nhận check-in', 'Confirm check-in')}</ThemedText>
+            <ThemedText style={styles.topSubtitle}>{vehicle.licensePlate}</ThemedText>
+          </View>
         </View>
-      </View>
+      )}
 
       {hasActiveConflict ? (
         <View style={styles.conflictCard}>
@@ -162,7 +162,7 @@ export function StaffCheckInConfirmStep({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     root: {
       gap: Spacing.lg,
@@ -173,8 +173,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.sm,
     },
     backBtn: {
-      width: 40,
-      height: 40,
+      width: 44,
+      height: 44,
       borderRadius: Radius.md,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -265,7 +265,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       fontSize: 12,
     },
     ownerCard: {
-      backgroundColor: DesignColors.surface1,
+      backgroundColor: DesignColors.surface2,
       borderRadius: Radius.xl,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
