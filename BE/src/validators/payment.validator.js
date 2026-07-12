@@ -22,7 +22,8 @@ const getPricePoliciesSchema = Joi.object({
 });
 
 const createSubcriptionPaymentLinkSchema = Joi.object({
-    vehicleId: Joi.string().custom(validateMongoObjectId).required()
+    vehicleId: Joi.string().custom(validateMongoObjectId).required(),
+    platform: Joi.string().valid('web', 'mobile').default('web'),
 })
 const qrPaymentLinkSchema = Joi.object({
     parkingSessionId: Joi.string().custom(validateMongoObjectId).required()

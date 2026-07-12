@@ -93,11 +93,12 @@ class PaymentController {
         try {
             const { userId } = req.user
 
-            const { vehicleId } = req.body
+            const { vehicleId, platform } = req.body
 
             const checkoutUrl = await this.#paymentService.subscriptionPayment({
                 userId,
-                vehicleId
+                vehicleId,
+                platform: platform || 'web',
             })
 
             res.status(201).json({

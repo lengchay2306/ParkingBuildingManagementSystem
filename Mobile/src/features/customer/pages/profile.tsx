@@ -1,6 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -50,6 +49,7 @@ import {
 } from '@/features/customer/api/vehicles';
 import { VehicleCard } from '@/features/customer/components';
 import { createSubscriptionCheckoutLink } from '@/features/payment/api';
+import { openSubscriptionCheckout } from '@/features/payment/open-subscription-checkout';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
 function getInitials(fullName: string) {
@@ -369,16 +369,31 @@ export default function ProfileScreen() {
     setBuyingVehicleId(vehicle._id);
     try {
       const checkoutUrl = await createSubscriptionCheckoutLink(vehicle._id);
-      await openBrowserAsync(checkoutUrl, {
-        presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-      });
-      showToast(
-        t(
-          'Sau khi thanh toán, kéo xuống để làm mới hồ sơ.',
-          'After paying, pull to refresh your profile.',
-        ),
-        'success',
-      );
+      const checkoutResult = await openSubscriptionCheckout(checkoutUrl);
+
+      if (checkoutResult.outcome === 'cancelled') {
+        showToast(
+          t('Đã hủy thanh toán thẻ tháng.', 'Monthly card payment was cancelled.'),
+          'error',
+        );
+      } else if (checkoutResult.outcome === 'paid') {
+        showToast(
+          t(
+            'Thanh toán xong. Đang cập nhật thẻ tháng...',
+            'Payment complete. Updating monthly card...',
+          ),
+          'success',
+        );
+      } else {
+        showToast(
+          t(
+            'Đã quay lại app. Kéo xuống để làm mới nếu thẻ chưa hiện.',
+            'Back in the app. Pull to refresh if the card is not visible yet.',
+          ),
+          'success',
+        );
+      }
+
       const refreshed = await getMyProfile();
       setProfile(refreshed);
     } catch (buyError) {
