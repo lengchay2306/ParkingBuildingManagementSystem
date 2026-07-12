@@ -10,13 +10,16 @@ function isMobileBrowser() {
 /**
  * After PayOS redirects to the FE return/cancel pages, bounce mobile browsers
  * back into the native app via deep link (no BE change required).
+ *
+ * Use `scheme:///` (empty host) so Expo Router resolves `/payment/...`
+ * instead of treating `payment` as the URL host.
  */
 export function redirectMobilePayOsToApp(path: "return" | "cancel") {
   if (typeof window === "undefined" || !isMobileBrowser()) {
     return false;
   }
 
-  const target = `${APP_SCHEME}://payment/${path}${window.location.search || ""}`;
+  const target = `${APP_SCHEME}:///payment/${path}${window.location.search || ""}`;
   window.location.replace(target);
   return true;
 }

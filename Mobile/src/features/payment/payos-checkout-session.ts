@@ -14,10 +14,12 @@ export function isPayOsFinishUrl(url: string): boolean {
 
   const lower = url.toLowerCase();
 
-  // App deep links
+  // App deep links (both mobile://payment/... and mobile:///payment/...)
   if (
     lower.startsWith('mobile://payment/return') ||
     lower.startsWith('mobile://payment/cancel') ||
+    lower.startsWith('mobile:///payment/return') ||
+    lower.startsWith('mobile:///payment/cancel') ||
     lower.includes('://payment/return') ||
     lower.includes('://payment/cancel')
   ) {

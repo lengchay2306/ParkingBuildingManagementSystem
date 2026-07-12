@@ -192,6 +192,8 @@ function RootNavigator() {
             <Tabs.Screen name="(customer)/settings" options={{ href: null }} />
             <Tabs.Screen name="(customer)/driver" options={{ href: null }} />
             <Tabs.Screen name="payment" options={{ href: null }} />
+            <Tabs.Screen name="cancel" options={{ href: null }} />
+            <Tabs.Screen name="return" options={{ href: null }} />
             <Tabs.Screen name="(manager)/manager" options={{ href: null }} />
             <Tabs.Screen name="(admin)/admin" options={{ href: null }} />
 
