@@ -8,7 +8,7 @@ import { StaffFadeIn, staffLayoutTransition } from '@/features/staff/motion/staf
 
 type StaffDarkCardProps = {
   children: React.ReactNode;
-  accentBorder?: 'success' | 'warning' | 'danger' | 'primary' | 'none';
+  accentBorder?: 'success' | 'warning' | 'danger' | 'primary' | 'info' | 'none';
   style?: StyleProp<ViewStyle>;
   index?: number;
 };
@@ -24,9 +24,11 @@ export function StaffDarkCard({ children, accentBorder = 'none', style, index = 
         ? DesignColors.accentAmber
         : accentBorder === 'danger'
           ? DesignColors.semanticDanger
-          : accentBorder === 'primary'
-            ? DesignColors.primaryFocus
-            : 'transparent';
+          : accentBorder === 'info'
+            ? DesignColors.accentSky
+            : accentBorder === 'primary'
+              ? DesignColors.primaryFocus
+              : 'transparent';
 
   return (
     <StaffFadeIn index={index}>

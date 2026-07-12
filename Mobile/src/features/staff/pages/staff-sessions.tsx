@@ -2,6 +2,7 @@ import { StackActions } from '@react-navigation/native';
 import { useFocusEffect, useNavigation, useRouter, type Href } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -13,6 +14,9 @@ import {
 import { StaffActionButton } from '@/features/staff/components/staff-action-button';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { StaffLoadingReveal } from '@/features/staff/components/staff-loading-lottie';
+import {
+  createStaffTabBarStyle,
+} from '@/features/staff/components/staff-tab-bar';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
@@ -58,6 +62,7 @@ export default function StaffSessionsScreen() {
   useStaffRoleGuard();
   const router = useRouter();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguagePreference();
   const titles = useStaffScreenTitles();
   const DesignColors = useStaffDesignColors();
@@ -83,8 +88,12 @@ export default function StaffSessionsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Detail screens hide the tab bar; always restore when the list is focused.
+      navigation.getParent()?.setOptions({
+        tabBarStyle: createStaffTabBarStyle(insets.bottom),
+      });
       void reloadSessions(filter, sessionDate);
-    }, [filter, reloadSessions, sessionDate]),
+    }, [filter, insets.bottom, navigation, reloadSessions, sessionDate]),
   );
 
   useFocusEffect(

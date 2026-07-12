@@ -27,6 +27,8 @@ import {
 } from '@/features/customer/api/parking';
 import {
   buildExpectedArrival,
+  canCancelReservation,
+  cancelReservation,
   createReservation,
   getMyReservations,
   type Reservation,
@@ -38,6 +40,10 @@ import {
   formatReservationDateTime,
   isSlotBookable,
 } from '@/features/customer/components';
+import {
+  getReservationVehicleId,
+  getVehicleReserveBlockReasonLocalized,
+} from '@/features/customer/lib/parking-validation';
 
 const ARRIVAL_PRESETS = [
   { minutes: 30, vi: '30 phút', en: '30 min' },
@@ -69,6 +75,7 @@ export default function ReservationsScreen() {
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [pendingReservations, setPendingReservations] = useState<Reservation[]>([]);
   const [vehicles, setVehicles] = useState<UserVehicle[]>([]);
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +90,8 @@ export default function ReservationsScreen() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [arrivalMinutes, setArrivalMinutes] = useState(60);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
 
   useProtectedSession();
 
@@ -91,9 +100,35 @@ export default function ReservationsScreen() {
     [vehicles],
   );
 
+  const duplicatePendingCount = useMemo(() => {
+    const byVehicle = new Map<string, number>();
+    for (const reservation of pendingReservations) {
+      const vehicleId = getReservationVehicleId(reservation);
+      if (!vehicleId) {
+        continue;
+      }
+      byVehicle.set(vehicleId, (byVehicle.get(vehicleId) ?? 0) + 1);
+    }
+    let extras = 0;
+    byVehicle.forEach((count) => {
+      if (count > 1) {
+        extras += count - 1;
+      }
+    });
+    return extras;
+  }, [pendingReservations]);
+
+  const bookableVehicles = useMemo(
+    () =>
+      activeVehicles.filter(
+        (vehicle) => !getVehicleReserveBlockReasonLocalized(vehicle._id, pendingReservations, t),
+      ),
+    [activeVehicles, pendingReservations, t],
+  );
+
   const selectedVehicle = useMemo(
-    () => activeVehicles.find((v) => v._id === selectedVehicleId) ?? null,
-    [activeVehicles, selectedVehicleId],
+    () => bookableVehicles.find((v) => v._id === selectedVehicleId) ?? null,
+    [bookableVehicles, selectedVehicleId],
   );
 
   const loadData = useCallback(
@@ -106,13 +141,15 @@ export default function ReservationsScreen() {
       setError(null);
 
       try {
-        const [profile, reservationList, allFloors] = await Promise.all([
+        const [profile, reservationList, pendingList, allFloors] = await Promise.all([
           getMyProfile(),
-          getMyReservations(statusFilter ?? undefined),
+          getMyReservations(statusFilter ?? undefined, { limit: 100 }),
+          getMyReservations('PENDING', { limit: 100 }),
           getParkingSlots(),
         ]);
         setVehicles(profile.vehicles ?? []);
         setReservations(reservationList);
+        setPendingReservations(pendingList);
         setOverviewFloors(allFloors);
       } catch (loadError) {
         const message =
@@ -172,6 +209,105 @@ export default function ReservationsScreen() {
     }
   }, [bookingOpen, selectedVehicle, selectedSlotId, bookingFloors]);
 
+  async function handleCancelReservation(reservation: Reservation) {
+    if (!canCancelReservation(reservation)) {
+      showToast(
+        t(
+          'Chỉ hủy được khi còn hơn 15 phút trước giờ hẹn.',
+          'Can only cancel when more than 15 minutes before arrival.',
+        ),
+        'error',
+      );
+      return;
+    }
+
+    setCancellingId(reservation._id);
+    try {
+      await cancelReservation(reservation._id);
+      showToast(t('Đã hủy đặt chỗ', 'Reservation cancelled'), 'success');
+      await loadData(true);
+    } catch (cancelError) {
+      showToast(
+        cancelError instanceof Error
+          ? cancelError.message
+          : t('Không hủy được đặt chỗ', 'Could not cancel reservation'),
+        'error',
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
+  /** Keep the oldest PENDING per vehicle; cancel the rest (cleanup after old multi-book bug). */
+  async function handleCleanupDuplicatePending() {
+    const byVehicle = new Map<string, Reservation[]>();
+    for (const reservation of pendingReservations) {
+      const vehicleId = getReservationVehicleId(reservation);
+      if (!vehicleId) {
+        continue;
+      }
+      const list = byVehicle.get(vehicleId) ?? [];
+      list.push(reservation);
+      byVehicle.set(vehicleId, list);
+    }
+
+    const toCancel: Reservation[] = [];
+    byVehicle.forEach((list) => {
+      if (list.length <= 1) {
+        return;
+      }
+      const sorted = [...list].sort((a, b) => {
+        const aTime = new Date(a.reservedAt ?? a.expectedArrival ?? 0).getTime();
+        const bTime = new Date(b.reservedAt ?? b.expectedArrival ?? 0).getTime();
+        return aTime - bTime;
+      });
+      toCancel.push(...sorted.slice(1));
+    });
+
+    if (toCancel.length === 0) {
+      showToast(t('Không có đặt chỗ trùng', 'No duplicate reservations'), 'success');
+      return;
+    }
+
+    setIsCleaningDuplicates(true);
+    let cancelled = 0;
+    let failed = 0;
+    try {
+      for (const reservation of toCancel) {
+        try {
+          if (!canCancelReservation(reservation)) {
+            failed += 1;
+            continue;
+          }
+          await cancelReservation(reservation._id);
+          cancelled += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      if (cancelled > 0) {
+        showToast(
+          t(
+            `Đã hủy ${cancelled} đặt chỗ trùng` + (failed ? ` · ${failed} lỗi` : ''),
+            `Cancelled ${cancelled} duplicate(s)` + (failed ? ` · ${failed} failed` : ''),
+          ),
+          failed ? 'error' : 'success',
+        );
+      } else {
+        showToast(
+          t(
+            'Không hủy được (có thể còn dưới 15 phút trước giờ hẹn). Đợi hết hạn giữ chỗ hoặc hủy từng cái nếu đủ điều kiện.',
+            'Could not cancel (maybe within 15 min of arrival). Wait for hold expiry or cancel individually when allowed.',
+          ),
+          'error',
+        );
+      }
+      await loadData(true);
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  }
+
   function openBooking() {
     if (activeVehicles.length === 0) {
       showToast(
@@ -180,7 +316,17 @@ export default function ReservationsScreen() {
       );
       return;
     }
-    setSelectedVehicleId(activeVehicles[0]._id);
+    if (bookableVehicles.length === 0) {
+      showToast(
+        t(
+          'Tất cả xe đã có đặt chỗ đang hoạt động (PENDING).',
+          'All vehicles already have an active PENDING reservation.',
+        ),
+        'error',
+      );
+      return;
+    }
+    setSelectedVehicleId(bookableVehicles[0]._id);
     setArrivalMinutes(60);
     setSelectedSlotId(null);
     setBookingOpen(true);
@@ -199,6 +345,16 @@ export default function ReservationsScreen() {
     }
     if (!selectedSlotId) {
       showToast(t('Vui lòng chọn chỗ đỗ', 'Please select a parking slot'), 'error');
+      return;
+    }
+
+    const blockReason = getVehicleReserveBlockReasonLocalized(
+      selectedVehicleId,
+      pendingReservations,
+      t,
+    );
+    if (blockReason) {
+      showToast(blockReason, 'error');
       return;
     }
 
@@ -279,6 +435,28 @@ export default function ReservationsScreen() {
 
         <ThemedText style={styles.sectionTitle}>{t('Đặt chỗ của tôi', 'My reservations')}</ThemedText>
 
+        {duplicatePendingCount > 0 ? (
+          <Pressable
+            onPress={handleCleanupDuplicatePending}
+            disabled={isCleaningDuplicates}
+            style={({ pressed }) => [
+              styles.cleanupButton,
+              pressed && styles.buttonPressed,
+              isCleaningDuplicates && styles.buttonDisabled,
+            ]}
+          >
+            <Ionicons name="trash-outline" size={16} color={DesignColors.onPrimary} />
+            <ThemedText style={styles.cleanupButtonText}>
+              {isCleaningDuplicates
+                ? t('Đang dọn…', 'Cleaning…')
+                : t(
+                    `Dọn ${duplicatePendingCount} chỗ đặt trùng (giữ 1/xe)`,
+                    `Clean ${duplicatePendingCount} duplicate(s) (keep 1/vehicle)`,
+                  )}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -332,6 +510,8 @@ export default function ReservationsScreen() {
                 t={t}
                 styles={styles}
                 DesignColors={DesignColors}
+                onCancel={handleCancelReservation}
+                isCancelling={cancellingId === reservation._id}
               />
             ))}
           </View>
@@ -360,18 +540,33 @@ export default function ReservationsScreen() {
               <View style={styles.chipRow}>
                 {activeVehicles.map((vehicle) => {
                   const active = selectedVehicleId === vehicle._id;
+                  const blockReason = getVehicleReserveBlockReasonLocalized(
+                    vehicle._id,
+                    pendingReservations,
+                    t,
+                  );
+                  const disabled = !!blockReason;
                   return (
                     <Pressable
                       key={vehicle._id}
+                      disabled={disabled}
                       onPress={() => setSelectedVehicleId(vehicle._id)}
                       style={({ pressed }) => [
                         styles.typeChip,
                         active && styles.typeChipActive,
-                        pressed && styles.buttonPressed,
+                        disabled && styles.typeChipDisabled,
+                        pressed && !disabled && styles.buttonPressed,
                       ]}
                     >
-                      <ThemedText style={[styles.typeChipText, active && styles.typeChipTextActive]}>
+                      <ThemedText
+                        style={[
+                          styles.typeChipText,
+                          active && styles.typeChipTextActive,
+                          disabled && styles.typeChipTextDisabled,
+                        ]}
+                      >
                         {vehicle.licensePlate}
+                        {disabled ? ` · ${t('Đã đặt', 'Booked')}` : ''}
                       </ThemedText>
                     </Pressable>
                   );
@@ -501,6 +696,21 @@ function createStyles(DesignColors: DesignColorPalette) {
     bookButtonText: {
       ...Typography.button,
       color: DesignColors.onPrimary,
+    },
+    cleanupButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderRadius: Radius.lg,
+      backgroundColor: DesignColors.semanticDanger,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 10,
+    },
+    cleanupButtonText: {
+      ...Typography.button,
+      color: DesignColors.onPrimary,
+      flexShrink: 1,
     },
     filterRow: {
       gap: Spacing.xs,
@@ -639,6 +849,23 @@ function createStyles(DesignColors: DesignColorPalette) {
       flex: 1,
       textAlign: 'right',
     },
+    cancelButton: {
+      marginTop: Spacing.xs,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: DesignColors.semanticDanger,
+      backgroundColor: `${DesignColors.semanticDanger}14`,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      ...Typography.button,
+      color: DesignColors.semanticDanger,
+      fontWeight: '600',
+    },
+    cancelButtonDisabled: {
+      opacity: 0.45,
+    },
     modalOverlay: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -714,6 +941,9 @@ function createStyles(DesignColors: DesignColorPalette) {
       borderColor: DesignColors.primary,
       backgroundColor: DesignColors.surface3,
     },
+    typeChipDisabled: {
+      opacity: 0.45,
+    },
     typeChipText: {
       ...Typography.caption,
       color: DesignColors.inkMuted,
@@ -721,6 +951,9 @@ function createStyles(DesignColors: DesignColorPalette) {
     typeChipTextActive: {
       color: DesignColors.primary,
       fontWeight: '600',
+    },
+    typeChipTextDisabled: {
+      color: DesignColors.inkMuted,
     },
     floorBlock: {
       borderRadius: Radius.md,
@@ -774,6 +1007,10 @@ function createStyles(DesignColors: DesignColorPalette) {
     slotInUse: {
       borderColor: '#f59e0b',
       backgroundColor: '#f59e0b18',
+    },
+    slotReserved: {
+      borderColor: DesignColors.semanticWarning,
+      backgroundColor: `${DesignColors.semanticWarning}18`,
     },
     slotUnavailable: {
       borderColor: DesignColors.hairline,

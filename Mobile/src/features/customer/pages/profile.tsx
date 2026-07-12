@@ -502,15 +502,24 @@ export default function ProfileScreen() {
 
   const handleCheckoutSessionResult = useCallback(
     (result: PayOsCheckoutSessionResult) => {
+      closeSubscriptionPayment();
+      const orderCode =
+        typeof result.orderCode === 'number'
+          ? String(result.orderCode)
+          : result.orderCode != null
+            ? String(result.orderCode)
+            : undefined;
+      const qs = orderCode ? `?orderCode=${encodeURIComponent(orderCode)}` : '';
+
       if (result.kind === 'cancelled') {
-        showToast(t('Đã hủy thanh toán PayOS', 'PayOS payment cancelled'), 'error');
-        closeSubscriptionPayment();
+        router.replace(`${CUSTOMER_ROUTES.paymentCancel}${qs}` as never);
         return;
       }
-      // paid or dismissed (user closed browser) → verify activation
-      void handleConfirmSubscriptionPaid();
+
+      // paid or dismissed — show success page (it polls for card activation)
+      router.replace(`${CUSTOMER_ROUTES.paymentReturn}${qs}` as never);
     },
-    [closeSubscriptionPayment, handleConfirmSubscriptionPaid, showToast, t],
+    [closeSubscriptionPayment, router],
   );
 
   useEffect(() => {

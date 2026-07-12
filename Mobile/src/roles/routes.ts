@@ -10,6 +10,8 @@ export const CUSTOMER_ROUTES = {
   profile: '/profile',
   settings: '/settings',
   driver: '/driver',
+  paymentReturn: '/payment/return',
+  paymentCancel: '/payment/cancel',
 } as const;
 
 export const STAFF_ROUTES = {
@@ -19,6 +21,8 @@ export const STAFF_ROUTES = {
   checkIn: '/staff-scan',
   slots: '/staff-slots',
   slotDetail: '/staff-slots/[slotId]',
+  /** Session detail nested under Spots (Back → slot). */
+  slotSessionDetail: '/staff-slots/session/[sessionId]',
   sessions: '/staff-sessions',
   sessionDetail: '/staff-sessions/[sessionId]',
   operations: '/staff-operations',
@@ -30,6 +34,11 @@ export const STAFF_ROUTES = {
 
 export function staffSlotDetailPath(slotId: string) {
   return `/staff-slots/${slotId}` as const;
+}
+
+/** Open a session from Spots without leaving the slots tab stack. */
+export function staffSlotSessionDetailPath(sessionId: string) {
+  return `/staff-slots/session/${sessionId}` as const;
 }
 
 export function staffSessionDetailPath(sessionId: string) {

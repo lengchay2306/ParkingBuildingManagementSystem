@@ -7,7 +7,7 @@ import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-co
 
 type StaffStatusBadgeProps = {
   label: string;
-  tone?: 'active' | 'available' | 'occupied' | 'exited' | 'neutral';
+  tone?: 'active' | 'available' | 'occupied' | 'reserved' | 'exited' | 'neutral';
 };
 
 export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgeProps) {
@@ -21,17 +21,23 @@ export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgePr
           border: 'rgba(52,211,153,0.35)',
           text: DesignColors.accentEmerald,
         }
-      : tone === 'occupied' || tone === 'exited'
+      : tone === 'reserved'
         ? {
-            bg: 'rgba(251,146,60,0.12)',
-            border: 'rgba(251,146,60,0.35)',
-            text: DesignColors.accentAmber,
+            bg: 'rgba(96,165,250,0.14)',
+            border: 'rgba(96,165,250,0.40)',
+            text: DesignColors.accentSky,
           }
-        : {
-            bg: DesignColors.surface3,
-            border: DesignColors.hairlineStrong,
-            text: DesignColors.inkMuted,
-          };
+        : tone === 'occupied' || tone === 'exited'
+          ? {
+              bg: 'rgba(251,146,60,0.12)',
+              border: 'rgba(251,146,60,0.35)',
+              text: DesignColors.accentAmber,
+            }
+          : {
+              bg: DesignColors.surface3,
+              border: DesignColors.hairlineStrong,
+              text: DesignColors.inkMuted,
+            };
 
   return (
     <View style={[styles.badge, { backgroundColor: palette.bg, borderColor: palette.border }]}>

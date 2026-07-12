@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { DotLottie } from '@lottiefiles/dotlottie-react-native';
+import { DotLottie, type Dotlottie } from '@lottiefiles/dotlottie-react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Platform,
   Pressable,
@@ -20,7 +20,7 @@ import { useLanguagePreference } from '@/hooks/language-preference';
 /** Visible tab row height (icons sit here). */
 export const STAFF_TAB_BAR_BODY_HEIGHT = 58;
 /** Center QR FAB diameter — larger than side icons. */
-export const STAFF_TAB_CENTER_BUTTON_SIZE = 56;
+export const STAFF_TAB_CENTER_BUTTON_SIZE = 64;
 /** How far the FAB protrudes above the bar top edge (15–20px). */
 export const STAFF_TAB_CENTER_FAB_FLOAT = 18;
 /** Gap between FAB edge and the SVG cutout on the sides. */
@@ -34,7 +34,13 @@ const CIRCLE_KAPPA = 0.5522847498;
 /** Android 3-button nav fallback when safe-area bottom is 0. */
 export const STAFF_ANDROID_NAV_FALLBACK_INSET = 56;
 
-const QR_SCAN_LOTTIE = require('@/components/gif/QR Code Scanner.lottie');
+/**
+ * Pre-trimmed car-scan asset (composition ip=6, op=19 → frames 6–18).
+ * Full `car scan.lottie` has a second sweep (18–30); segment props race autoplay on Android.
+ */
+const CAR_SCAN_LOTTIE = require('@/components/gif/car-scan-loop.lottie');
+/** Belt-and-suspenders in case the player ignores composition in/out points. */
+const CAR_SCAN_SEGMENT: [number, number] = [6, 18];
 
 export function getStaffTabBarBottomInset(safeAreaBottom: number) {
   if (safeAreaBottom > 0) {
@@ -223,6 +229,24 @@ function StaffTabBarBackground({
 }
 
 export function StaffTabBar({ state, navigation, descriptors }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const { t } = useLanguagePreference();
+  const DesignColors = useStaffDesignColors();
+  const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const carScanRef = useRef<Dotlottie>(null);
+
+  const startCarScanLoop = useCallback(() => {
+    const player = carScanRef.current;
+    if (!player) {
+      return;
+    }
+    // Trimmed asset already loops 6–18; re-assert segment after load for Android race safety.
+    player.setSegment(CAR_SCAN_SEGMENT[0], CAR_SCAN_SEGMENT[1]);
+    player.setLoop(true);
+    player.play();
+  }, []);
+
   const focusedRoute = state.routes[state.index];
   const focusedOptions = focusedRoute ? descriptors[focusedRoute.key]?.options : undefined;
   const tabBarStyle = focusedOptions?.tabBarStyle as ViewStyle | ViewStyle[] | undefined;
@@ -230,20 +254,30 @@ export function StaffTabBar({ state, navigation, descriptors }: BottomTabBarProp
     | ViewStyle
     | undefined;
 
-  // Nested stack screens (session/slot detail) — keep the tab bar out of layout.
-  const nestedState = focusedRoute?.state as { index?: number } | undefined;
-  const onNestedStackScreen = typeof nestedState?.index === 'number' && nestedState.index > 0;
+  // Hide only on real nested screens (slot/session detail). Do NOT trust sticky
+  // `tabBarStyle: { display: 'none' }` left behind when detail stays mounted in the stack.
+  const nestedState = focusedRoute?.state as
+    | { index?: number; routes?: Array<{ name?: string }> }
+    | undefined;
+  const nestedIndex = nestedState?.index;
+  const nestedRouteName =
+    typeof nestedIndex === 'number' ? nestedState?.routes?.[nestedIndex]?.name : undefined;
+  const onNestedStackScreen = Boolean(nestedRouteName && nestedRouteName !== 'index');
+  const stuckHidden = flatStyle?.display === 'none';
 
-  if (flatStyle?.display === 'none' || onNestedStackScreen) {
+  useEffect(() => {
+    if (!onNestedStackScreen && stuckHidden) {
+      navigation.setOptions({
+        tabBarStyle: createStaffTabBarStyle(insets.bottom),
+      });
+    }
+  }, [insets.bottom, navigation, onNestedStackScreen, stuckHidden]);
+
+  if (onNestedStackScreen) {
     return null;
   }
 
-  const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
-  const { t } = useLanguagePreference();
-  const DesignColors = useStaffDesignColors();
   const bottomInset = getStaffTabBarBottomInset(insets.bottom);
-  const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const totalHeight = STAFF_TAB_CENTER_FAB_FLOAT + STAFF_TAB_BAR_BODY_HEIGHT + bottomInset;
   const svgHeight = STAFF_TAB_BAR_BODY_HEIGHT + bottomInset;
@@ -258,9 +292,14 @@ export function StaffTabBar({ state, navigation, descriptors }: BottomTabBarProp
       target: routeKey,
       canPreventDefault: true,
     });
-    if (!focused && !event.defaultPrevented) {
-      navigation.navigate(routeName);
+    if (event.defaultPrevented) {
+      return;
     }
+
+    // Always land on the tab root so a deep slot/session screen cannot trap the tab.
+    // First tap switches tabs; re-tapping an already focused tab also pops to list.
+    navigation.navigate(routeName as never, { screen: 'index' } as never);
+    void focused;
   }
 
   function renderSideTab(config: SideTabConfig) {
@@ -333,7 +372,19 @@ export function StaffTabBar({ state, navigation, descriptors }: BottomTabBarProp
             },
             pressed && styles.fabPressed,
           ]}>
-          <DotLottie autoplay loop source={QR_SCAN_LOTTIE} style={styles.fabLottie} />
+          <DotLottie
+            ref={carScanRef}
+            autoplay
+            loop
+            segment={CAR_SCAN_SEGMENT}
+            source={CAR_SCAN_LOTTIE}
+            style={styles.fabLottie}
+            onLoad={startCarScanLoop}
+            onLoadError={() => {
+              // Keep FAB usable even if the trimmed asset fails to parse.
+              carScanRef.current?.play();
+            }}
+          />
         </Pressable>
       ) : null}
     </View>
@@ -389,7 +440,7 @@ function createStyles(_DesignColors: ReturnType<typeof useStaffDesignColors>) {
       borderRadius: STAFF_TAB_CENTER_BUTTON_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      overflow: 'hidden',
+      overflow: 'visible',
       zIndex: 10,
       // No purple glow / border ring
       borderWidth: 0,
@@ -401,8 +452,8 @@ function createStyles(_DesignColors: ReturnType<typeof useStaffDesignColors>) {
       transform: [{ scale: 0.96 }],
     },
     fabLottie: {
-      width: 42,
-      height: 42,
+      width: 136,
+      height: 136,
     },
   });
 }

@@ -57,9 +57,22 @@ async function parseReservationResponse<T>(response: Response): Promise<ApiEnvel
   return payload ?? {};
 }
 
-export async function getMyReservations(status?: ReservationStatus): Promise<Reservation[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : '';
-  const response = await authenticatedFetch(`/reservations/my${query}`);
+export async function getMyReservations(
+  status?: ReservationStatus,
+  options?: { page?: number; limit?: number },
+): Promise<Reservation[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set('status', status);
+  }
+  if (options?.page) {
+    params.set('page', String(options.page));
+  }
+  if (options?.limit) {
+    params.set('limit', String(options.limit));
+  }
+  const query = params.toString();
+  const response = await authenticatedFetch(`/reservations/my${query ? `?${query}` : ''}`);
   const payload = await parseReservationResponse<{ reservations?: Reservation[] }>(response);
   return payload.data?.reservations ?? [];
 }
@@ -78,6 +91,30 @@ export async function createReservation(payload: CreateReservationPayload): Prom
   return reservation;
 }
 
+/** DELETE /reservations/:id — customer soft-cancel PENDING reservation. */
+export async function cancelReservation(reservationId: string): Promise<Reservation | null> {
+  const response = await authenticatedFetch(`/reservations/${encodeURIComponent(reservationId)}`, {
+    method: 'DELETE',
+  });
+  const result = await parseReservationResponse<{ cancelledReservation?: Reservation }>(response);
+  return result.data?.cancelledReservation ?? null;
+}
+
 export function buildExpectedArrival(minutesFromNow: number): string {
   return new Date(Date.now() + minutesFromNow * 60_000).toISOString();
+}
+
+export function canCancelReservation(reservation: Reservation): boolean {
+  if (reservation.status?.toUpperCase() !== 'PENDING') {
+    return false;
+  }
+  if (!reservation.expectedArrival) {
+    return true;
+  }
+  const expectedArrival = new Date(reservation.expectedArrival).getTime();
+  if (Number.isNaN(expectedArrival)) {
+    return true;
+  }
+  // BE rule: cannot cancel within 15 minutes of expected arrival.
+  return expectedArrival > Date.now() + 15 * 60_000;
 }

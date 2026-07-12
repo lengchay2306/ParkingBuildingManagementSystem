@@ -197,6 +197,19 @@ function buildRecentLocalDateKeys(days: number): string[] {
  * are omitted from today's query. Scan a rolling window when resolving by id.
  */
 export async function findStaffActiveSessionById(sessionId: string): Promise<ParkingSession | null> {
+  const sessions = await getStaffActiveParkingSessions();
+  return (
+    sessions.find(
+      (session) => session._id === sessionId && session.status === 'ACTIVE' && !session.checkOutTime,
+    ) ?? null
+  );
+}
+
+/**
+ * All currently ACTIVE sessions across a recent check-in date window.
+ * Needed because BE `/parking/parking-sessions?date=` only returns one day.
+ */
+export async function getStaffActiveParkingSessions(): Promise<ParkingSession[]> {
   const dateKeys = buildRecentLocalDateKeys(STAFF_ACTIVE_SESSION_LOOKBACK_DAYS);
   const results = await Promise.all(
     dateKeys.map((date) =>
@@ -212,16 +225,17 @@ export async function findStaffActiveSessionById(sessionId: string): Promise<Par
     ),
   );
 
+  const byId = new Map<string, ParkingSession>();
   for (const result of results) {
-    const match = result.sessions.find(
-      (session) => session._id === sessionId && session.status === 'ACTIVE' && !session.checkOutTime,
-    );
-    if (match) {
-      return match;
+    for (const session of result.sessions) {
+      if (session.status !== 'ACTIVE' || session.checkOutTime) {
+        continue;
+      }
+      byId.set(session._id, session);
     }
   }
 
-  return null;
+  return Array.from(byId.values());
 }
 
 /** GET /parking/active-session-by-plate/:plate — active session for checkout lookup. */

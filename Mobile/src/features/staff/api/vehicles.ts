@@ -72,6 +72,7 @@ export type VehicleOwnerProfile = {
  * Owner info from staff APIs:
  * - GET /vehicles/:plate → userId { fullName, phone } when populated by BE
  * - GET /parking/active-user-parking-session/:vehicleId → checkInUserId { fullName, phone }
+ * - Fallback enrichment: GET /users/:userId (Mobile check-in flow)
  */
 export function resolveVehicleOwnerProfile(
   vehicle: StaffVehicle,

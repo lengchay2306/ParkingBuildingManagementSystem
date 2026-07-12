@@ -1,8 +1,11 @@
-import { View, type TextStyle, type ViewStyle } from 'react-native';
+import { Pressable, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette } from '@/constants/design';
-import type { Reservation } from '@/features/customer/api/reservations';
+import {
+  canCancelReservation,
+  type Reservation,
+} from '@/features/customer/api/reservations';
 
 export function formatReservationDateTime(value: string | undefined) {
   if (!value) {
@@ -69,6 +72,9 @@ export type ReservationCardStyles = {
   infoRow: ViewStyle;
   infoLabel: TextStyle;
   infoValue: TextStyle;
+  cancelButton?: ViewStyle;
+  cancelButtonText?: TextStyle;
+  cancelButtonDisabled?: ViewStyle;
 };
 
 export function ReservationCard({
@@ -76,13 +82,19 @@ export function ReservationCard({
   t,
   styles,
   DesignColors,
+  onCancel,
+  isCancelling = false,
 }: {
   reservation: Reservation;
   t: (vi: string, en: string) => string;
   styles: ReservationCardStyles;
   DesignColors: DesignColorPalette;
+  onCancel?: (reservation: Reservation) => void;
+  isCancelling?: boolean;
 }) {
   const statusColor = reservationStatusColor(reservation.status, DesignColors);
+  const showCancel = !!onCancel && reservation.status?.toUpperCase() === 'PENDING';
+  const cancellable = canCancelReservation(reservation);
 
   return (
     <View style={styles.reservationCard}>
@@ -117,6 +129,25 @@ export function ReservationCard({
           {formatReservationDateTime(reservation.expiryAt)}
         </ThemedText>
       </View>
+
+      {showCancel ? (
+        <Pressable
+          disabled={!cancellable || isCancelling}
+          onPress={() => onCancel?.(reservation)}
+          style={[
+            styles.cancelButton,
+            (!cancellable || isCancelling) && styles.cancelButtonDisabled,
+          ]}
+        >
+          <ThemedText style={styles.cancelButtonText}>
+            {isCancelling
+              ? t('Đang hủy…', 'Cancelling…')
+              : cancellable
+                ? t('Hủy đặt chỗ', 'Cancel reservation')
+                : t('Không hủy được (<15 phút)', 'Cannot cancel (<15 min)')}
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

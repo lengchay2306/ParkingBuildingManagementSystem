@@ -31,6 +31,8 @@ export type ParkingFloor = {
     _id: string;
     type: string;
   };
+  /** Present on some API payloads before remap; kept for matching safety. */
+  vehicleTypeId?: string | { _id?: string; type?: string };
   slotStats?: {
     available: number;
     reserved?: number;
@@ -104,5 +106,55 @@ export async function getParkingSlots(filters: ParkingSlotFilters = {}): Promise
   const query = params.toString();
   const response = await authenticatedFetch(`/parking/slots${query ? `?${query}` : ''}`);
   const payload = await parseParkingResponse<{ floors?: ParkingFloor[] }>(response);
-  return payload.data?.floors ?? [];
+  return normalizeParkingFloors(payload.data?.floors ?? []);
+}
+
+/** Normalize BE floor payloads so map / booking always read the same shape. */
+export function normalizeParkingFloors(floors: ParkingFloor[]): ParkingFloor[] {
+  return floors.map((floor) => {
+    const vehicleType =
+      floor.vehicleType ??
+      (floor.vehicleTypeId && typeof floor.vehicleTypeId === 'object'
+        ? {
+            _id: floor.vehicleTypeId._id ?? '',
+            type: floor.vehicleTypeId.type ?? '',
+          }
+        : undefined);
+
+    const slots = (floor.slots ?? []).map((slot) => ({
+      ...slot,
+      _id: String(slot._id),
+      floorId: String(slot.floorId ?? floor._id),
+      slotNumber: String(slot.slotNumber ?? ''),
+      status: String(slot.status ?? 'UNAVAILABLE').toUpperCase(),
+    }));
+
+    const available =
+      floor.slotStats?.available ?? slots.filter((slot) => slot.status === 'AVAILABLE').length;
+    const reserved =
+      floor.slotStats?.reserved ?? slots.filter((slot) => slot.status === 'RESERVED').length;
+    const unavailable =
+      floor.slotStats?.unavailable ?? slots.filter((slot) => slot.status === 'UNAVAILABLE').length;
+    const inUsed =
+      floor.slotStats?.inUsed ??
+      slots.filter((slot) => slot.status === 'CURRENTLY-IN-USED').length;
+
+    return {
+      ...floor,
+      _id: String(floor._id),
+      floorName: floor.floorName ?? '',
+      vehicleType:
+        vehicleType && vehicleType._id
+          ? { _id: String(vehicleType._id), type: String(vehicleType.type ?? '').toUpperCase() }
+          : vehicleType,
+      slots,
+      slotStats: {
+        available,
+        reserved,
+        unavailable,
+        inUsed,
+        total: floor.slotStats?.total ?? available + reserved + unavailable + inUsed,
+      },
+    };
+  });
 }
