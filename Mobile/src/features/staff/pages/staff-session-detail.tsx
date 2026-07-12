@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, usePathname, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,6 +55,7 @@ export default function StaffSessionDetailScreen() {
   useStaffRoleGuard();
   const router = useRouter();
   const navigation = useNavigation();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId: string | string[] }>();
   const resolvedSessionId = resolveRouteParam(sessionIdParam);
@@ -78,6 +79,19 @@ export default function StaffSessionDetailScreen() {
   const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
   const [isCreatingBill, setIsCreatingBill] = useState(false);
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [paymentUnpaidNotice, setPaymentUnpaidNotice] = useState<string | null>(null);
+
+  /** Opened from Spots stays under `/staff-slots/...` — don't dump users onto Sessions. */
+  const openedFromSlots = pathname.includes('/staff-slots/');
+  const fallbackListRoute = openedFromSlots ? STAFF_ROUTES.slots : STAFF_ROUTES.sessions;
+
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(fallbackListRoute as never);
+  }, [fallbackListRoute, router]);
 
   const session = useMemo(() => {
     if (!resolvedSessionId) {
@@ -184,7 +198,7 @@ export default function StaffSessionDetailScreen() {
     navigation.setOptions({ animation: 'none' });
   }, [navigation]);
 
-  const tabNavigation = navigation.getParent()?.getParent();
+  const tabNavigation = navigation.getParent()?.getParent() ?? navigation.getParent();
 
   const hideTabBar = useCallback(() => {
     tabNavigation?.setOptions({ tabBarStyle: createHiddenStaffTabBarStyle() });
@@ -198,10 +212,12 @@ export default function StaffSessionDetailScreen() {
     });
   }, [tabNavigation, tabBarBottomInset]);
 
-  useEffect(() => {
-    hideTabBar();
-    return restoreTabBar;
-  }, [hideTabBar, restoreTabBar]);
+  useFocusEffect(
+    useCallback(() => {
+      hideTabBar();
+      return restoreTabBar;
+    }, [hideTabBar, restoreTabBar]),
+  );
 
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
@@ -223,7 +239,7 @@ export default function StaffSessionDetailScreen() {
           t(`${paymentLabel}: checkout thành công`, `${paymentLabel}: checkout successful`),
           'success',
         );
-        router.back();
+        goBack();
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t('Checkout thất bại', 'Checkout failed'),
@@ -233,7 +249,7 @@ export default function StaffSessionDetailScreen() {
         setIsCheckingOut(false);
       }
     },
-    [checkoutPhone, checkoutSession, router, session, showToast, t],
+    [checkoutPhone, checkoutSession, goBack, session, showToast, t],
   );
 
   const handleCreateBillQr = useCallback(async () => {
@@ -243,6 +259,7 @@ export default function StaffSessionDetailScreen() {
     setIsCreatingBill(true);
     try {
       const bill = await createStaffBillQr(session.id);
+      setPaymentUnpaidNotice(null);
       setPaymentBill(bill);
     } catch (error) {
       showToast(
@@ -261,23 +278,28 @@ export default function StaffSessionDetailScreen() {
       return;
     }
     setIsConfirmingPayment(true);
+    setPaymentUnpaidNotice(null);
     try {
       const message = await checkStaffPayment(paymentBill.orderCode);
       setPaymentBill(null);
       await loadParkingSessions();
       showToast(message || t('Thanh toán thành công', 'Payment successful'), 'success');
-      router.back();
+      goBack();
     } catch (error) {
-      showToast(
+      const notice =
         error instanceof Error
           ? error.message
-          : t('Chưa xác nhận được thanh toán', 'Payment not confirmed yet'),
-        'error',
+          : t('Chưa xác nhận được thanh toán', 'Payment not confirmed yet');
+      setPaymentUnpaidNotice(notice);
+      showToast(
+        notice,
+        'warning',
+        t('Khách chưa thanh toán', 'Customer has not paid'),
       );
     } finally {
       setIsConfirmingPayment(false);
     }
-  }, [loadParkingSessions, paymentBill, router, showToast, t]);
+  }, [goBack, loadParkingSessions, paymentBill, showToast, t]);
 
   if (isLoading && !session) {
     return (
@@ -294,7 +316,7 @@ export default function StaffSessionDetailScreen() {
       <StaffPageShell reserveBottomNav={false} scrollable>
         <StaffBackButton
           label={t('Quay lại', 'Back')}
-          onPress={() => router.replace(STAFF_ROUTES.sessions as never)}
+          onPress={goBack}
         />
         <View style={commonStyles.card}>
           <ThemedText style={styles.missing}>
@@ -308,7 +330,7 @@ export default function StaffSessionDetailScreen() {
           />
           <StaffActionButton
             label={t('Về danh sách', 'Back to list')}
-            onPress={() => router.replace(STAFF_ROUTES.sessions as never)}
+            onPress={() => router.replace(fallbackListRoute as never)}
             style={commonStyles.fullWidthButton}
             variant="ghost"
           />
@@ -331,7 +353,7 @@ export default function StaffSessionDetailScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         style={styles.scroll}>
-        <StaffBackButton label={t('Quay lại', 'Back')} onPress={() => router.back()} />
+        <StaffBackButton label={t('Quay lại', 'Back')} onPress={goBack} />
 
         <View style={styles.headerCapsule}>
           <ThemedText style={styles.plate}>{session.plate}</ThemedText>
@@ -403,7 +425,12 @@ export default function StaffSessionDetailScreen() {
         bill={paymentBill}
         plate={session.plate}
         isConfirming={isConfirmingPayment}
-        onClose={() => setPaymentBill(null)}
+        unpaidNotice={paymentUnpaidNotice}
+        onDismissUnpaidNotice={() => setPaymentUnpaidNotice(null)}
+        onClose={() => {
+          setPaymentBill(null);
+          setPaymentUnpaidNotice(null);
+        }}
         onConfirm={() => void handleConfirmQrPayment()}
         t={t}
       />

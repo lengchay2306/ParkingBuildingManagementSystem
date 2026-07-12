@@ -9,6 +9,7 @@ export {
   getActiveUserParkingSession,
   getParkingSessions,
   getParkingSlots,
+  getStaffActiveParkingSessions,
   resolveVehicleTypeIdFromSessionOrVehicle,
   type CheckoutParkingSessionPayload,
   type CreateGuestParkingSessionPayload,
@@ -36,4 +37,17 @@ export {
   type VehicleType,
 } from './vehicles';
 
-export { deleteManagedReservation, getReservationsByLicensePlate, type Reservation } from './reservations';
+export {
+  getUserById,
+  resolveOwnerUserId,
+  type StaffUserSummary,
+} from './users';
+
+export {
+  deleteManagedReservation,
+  enrichReservationOwner,
+  getPendingReservationBySlot,
+  getReservationsByLicensePlate,
+  listPendingReservations,
+  type Reservation,
+} from './reservations';

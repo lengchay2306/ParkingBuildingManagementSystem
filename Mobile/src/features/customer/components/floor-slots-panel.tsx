@@ -11,7 +11,11 @@ export function isSlotBookable(slot: ParkingSlot, floor: ParkingFloor, vehicleTy
   if (slot.status !== 'AVAILABLE' || !vehicleType) {
     return false;
   }
-  return floor.vehicleType?.type === vehicleType;
+  const normalized = vehicleType.toUpperCase();
+  if (floor.vehicleType?.type?.toUpperCase() === normalized) {
+    return true;
+  }
+  return floor.floorName.toUpperCase().includes(normalized);
 }
 
 export type FloorSlotsPanelStyles = {
@@ -26,6 +30,7 @@ export type FloorSlotsPanelStyles = {
   slotChip: ViewStyle;
   slotAvailable: ViewStyle;
   slotInUse: ViewStyle;
+  slotReserved?: ViewStyle;
   slotUnavailable: ViewStyle;
   slotChipActive: ViewStyle;
   slotChipDisabled: ViewStyle;
@@ -118,7 +123,9 @@ export function FloorSlotsPanel({
                       ? styles.slotAvailable
                       : slot.status === 'CURRENTLY-IN-USED'
                         ? styles.slotInUse
-                        : styles.slotUnavailable;
+                        : slot.status === 'RESERVED'
+                          ? styles.slotReserved
+                          : styles.slotUnavailable;
 
                   return (
                     <ScalePressable

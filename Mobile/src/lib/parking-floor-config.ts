@@ -13,8 +13,8 @@ export type ParkingFloorConfig = {
 };
 
 /**
- * Cấu hình tầng đồng bộ với bản đồ 3D (`parking-map.tsx`).
- * Số ô thiết kế = aisleCount × stallsAlongAisle × 2 (hai bên mỗi làn).
+ * Blueprint tầng cũ (layout 3D). Bản đồ SVG hiện tại lấy tầng/ô từ API;
+ * giữ lại để suy ra tab label ngắn khi parse được `Tầng N` / `B1`.
  */
 export const PARKING_FLOORS: ParkingFloorConfig[] = [
   {
@@ -228,12 +228,8 @@ export function resolveFloorPresentation(
     floor.slotStats?.inUsed ??
     floor.slots.filter((slot) => slot.status === 'CURRENTLY-IN-USED').length;
 
-  const floorTitle = config
-    ? floorLabel(config, t)
-    : (floor.floorName.split(' - ')[0] ?? floor.floorName);
-  const vehicleTitle = config
-    ? vehicleTypeLabel(config, t)
-    : resolveApiVehicleLabel(floor.vehicleType?.type, t);
+  const floorTitle = floor.floorName.split(' - ')[0] ?? floor.floorName;
+  const vehicleTitle = resolveApiVehicleLabel(floor.vehicleType?.type, t);
 
   let tabLabel: string;
   if (config) {
@@ -251,6 +247,6 @@ export function resolveFloorPresentation(
     available,
     total,
     inUsed,
-    designSlotCount: config ? roughDesignSlotCount(config) : null,
+    designSlotCount: total,
   };
 }

@@ -392,8 +392,22 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       elevation: 2,
     },
     slotStatusInUse: {
-      backgroundColor: 'rgba(245,158,11,0.10)',
-      borderColor: 'rgba(245,158,11,0.45)',
+      backgroundColor: 'rgba(251,146,60,0.14)',
+      borderColor: 'rgba(251,146,60,0.55)',
+      shadowColor: DesignColors.accentAmber,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.22,
+      shadowRadius: 5,
+      elevation: 2,
+    },
+    slotStatusReserved: {
+      backgroundColor: 'rgba(96,165,250,0.14)',
+      borderColor: 'rgba(96,165,250,0.55)',
+      shadowColor: DesignColors.accentSky,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.22,
+      shadowRadius: 5,
+      elevation: 2,
     },
     slotStatusUnavailable: {
       backgroundColor: DesignColors.surface3,
@@ -422,42 +436,61 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     slotCellTextInUse: {
       color: DesignColors.accentAmber,
     },
+    slotCellTextReserved: {
+      color: DesignColors.accentSky,
+    },
     slotCellTextUnavailable: {
       color: DesignColors.inkSubtle,
     },
     slotHeroHeader: {
-      minHeight: 168,
+      minHeight: 188,
       borderRadius: Radius.xl,
       borderWidth: 1,
-      padding: Spacing.lg,
-      justifyContent: 'flex-end',
-      gap: Spacing.xs,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
+    slotHeroHeaderContent: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      width: '100%',
+    },
     slotHeroHeaderAvailable: {
-      backgroundColor: 'rgba(16,185,129,0.08)',
-      borderColor: 'rgba(16,185,129,0.4)',
+      backgroundColor: 'rgba(16,185,129,0.10)',
+      borderColor: 'rgba(16,185,129,0.42)',
     },
     slotHeroHeaderInUse: {
-      backgroundColor: DesignColors.surface2,
-      borderColor: DesignColors.hairlineStrong,
-      opacity: 0.7,
+      backgroundColor: 'rgba(251,146,60,0.16)',
+      borderColor: 'rgba(251,146,60,0.50)',
+    },
+    slotHeroHeaderReserved: {
+      backgroundColor: 'rgba(96,165,250,0.16)',
+      borderColor: 'rgba(96,165,250,0.50)',
     },
     slotHeroHeaderUnavailable: {
       backgroundColor: DesignColors.surface2,
       borderColor: DesignColors.hairline,
-      opacity: 0.45,
+      opacity: 0.55,
     },
     slotHeroEyebrow: {
       ...Typography.eyebrow,
-      color: DesignColors.inkSubtle,
+      color: DesignColors.inkMuted,
       textTransform: 'uppercase',
-      fontSize: 11,
+      fontSize: 12,
+      letterSpacing: 1.2,
+      textAlign: 'center',
     },
     slotHeroTitle: {
-      ...Typography.headline,
+      ...Typography.displayMd,
       color: DesignColors.ink,
       fontWeight: '700',
+      fontSize: 48,
+      lineHeight: 52,
+      letterSpacing: -1.2,
+      textAlign: 'center',
     },
     slotHeroStatus: {
       ...Typography.caption,
@@ -492,6 +525,13 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       transform: [{ scale: 0.97 }],
     },
     floorPanel: {
+      gap: Spacing.md,
+    },
+    floorSwitchViewport: {
+      overflow: 'hidden',
+      minHeight: 120,
+    },
+    floorSwitchPane: {
       gap: Spacing.md,
     },
     floorTabs: {

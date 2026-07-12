@@ -1,29 +1,83 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { StaffDarkCard } from '@/features/staff/components/premium';
+import {
+  StaffDarkCard,
+  StaffFilterDropdown,
+  type StaffFilterOption,
+} from '@/features/staff/components/premium';
 import { StaffActionButton } from '@/features/staff/components/staff-action-button';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
-import { deleteManagedReservation, getActiveSessionByPlate } from '@/features/staff/api';
+import {
+  deleteManagedReservation,
+  getActiveSessionByPlate,
+  getStaffActiveParkingSessions,
+  getUserById,
+  listPendingReservations,
+  resolveOwnerUserId,
+  type ParkingSession,
+  type Reservation,
+} from '@/features/staff/api';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
 import {
-  staffPhoneErrorMessage,
-  validateObjectIdInput,
+  formatReservationSlotLabel,
+  getReservationDriverName,
+  getReservationPlate,
+} from '@/features/staff/lib/reservation-helpers';
+import {
   validateStaffPhoneInput,
 } from '@/features/staff/lib/session-validation';
 import { useStaffScreenTitles } from '@/features/staff/lib/staff-screen-titles';
+import {
+  mapParkingSessionToRecord,
+  type StaffCheckInRecord,
+} from '@/features/staff/lib/utils';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useThemePreference } from '@/hooks/theme-preference';
 import { staffSessionDetailPath } from '@/roles';
+
+const EMPTY_SELECTION = '' as const;
+
+async function toMonthlySessionRecord(
+  session: ParkingSession,
+  floors: Parameters<typeof mapParkingSessionToRecord>[1],
+): Promise<StaffCheckInRecord> {
+  const record = mapParkingSessionToRecord(session, floors);
+  if (record.customerPhone?.trim()) {
+    return record;
+  }
+
+  const userId = resolveOwnerUserId(
+    typeof session.checkInUserId === 'string'
+      ? session.checkInUserId
+      : session.checkInUserId
+        ? { _id: session.checkInUserId._id }
+        : null,
+  );
+  if (!userId) {
+    return record;
+  }
+
+  try {
+    const user = await getUserById(userId);
+    return {
+      ...record,
+      customerName: user.fullName?.trim() || record.customerName,
+      customerPhone: user.phone?.trim() || record.customerPhone,
+    };
+  } catch {
+    return record;
+  }
+}
 
 export default function StaffOperationsScreen() {
   useStaffRoleGuard();
@@ -35,15 +89,90 @@ export default function StaffOperationsScreen() {
   const { resolvedScheme } = useThemePreference();
   const isDark = resolvedScheme === 'dark';
   const styles = useMemo(() => createStyles(DesignColors, isDark), [DesignColors, isDark]);
-  const { checkoutSession, loadParkingSessions } = useStaffWorkspace();
+  const { checkoutSession, floors, loadParkingSessions, loadParkingSlots } = useStaffWorkspace();
 
   const [checkoutPlate, setCheckoutPlate] = useState('');
   const [isLookingUpPlate, setIsLookingUpPlate] = useState(false);
-  const [sessionId, setSessionId] = useState('');
-  const [checkoutPhone, setCheckoutPhone] = useState('');
-  const [reservationId, setReservationId] = useState('');
+
+  const [activeSessions, setActiveSessions] = useState<StaffCheckInRecord[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(EMPTY_SELECTION);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const [pendingReservations, setPendingReservations] = useState<Reservation[]>([]);
+  const [selectedReservationId, setSelectedReservationId] = useState<string>(EMPTY_SELECTION);
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
   const [isDeletingReservation, setIsDeletingReservation] = useState(false);
+
+  const reloadPickers = useCallback(async () => {
+    setIsLoadingSessions(true);
+    setIsLoadingReservations(true);
+    try {
+      let floorSnapshot = floors;
+      if (floorSnapshot.length === 0) {
+        floorSnapshot = await loadParkingSlots().catch(() => []);
+      }
+
+      const [sessions, reservations] = await Promise.all([
+        getStaffActiveParkingSessions()
+          .then(async (items) => {
+            const monthly = items.filter((session) => session.sessionType?.toUpperCase() === 'MONTH');
+            return Promise.all(monthly.map((session) => toMonthlySessionRecord(session, floorSnapshot)));
+          })
+          .catch(() => [] as StaffCheckInRecord[]),
+        listPendingReservations().catch(() => [] as Reservation[]),
+      ]);
+
+      setActiveSessions(sessions);
+      setPendingReservations(reservations);
+
+      setSelectedSessionId((current) =>
+        current && sessions.some((session) => session.id === current) ? current : EMPTY_SELECTION,
+      );
+      setSelectedReservationId((current) =>
+        current && reservations.some((reservation) => reservation._id === current)
+          ? current
+          : EMPTY_SELECTION,
+      );
+    } finally {
+      setIsLoadingSessions(false);
+      setIsLoadingReservations(false);
+    }
+  }, [floors, loadParkingSlots]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void reloadPickers();
+    }, [reloadPickers]),
+  );
+
+  const sessionOptions = useMemo<StaffFilterOption<string>[]>(() => {
+    return activeSessions.map((session) => {
+      const nameHint = session.customerName ? ` · ${session.customerName}` : '';
+      return {
+        id: session.id,
+        label: `${session.plate} · ${session.slotLabel}${nameHint}`,
+      };
+    });
+  }, [activeSessions]);
+
+  const reservationOptions = useMemo<StaffFilterOption<string>[]>(() => {
+    return pendingReservations.map((reservation) => {
+      const plate = getReservationPlate(reservation) ?? '—';
+      const slot = formatReservationSlotLabel(reservation);
+      const driver = getReservationDriverName(reservation);
+      return {
+        id: reservation._id,
+        label: driver ? `${plate} · ${slot} · ${driver}` : `${plate} · ${slot}`,
+      };
+    });
+  }, [pendingReservations]);
+
+  const selectedSession = useMemo(
+    () => activeSessions.find((session) => session.id === selectedSessionId) ?? null,
+    [activeSessions, selectedSessionId],
+  );
+  const ownerPhone = selectedSession?.customerPhone?.replace(/\D/g, '').slice(0, 10) ?? '';
 
   async function handlePlateCheckoutLookup() {
     const plate = formatLicensePlateForApi(checkoutPlate);
@@ -74,27 +203,29 @@ export default function StaffOperationsScreen() {
     }
   }
 
-  async function handleMonthlyCheckout(paymentLabel: string) {
-    const idResult = validateObjectIdInput(sessionId, t);
-    if (!idResult.ok) {
-      showToast(idResult.message, 'error');
+  async function handleMonthlyCheckout() {
+    if (!selectedSessionId || !selectedSession) {
+      showToast(t('Chọn phiên thẻ tháng', 'Select a monthly-card session'), 'error');
       return;
     }
-    const phoneResult = validateStaffPhoneInput(checkoutPhone, t);
+    const phoneResult = validateStaffPhoneInput(ownerPhone, t);
     if (!phoneResult.ok) {
-      showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), 'error');
+      showToast(
+        t(
+          'Phiên này chưa có SĐT chủ xe — không thể checkout thẻ tháng',
+          'This session has no owner phone — cannot checkout monthly card',
+        ),
+        'error',
+      );
       return;
     }
 
     setIsCheckingOut(true);
     try {
-      await checkoutSession(idResult.id, phoneResult.phone);
-      setSessionId('');
-      setCheckoutPhone('');
-      showToast(
-        t(`${paymentLabel}: checkout thành công`, `${paymentLabel}: checkout successful`),
-        'success',
-      );
+      await checkoutSession(selectedSessionId, phoneResult.phone);
+      setSelectedSessionId(EMPTY_SELECTION);
+      showToast(t('Checkout thành công', 'Checkout successful'), 'success');
+      void reloadPickers();
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : t('Checkout thất bại', 'Checkout failed'),
@@ -106,17 +237,17 @@ export default function StaffOperationsScreen() {
   }
 
   async function handleDeleteReservation() {
-    const idResult = validateObjectIdInput(reservationId, t);
-    if (!idResult.ok) {
-      showToast(idResult.message, 'error');
+    if (!selectedReservationId) {
+      showToast(t('Chọn đặt chỗ PENDING', 'Select a PENDING reservation'), 'error');
       return;
     }
 
     setIsDeletingReservation(true);
     try {
-      await deleteManagedReservation(idResult.id);
-      setReservationId('');
+      await deleteManagedReservation(selectedReservationId);
+      setSelectedReservationId(EMPTY_SELECTION);
       showToast(t('Đã xóa đặt chỗ PENDING', 'PENDING reservation deleted'), 'success');
+      void reloadPickers();
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : t('Không xóa được đặt chỗ', 'Cannot delete reservation'),
@@ -128,7 +259,10 @@ export default function StaffOperationsScreen() {
   }
 
   return (
-    <StaffPageShell title={titles.checkout}>
+    <StaffPageShell
+      onRefresh={() => void reloadPickers()}
+      refreshing={isLoadingSessions || isLoadingReservations}
+      title={titles.checkout}>
       <StaffDarkCard accentBorder="primary" index={0} style={styles.cardPrimary}>
         <View style={styles.cardHeader}>
           <View style={[styles.iconBadge, styles.iconBadgePrimary]}>
@@ -163,29 +297,45 @@ export default function StaffOperationsScreen() {
           <ThemedText style={styles.cardTitle}>{t('Thẻ tháng', 'Monthly card')}</ThemedText>
         </View>
 
-        <ThemedText style={styles.fieldLabel}>{t('Mã phiên', 'Session ID')}</ThemedText>
-        <StaffTextInput
-          editable={!isCheckingOut}
-          mono
-          onChangeText={setSessionId}
-          placeholder={t('ObjectId phiên ACTIVE', 'ACTIVE session ObjectId')}
-          style={styles.input}
-          value={sessionId}
+        <StaffFilterDropdown
+          disabled={isLoadingSessions || isCheckingOut}
+          emptyText={t('Không có phiên thẻ tháng ACTIVE', 'No ACTIVE monthly-card sessions')}
+          label={t('Chọn phiên thẻ tháng', 'Select monthly-card session')}
+          onChange={setSelectedSessionId}
+          options={sessionOptions}
+          placeholder={
+            isLoadingSessions
+              ? t('Đang tải…', 'Loading…')
+              : t('Chạm để chọn xe thẻ tháng', 'Tap to pick monthly-card vehicle')
+          }
+          value={selectedSessionId}
         />
-        <ThemedText style={styles.fieldLabel}>{t('Số điện thoại', 'Phone')}</ThemedText>
-        <StaffTextInput
-          editable={!isCheckingOut}
-          keyboardType="phone-pad"
-          onChangeText={(text) => setCheckoutPhone(text.replace(/\D/g, '').slice(0, 10))}
-          placeholder={t('10 chữ số', '10 digits')}
-          style={styles.input}
-          value={checkoutPhone}
-        />
+
+        {selectedSession ? (
+          <View style={styles.ownerInfoBox}>
+            <View style={styles.ownerInfoRow}>
+              <Ionicons color={DesignColors.inkMuted} name="person-outline" size={16} />
+              <ThemedText style={styles.ownerInfoValue}>
+                {selectedSession.customerName?.trim() || t('Chưa có tên', 'Name unavailable')}
+              </ThemedText>
+            </View>
+            <View style={styles.ownerInfoRow}>
+              <Ionicons color={DesignColors.inkMuted} name="call-outline" size={16} />
+              <ThemedText style={styles.ownerInfoValue}>
+                {ownerPhone || t('Chưa có SĐT', 'Phone unavailable')}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.helperText}>
+              {t('Vào lúc', 'Checked in')}: {selectedSession.timeLabel} · {selectedSession.slotLabel}
+            </ThemedText>
+          </View>
+        ) : null}
+
         <StaffActionButton
-          disabled={isCheckingOut}
+          disabled={isCheckingOut || !selectedSessionId || ownerPhone.length !== 10}
           label={t('Xác nhận ra cổng', 'Confirm exit')}
           loading={isCheckingOut}
-          onPress={() => void handleMonthlyCheckout(t('Thẻ tháng', 'Monthly card'))}
+          onPress={() => void handleMonthlyCheckout()}
           style={styles.fullWidthButton}
         />
       </StaffDarkCard>
@@ -198,17 +348,22 @@ export default function StaffOperationsScreen() {
           <ThemedText style={styles.cardTitle}>{t('Xóa đặt chỗ', 'Delete reservation')}</ThemedText>
         </View>
 
-        <ThemedText style={styles.fieldLabel}>{t('Mã đặt chỗ', 'Reservation ID')}</ThemedText>
-        <StaffTextInput
-          editable={!isDeletingReservation}
-          mono
-          onChangeText={setReservationId}
-          placeholder={t('ObjectId PENDING', 'PENDING ObjectId')}
-          style={styles.input}
-          value={reservationId}
+        <StaffFilterDropdown
+          disabled={isLoadingReservations || isDeletingReservation}
+          emptyText={t('Không có đặt chỗ PENDING', 'No PENDING reservations')}
+          label={t('Chọn đặt chỗ PENDING', 'Select PENDING reservation')}
+          onChange={setSelectedReservationId}
+          options={reservationOptions}
+          placeholder={
+            isLoadingReservations
+              ? t('Đang tải…', 'Loading…')
+              : t('Chạm để chọn biển / ô đặt', 'Tap to pick plate / spot')
+          }
+          value={selectedReservationId}
         />
+
         <StaffActionButton
-          disabled={isDeletingReservation}
+          disabled={isDeletingReservation || !selectedReservationId}
           label={t('Xóa đặt chỗ PENDING', 'Delete PENDING reservation')}
           loading={isDeletingReservation}
           onPress={() => void handleDeleteReservation()}
@@ -293,6 +448,30 @@ function createStyles(
       fontSize: 12,
       letterSpacing: 0.2,
       marginBottom: -4,
+    },
+    helperText: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      marginTop: 2,
+    },
+    ownerInfoBox: {
+      gap: Spacing.xs,
+      padding: Spacing.sm,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(52,211,153,0.28)' : 'rgba(5,150,105,0.22)',
+      backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(5,150,105,0.06)',
+    },
+    ownerInfoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    ownerInfoValue: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+      fontWeight: '600',
+      flex: 1,
     },
     input: {
       backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : DesignColors.surface3,

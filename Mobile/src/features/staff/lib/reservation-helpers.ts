@@ -21,6 +21,23 @@ export function getReservationDriverName(reservation: Reservation): string | und
   return undefined;
 }
 
+export function getReservationPlate(reservation: Reservation): string | undefined {
+  if (typeof reservation.vehicleId === 'object') {
+    return reservation.vehicleId.licensePlate?.trim().toUpperCase() || undefined;
+  }
+  return undefined;
+}
+
+export function getReservationVehicleType(reservation: Reservation): string | undefined {
+  if (typeof reservation.vehicleId === 'object') {
+    const type = reservation.vehicleId.vehicleTypeId;
+    if (typeof type === 'object') {
+      return type.type?.trim() || undefined;
+    }
+  }
+  return undefined;
+}
+
 export function getReservationSlotNumber(reservation: Reservation): string | undefined {
   if (typeof reservation.parkingSlotId === 'object') {
     return reservation.parkingSlotId.slotNumber?.trim() || undefined;

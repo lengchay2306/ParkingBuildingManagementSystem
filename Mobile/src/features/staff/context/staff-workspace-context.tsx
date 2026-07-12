@@ -4,6 +4,7 @@ import {
   checkoutParkingSession as checkoutParkingSessionApi,
   getParkingSessions,
   getParkingSlots,
+  getStaffActiveParkingSessions,
   type ParkingSessionsQuery,
   type ParkingFloor,
   type ParkingSlotFilters,
@@ -110,12 +111,9 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
 
   const loadActiveSlotSessions = useCallback(async (floorSnapshot?: ParkingFloor[]) => {
     try {
-      const { sessions } = await getParkingSessions({
-        page: 1,
-        limit: 200,
-        status: 'ACTIVE',
-        date: todayDateParam(),
-      });
+      // Do not filter by "today" only — overnight ACTIVE sessions would be missed
+      // while the slot still shows CURRENTLY-IN-USED.
+      const sessions = await getStaffActiveParkingSessions();
 
       let resolvedFloors = floorSnapshot ?? floorsRef.current;
       if (resolvedFloors.length === 0) {

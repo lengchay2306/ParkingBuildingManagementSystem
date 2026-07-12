@@ -168,12 +168,31 @@ export default function StaffSlotsScreen() {
       if (ref) {
         try {
           const from = await measureHeroBounds(ref, SLOT_CELL_BORDER_RADIUS);
+          const borderColor =
+            slot.status === 'CURRENTLY-IN-USED'
+              ? DesignColors.accentAmber
+              : slot.status === 'RESERVED'
+                ? DesignColors.accentSky
+                : slot.status === 'UNAVAILABLE'
+                  ? DesignColors.hairlineStrong
+                  : DesignColors.accentEmerald;
+          const backgroundColor =
+            slot.status === 'CURRENTLY-IN-USED'
+              ? 'rgba(251,146,60,0.16)'
+              : slot.status === 'RESERVED'
+                ? 'rgba(96,165,250,0.16)'
+                : slot.status === 'UNAVAILABLE'
+                  ? DesignColors.surface2
+                  : 'rgba(16,185,129,0.10)';
           startHero({
             id: slot._id,
             from,
+            borderColor,
+            backgroundColor,
             content: (
               <SlotHeroVisual
                 fill
+                flight
                 floorName={floorName}
                 slotNumber={slot.slotNumber}
                 status={slot.status}
@@ -187,10 +206,15 @@ export default function StaffSlotsScreen() {
       }
       router.push({
         pathname: '/staff-slots/[slotId]',
-        params: { slotId: slot._id, floorId, floorName },
+        params: {
+          slotId: slot._id,
+          floorId,
+          floorName,
+          slotNumber: slot.slotNumber,
+        },
       });
     },
-    [router, startHero],
+    [DesignColors, router, startHero],
   );
 
   return (

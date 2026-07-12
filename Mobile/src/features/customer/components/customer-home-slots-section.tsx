@@ -76,6 +76,10 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
       borderColor: DesignColors.primary,
       backgroundColor: `${DesignColors.primary}14`,
     },
+    slotReserved: {
+      borderColor: DesignColors.semanticWarning,
+      backgroundColor: `${DesignColors.semanticWarning}18`,
+    },
     slotUnavailable: {
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,

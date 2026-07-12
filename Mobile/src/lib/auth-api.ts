@@ -54,7 +54,7 @@ export type MonthlyCardRef = {
 export type UserVehicle = {
   _id: string;
   licensePlate: string;
-  vehicleTypeId?: VehicleTypeRef;
+  vehicleTypeId?: VehicleTypeRef | string;
   monthlyCardId?: MonthlyCardRef | null;
   status?: string;
 };

@@ -20,6 +20,10 @@ type StaffFilterDropdownProps<T extends string> = {
   options: StaffFilterOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /** Shown when nothing is selected / options empty. */
+  placeholder?: string;
+  disabled?: boolean;
+  emptyText?: string;
 };
 
 export function StaffFilterDropdown<T extends string>({
@@ -27,12 +31,16 @@ export function StaffFilterDropdown<T extends string>({
   options,
   value,
   onChange,
+  placeholder,
+  disabled = false,
+  emptyText,
 }: StaffFilterDropdownProps<T>) {
   const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [open, setOpen] = useState(false);
 
-  const selected = options.find((option) => option.id === value) ?? options[0];
+  const selected = options.find((option) => option.id === value);
+  const triggerLabel = selected?.label ?? placeholder ?? '—';
 
   function handleSelect(next: T) {
     onChange(next);
@@ -44,11 +52,18 @@ export function StaffFilterDropdown<T extends string>({
       <View style={styles.field}>
         <ThemedText style={styles.label}>{label}</ThemedText>
         <StaffPressableScale
-          onPress={() => setOpen(true)}
+          disabled={disabled}
+          onPress={() => {
+            if (!disabled) {
+              setOpen(true);
+            }
+          }}
           scaleTo={0.98}
-          style={styles.trigger}>
-          <ThemedText numberOfLines={1} style={styles.triggerText}>
-            {selected?.label ?? '—'}
+          style={[styles.trigger, disabled && styles.triggerDisabled]}>
+          <ThemedText
+            numberOfLines={2}
+            style={[styles.triggerText, !selected && styles.triggerPlaceholder]}>
+            {triggerLabel}
           </ThemedText>
           <Ionicons color={DesignColors.inkSubtle} name="chevron-down" size={18} />
         </StaffPressableScale>
@@ -67,27 +82,33 @@ export function StaffFilterDropdown<T extends string>({
             <View style={styles.sheetHandle} />
             <ThemedText style={styles.sheetTitle}>{label}</ThemedText>
             <ScrollView bounces={false} showsVerticalScrollIndicator={false} style={styles.optionList}>
-              {options.map((option, index) => {
-                const active = option.id === value;
-                return (
-                  <Animated.View entering={FadeIn.delay(index * 30).duration(220)} key={option.id}>
-                    <Pressable
-                      onPress={() => handleSelect(option.id)}
-                      style={({ pressed }) => [
-                        styles.option,
-                        active && styles.optionActive,
-                        pressed && styles.optionPressed,
-                      ]}>
-                      <ThemedText style={[styles.optionText, active && styles.optionTextActive]}>
-                        {option.label}
-                      </ThemedText>
-                      {active ? (
-                        <Ionicons color={DesignColors.primary} name="checkmark-circle" size={20} />
-                      ) : null}
-                    </Pressable>
-                  </Animated.View>
-                );
-              })}
+              {options.length === 0 ? (
+                <ThemedText style={styles.emptyText}>
+                  {emptyText ?? '—'}
+                </ThemedText>
+              ) : (
+                options.map((option, index) => {
+                  const active = option.id === value;
+                  return (
+                    <Animated.View entering={FadeIn.delay(index * 30).duration(220)} key={option.id}>
+                      <Pressable
+                        onPress={() => handleSelect(option.id)}
+                        style={({ pressed }) => [
+                          styles.option,
+                          active && styles.optionActive,
+                          pressed && styles.optionPressed,
+                        ]}>
+                        <ThemedText style={[styles.optionText, active && styles.optionTextActive]}>
+                          {option.label}
+                        </ThemedText>
+                        {active ? (
+                          <Ionicons color={DesignColors.primary} name="checkmark-circle" size={20} />
+                        ) : null}
+                      </Pressable>
+                    </Animated.View>
+                  );
+                })
+              )}
             </ScrollView>
           </Animated.View>
         </View>
@@ -158,6 +179,19 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       color: DesignColors.ink,
       fontWeight: '600',
       flex: 1,
+    },
+    triggerDisabled: {
+      opacity: 0.55,
+    },
+    triggerPlaceholder: {
+      color: DesignColors.inkSubtle,
+      fontWeight: '500',
+    },
+    emptyText: {
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
+      paddingVertical: Spacing.lg,
+      textAlign: 'center',
     },
     overlay: {
       flex: 1,

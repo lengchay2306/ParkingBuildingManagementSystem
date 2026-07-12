@@ -9,12 +9,15 @@ import {
   getActiveSessionByPlate,
   getActiveUserParkingSession,
   getReservationsByLicensePlate,
+  getUserById,
   getVehicleByLicensePlate,
   getVehicleTypes,
+  resolveOwnerUserId,
   resolveVehicleOwnerPhone,
   resolveVehicleOwnerProfile,
   resolveVehicleTypeIdFromSessionOrVehicle,
   resolveVehicleTypeLabel,
+  enrichReservationOwner,
   type ParkingSession,
   type Reservation,
   type StaffActiveParkingSession,
@@ -50,6 +53,37 @@ type UseStaffCheckInFlowOptions = {
   onComplete?: () => void;
 };
 
+/** BE GET /vehicles/:plate often returns userId as ObjectId only — enrich via GET /users/:id. */
+async function loadOwnerProfileForVehicle(
+  vehicle: StaffVehicle,
+  activeSession?: StaffActiveParkingSession | null,
+): Promise<VehicleOwnerProfile | null> {
+  const embedded = resolveVehicleOwnerProfile(vehicle, activeSession);
+  if (embedded?.fullName?.trim()) {
+    return embedded;
+  }
+
+  const userId = resolveOwnerUserId(vehicle.userId);
+  if (!userId) {
+    return embedded;
+  }
+
+  try {
+    const user = await getUserById(userId);
+    const fullName = user.fullName?.trim() || embedded?.fullName;
+    const phone = user.phone?.trim() || embedded?.phone;
+    if (!fullName && !phone) {
+      return embedded;
+    }
+    return {
+      fullName: fullName || undefined,
+      phone: phone || undefined,
+    };
+  } catch {
+    return embedded;
+  }
+}
+
 export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
   const onCompleteRef = useRef(options.onComplete);
   onCompleteRef.current = options.onComplete;
@@ -65,6 +99,7 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
   const [guestPlate, setGuestPlate] = useState('');
   const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
   const [foundVehicle, setFoundVehicle] = useState<StaffVehicle | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<VehicleOwnerProfile | null>(null);
   const [pendingReservation, setPendingReservation] = useState<Reservation | null>(null);
   const [activeSession, setActiveSession] = useState<StaffActiveParkingSession | null>(null);
   const [activeSessionByPlate, setActiveSessionByPlate] = useState<ParkingSession | null>(null);
@@ -90,15 +125,9 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
     return null;
   }, [activeSession, activeSessionByPlate, floors]);
 
-  const ownerProfile = useMemo<VehicleOwnerProfile | null>(() => {
-    if (!foundVehicle) {
-      return null;
-    }
-    return resolveVehicleOwnerProfile(foundVehicle, activeSession);
-  }, [activeSession, foundVehicle]);
-
   const resetConfirmState = useCallback(() => {
     setFoundVehicle(null);
+    setOwnerProfile(null);
     setGuestPlate('');
     setCheckInMode('registered');
     setPendingReservation(null);
@@ -138,8 +167,11 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
           getActiveSessionByPlate(plate).catch(() => null),
           getReservationsByLicensePlate(plate, 'PENDING').catch(() => null),
         ]);
-        const relevantReservation = reservationLookup
+        const relevantReservationRaw = reservationLookup
           ? findStaffRelevantReservation(reservationLookup.reservations)
+          : null;
+        const relevantReservation = relevantReservationRaw
+          ? await enrichReservationOwner(relevantReservationRaw)
           : null;
         const reservedSlotId = relevantReservation ? getReservationSlotId(relevantReservation) : null;
         const reservationPhone = relevantReservation
@@ -151,14 +183,20 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         try {
           const vehicle = await getVehicleByLicensePlate(plate);
           const existingSession = await getActiveUserParkingSession(vehicle._id);
+          const enrichedOwner = await loadOwnerProfileForVehicle(vehicle, existingSession);
 
           setCheckInMode('registered');
           setFoundVehicle(vehicle);
+          setOwnerProfile(enrichedOwner);
           setGuestPlate('');
           setPendingReservation(relevantReservation);
           setPlateQuery(vehicle.licensePlate);
           setActiveSession(existingSession ?? (sessionByPlate as StaffActiveParkingSession | null));
-          setCheckInPhone(reservationPhone || resolveVehicleOwnerPhone(vehicle, existingSession));
+          setCheckInPhone(
+            reservationPhone ||
+              enrichedOwner?.phone ||
+              resolveVehicleOwnerPhone(vehicle, existingSession),
+          );
           setSelectedSlotId(reservedSlotId);
           setSelectedVehicleTypeId(resolveVehicleTypeIdFromSessionOrVehicle(vehicle.vehicleTypeId));
           setStep('confirm');
@@ -202,6 +240,7 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         } catch {
           setCheckInMode('guest');
           setFoundVehicle(null);
+          setOwnerProfile(null);
           setGuestPlate(plate);
           setPendingReservation(relevantReservation);
           setPlateQuery(plate);
