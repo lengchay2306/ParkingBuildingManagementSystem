@@ -115,12 +115,12 @@ export function getReservationDisplayStatus(
     return "CHECKED OUT";
   }
 
-  if (parkingSession?.status === "ACTIVE") {
+  if (parkingSession?.status === "ACTIVE" && !parkingSession.checkOutTime) {
     return "CHECKED IN";
   }
 
   if (reservation.status === "CLAIMED") {
-    return "CHECKED IN";
+    return "CHECKED OUT";
   }
 
   return reservation.status as Reservation["status"];
