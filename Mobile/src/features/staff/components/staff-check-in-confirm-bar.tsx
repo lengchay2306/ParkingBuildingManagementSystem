@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffCheckInConfirmBarProps = {
   label: string;
@@ -20,6 +20,8 @@ type StaffCheckInConfirmBarProps = {
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Skip safe-area bottom padding — sheet already clears the tab bar. */
+  compact?: boolean;
 };
 
 export function StaffCheckInConfirmBar({
@@ -28,10 +30,15 @@ export function StaffCheckInConfirmBar({
   disabled,
   loading,
   style,
+  compact = false,
 }: StaffCheckInConfirmBarProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(DesignColors, insets.bottom), [DesignColors, insets.bottom]);
+  const bottomPad = compact ? Spacing.sm : Math.max(insets.bottom, Spacing.md);
+  const styles = useMemo(
+    () => createStyles(DesignColors, bottomPad),
+    [DesignColors, bottomPad],
+  );
 
   return (
     <View style={[styles.wrap, style]}>
@@ -56,13 +63,13 @@ export function StaffCheckInConfirmBar({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>, bottomInset: number) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>, bottomPad: number) {
   return StyleSheet.create({
     wrap: {
       paddingHorizontal: Spacing.md,
       paddingTop: Spacing.sm,
-      paddingBottom: Math.max(bottomInset, Spacing.md),
-      backgroundColor: DesignColors.canvas,
+      paddingBottom: bottomPad,
+      backgroundColor: DesignColors.surface1,
       borderTopWidth: 1,
       borderTopColor: DesignColors.hairline,
     },

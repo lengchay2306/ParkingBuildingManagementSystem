@@ -100,10 +100,12 @@ export function mapParkingSessionToRecord(
   const plate =
     typeof session.vehicleId === 'object' && session.vehicleId?.licensePlate
       ? session.vehicleId.licensePlate
-      : '—';
+      : session.licensePlate ?? '—';
 
   const customerPhone =
-    typeof session.checkInUserId === 'object' ? session.checkInUserId?.phone : undefined;
+    typeof session.checkInUserId === 'object'
+      ? session.checkInUserId?.phone
+      : session.phone ?? undefined;
   const customerName =
     typeof session.checkInUserId === 'object' ? session.checkInUserId?.fullName : undefined;
 

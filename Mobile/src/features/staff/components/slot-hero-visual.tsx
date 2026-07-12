@@ -4,7 +4,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import type { ParkingSlotStatus } from '@/features/staff/api';
 import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type SlotHeroVisualProps = {
   slotNumber: string;
@@ -56,7 +56,7 @@ export function SlotHeroVisual({
   style,
   fill = false,
 }: SlotHeroVisualProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
   const isHeader = variant === 'header';
 

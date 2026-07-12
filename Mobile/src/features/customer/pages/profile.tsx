@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -47,11 +47,29 @@ import {
   validateVehicleUpdate,
   type VehicleType,
 } from '@/features/customer/api/vehicles';
-import { VehicleCard } from '@/features/customer/components';
-import { createSubscriptionCheckoutLink } from '@/features/payment/api';
-import { openSubscriptionCheckout } from '@/features/payment/open-subscription-checkout';
+import { SubscriptionPaymentModal, VehicleCard } from '@/features/customer/components';
+import {
+  createSubscriptionCheckoutLink,
+  type SubscriptionCheckoutResult,
+} from '@/features/payment/api';
+import type { PayOsCheckoutSessionResult } from '@/features/payment/payos-checkout-session';
+import { subscribePayOsDeepLink } from '@/features/payment/payos-return-bridge';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
 
+function vehicleHasMonthlyCard(vehicle: UserVehicle | undefined) {
+  if (!vehicle?.monthlyCardId) {
+    return false;
+  }
+  if (typeof vehicle.monthlyCardId === 'object') {
+    const status = vehicle.monthlyCardId.status?.toUpperCase();
+    return Boolean(vehicle.monthlyCardId._id) || status === 'ACTIVE';
+  }
+  return true;
+}
+
+function findVehicleInProfile(profile: UserProfile | null, vehicleId: string) {
+  return profile?.vehicles?.find((item) => item._id === vehicleId);
+}
 function getInitials(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
@@ -99,6 +117,10 @@ export default function ProfileScreen() {
   const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
   const [buyingVehicleId, setBuyingVehicleId] = useState<string | null>(null);
+  const [subscriptionBill, setSubscriptionBill] = useState<SubscriptionCheckoutResult | null>(null);
+  const [subscriptionVehicle, setSubscriptionVehicle] = useState<UserVehicle | null>(null);
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
+  const subscriptionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useProtectedSession();
   const { refreshRole } = useSessionRole();
@@ -366,62 +388,16 @@ export default function ProfileScreen() {
   }
 
   async function handleBuyMonthlyCard(vehicle: UserVehicle) {
+    if (vehicleHasMonthlyCard(vehicle)) {
+      showToast(t('Xe này đã có thẻ tháng', 'This vehicle already has a monthly card'), 'error');
+      return;
+    }
+
     setBuyingVehicleId(vehicle._id);
     try {
-      const checkoutUrl = await createSubscriptionCheckoutLink(vehicle._id);
-      const checkoutResult = await openSubscriptionCheckout(checkoutUrl);
-
-      if (checkoutResult.outcome === 'cancelled') {
-        showToast(
-          t('Đã hủy thanh toán thẻ tháng.', 'Monthly card payment was cancelled.'),
-          'error',
-        );
-        return;
-      }
-
-      if (checkoutResult.outcome === 'paid') {
-        showToast(
-          t(
-            'Thanh toán xong. Đang chờ kích hoạt thẻ tháng…',
-            'Payment complete. Waiting for monthly card activation…',
-          ),
-          'success',
-        );
-      } else {
-        showToast(
-          t(
-            'Đã quay lại app. Đang kiểm tra thẻ tháng…',
-            'Back in the app. Checking monthly card…',
-          ),
-          'success',
-        );
-      }
-
-      // PayOS webhook activates the card asynchronously — poll a few times.
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        const refreshed = await getMyProfile();
-        setProfile(refreshed);
-        const updated = refreshed.vehicles?.find((item) => item._id === vehicle._id);
-        const card = updated?.monthlyCardId;
-        const hasCard =
-          Boolean(card) &&
-          (typeof card === 'object'
-            ? Boolean(card._id) || card.status?.toUpperCase() === 'ACTIVE'
-            : true);
-        if (hasCard) {
-          showToast(t('Thẻ tháng đã kích hoạt', 'Monthly card activated'), 'success');
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-
-      showToast(
-        t(
-          'Chưa thấy thẻ. Kéo xuống hồ sơ để làm mới sau vài giây.',
-          'Card not visible yet. Pull to refresh profile in a few seconds.',
-        ),
-        'error',
-      );
+      const checkout = await createSubscriptionCheckoutLink(vehicle._id);
+      setSubscriptionBill(checkout);
+      setSubscriptionVehicle(vehicle);
     } catch (buyError) {
       showToast(
         buyError instanceof Error
@@ -433,6 +409,132 @@ export default function ProfileScreen() {
       setBuyingVehicleId(null);
     }
   }
+
+  const stopSubscriptionPoll = useCallback(() => {
+    if (subscriptionPollRef.current) {
+      clearInterval(subscriptionPollRef.current);
+      subscriptionPollRef.current = null;
+    }
+  }, []);
+
+  const closeSubscriptionPayment = useCallback(() => {
+    stopSubscriptionPoll();
+    setSubscriptionBill(null);
+    setSubscriptionVehicle(null);
+    setIsCheckingSubscription(false);
+  }, [stopSubscriptionPoll]);
+
+  const refreshSubscriptionActivation = useCallback(async () => {
+    if (!subscriptionVehicle) {
+      return false;
+    }
+    const refreshed = await getMyProfile();
+    setProfile(refreshed);
+    const updated = findVehicleInProfile(refreshed, subscriptionVehicle._id);
+    return vehicleHasMonthlyCard(updated);
+  }, [subscriptionVehicle]);
+
+  const handleConfirmSubscriptionPaid = useCallback(async () => {
+    if (!subscriptionVehicle) {
+      return;
+    }
+
+    setIsCheckingSubscription(true);
+    stopSubscriptionPoll();
+
+    try {
+      let activated = await refreshSubscriptionActivation();
+      if (activated) {
+        showToast(t('Thẻ tháng đã kích hoạt', 'Monthly card activated'), 'success');
+        closeSubscriptionPayment();
+        return;
+      }
+
+      showToast(
+        t('Đang chờ PayOS kích hoạt thẻ…', 'Waiting for PayOS to activate the card…'),
+        'success',
+      );
+
+      let attempts = 0;
+      subscriptionPollRef.current = setInterval(() => {
+        void (async () => {
+          attempts += 1;
+          try {
+            activated = await refreshSubscriptionActivation();
+            if (activated) {
+              showToast(t('Thẻ tháng đã kích hoạt', 'Monthly card activated'), 'success');
+              closeSubscriptionPayment();
+              return;
+            }
+          } catch {
+            // keep polling
+          }
+          if (attempts >= 12) {
+            stopSubscriptionPoll();
+            setIsCheckingSubscription(false);
+            showToast(
+              t(
+                'Chưa thấy thẻ. Đợi thêm rồi kéo hồ sơ để làm mới.',
+                'Card not visible yet. Wait a bit, then pull to refresh profile.',
+              ),
+              'error',
+            );
+          }
+        })();
+      }, 2500);
+    } catch (checkError) {
+      setIsCheckingSubscription(false);
+      showToast(
+        checkError instanceof Error
+          ? checkError.message
+          : t('Không kiểm tra được thanh toán', 'Could not verify payment'),
+        'error',
+      );
+    }
+  }, [
+    closeSubscriptionPayment,
+    refreshSubscriptionActivation,
+    showToast,
+    stopSubscriptionPoll,
+    subscriptionVehicle,
+    t,
+  ]);
+
+  const handleCheckoutSessionResult = useCallback(
+    (result: PayOsCheckoutSessionResult) => {
+      if (result.kind === 'cancelled') {
+        showToast(t('Đã hủy thanh toán PayOS', 'PayOS payment cancelled'), 'error');
+        closeSubscriptionPayment();
+        return;
+      }
+      // paid or dismissed (user closed browser) → verify activation
+      void handleConfirmSubscriptionPaid();
+    },
+    [closeSubscriptionPayment, handleConfirmSubscriptionPaid, showToast, t],
+  );
+
+  useEffect(() => {
+    return subscribePayOsDeepLink((payload) => {
+      if (!subscriptionBill) {
+        return;
+      }
+      if (payload.outcome === 'cancelled') {
+        handleCheckoutSessionResult({
+          kind: 'cancelled',
+          orderCode: payload.orderCode,
+          url: payload.url,
+        });
+        return;
+      }
+      handleCheckoutSessionResult({
+        kind: 'paid',
+        orderCode: payload.orderCode,
+        url: payload.url,
+      });
+    });
+  }, [handleCheckoutSessionResult, subscriptionBill]);
+
+  React.useEffect(() => () => stopSubscriptionPoll(), [stopSubscriptionPoll]);
 
   if (isLoading && !profile) {
     return (
@@ -752,6 +854,17 @@ export default function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <SubscriptionPaymentModal
+        visible={!!subscriptionBill}
+        bill={subscriptionBill}
+        plate={subscriptionVehicle?.licensePlate}
+        isCheckingStatus={isCheckingSubscription}
+        onClose={closeSubscriptionPayment}
+        onConfirmPaid={() => void handleConfirmSubscriptionPaid()}
+        onCheckoutSessionResult={handleCheckoutSessionResult}
+        t={t}
+      />
     </ThemedView>
   );
 }

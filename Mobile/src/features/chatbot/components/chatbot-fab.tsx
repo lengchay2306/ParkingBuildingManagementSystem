@@ -1,20 +1,30 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { DotLottie } from '@lottiefiles/dotlottie-react-native';
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { Radius, Spacing, Typography } from '@/constants/design';
 import { useDesignColors } from '@/hooks/use-design-colors';
+
+const AI_LOTTIE = require('@/components/gif/AI.lottie');
+const FAB_SIZE = 56;
+const FAB_LOTTIE_SIZE = 44;
 
 type ChatbotFabProps = {
   label: string;
   isOpen: boolean;
   onPress: () => void;
   tabBarOffset?: number;
+  /** When set, overrides tabBarOffset calculation (distance from screen bottom, before safe area). */
+  fixedBottom?: number;
 };
 
-export function ChatbotFab({ label, isOpen, onPress, tabBarOffset = 72 }: ChatbotFabProps) {
+export function ChatbotFab({
+  label,
+  isOpen,
+  onPress,
+  tabBarOffset = 72,
+  fixedBottom,
+}: ChatbotFabProps) {
   const DesignColors = useDesignColors();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
@@ -23,14 +33,17 @@ export function ChatbotFab({ label, isOpen, onPress, tabBarOffset = 72 }: Chatbo
     return null;
   }
 
+  const bottom =
+    fixedBottom !== undefined ? fixedBottom : tabBarOffset + insets.bottom + 12;
+
   return (
-    <View pointerEvents="box-none" style={[styles.host, { bottom: tabBarOffset + insets.bottom + 12 }]}>
+    <View pointerEvents="box-none" style={[styles.host, { bottom, right: 16 }]}>
       <Pressable
         accessibilityLabel={label}
+        hitSlop={6}
         onPress={onPress}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}>
-        <Ionicons color={DesignColors.onPrimary} name="chatbubble-ellipses" size={22} />
-        <ThemedText style={styles.fabLabel}>{label}</ThemedText>
+        <DotLottie autoplay loop source={AI_LOTTIE} style={styles.lottie} />
       </Pressable>
     </View>
   );
@@ -40,34 +53,29 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
     host: {
       position: 'absolute',
-      right: Spacing.md,
-      zIndex: 40,
+      zIndex: 999,
+      elevation: 999,
     },
     fab: {
-      flexDirection: 'row',
+      width: FAB_SIZE,
+      height: FAB_SIZE,
+      borderRadius: FAB_SIZE / 2,
       alignItems: 'center',
-      gap: 8,
-      borderRadius: Radius.pill,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      backgroundColor: DesignColors.primaryFocus,
-      borderWidth: 1,
-      borderColor: `${DesignColors.primaryFocus}88`,
-      shadowColor: DesignColors.primaryFocus,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
-      elevation: 6,
+      justifyContent: 'center',
+      backgroundColor: DesignColors.surface1,
+      overflow: 'hidden',
+      // No purple glow / border — sits clean on dark canvas
+      borderWidth: 0,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     fabPressed: {
-      opacity: 0.92,
-      transform: [{ scale: 0.98 }],
+      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
     },
-    fabLabel: {
-      ...Typography.caption,
-      color: DesignColors.onPrimary,
-      fontWeight: '700',
-      fontSize: 12,
+    lottie: {
+      width: FAB_LOTTIE_SIZE,
+      height: FAB_LOTTIE_SIZE,
     },
   });
 }

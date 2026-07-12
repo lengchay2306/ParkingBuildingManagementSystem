@@ -1,3 +1,8 @@
-import StaffCheckInScreen from '@/features/staff/pages/staff-check-in';
+import { Redirect } from 'expo-router';
 
-export default StaffCheckInScreen;
+import { STAFF_ROUTES } from '@/roles';
+
+/** Legacy route — check-in is merged into the scan tab. */
+export default function StaffCheckInRedirect() {
+  return <Redirect href={STAFF_ROUTES.scan} />;
+}

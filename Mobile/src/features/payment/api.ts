@@ -43,8 +43,14 @@ export function vietQrImageUri(qrCode: string, size = 280) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(trimmed)}`;
 }
 
-/** POST /payment/subscription/create-link — CUSTOMER */
-export async function createSubscriptionCheckoutLink(vehicleId: string): Promise<string> {
+export type SubscriptionCheckoutResult = {
+  checkoutUrl: string;
+};
+
+/** POST /payment/subscription/create-link — CUSTOMER (BE returns checkoutUrl only). */
+export async function createSubscriptionCheckoutLink(
+  vehicleId: string,
+): Promise<SubscriptionCheckoutResult> {
   const response = await authenticatedFetch('/payment/subscription/create-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -52,10 +58,10 @@ export async function createSubscriptionCheckoutLink(vehicleId: string): Promise
   });
   const payload = await parsePaymentResponse<{ checkoutUrl?: string }>(response, 201);
   const checkoutUrl = payload.data?.checkoutUrl;
-  if (!checkoutUrl) {
+  if (!checkoutUrl || typeof checkoutUrl !== 'string') {
     throw new Error(payload.message ?? 'Missing checkoutUrl');
   }
-  return checkoutUrl;
+  return { checkoutUrl };
 }
 
 /** POST /payment/staff/bill-qr — STAFF | MANAGER | ADMIN */

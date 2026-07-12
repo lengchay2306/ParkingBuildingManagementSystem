@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 export type StaffMetricItem = {
   id: string;
@@ -18,29 +18,42 @@ type StaffMetricGridProps = {
   items: StaffMetricItem[];
 };
 
+function resolveToneColor(
+  tone: StaffMetricItem['tone'],
+  DesignColors: ReturnType<typeof useStaffDesignColors>,
+) {
+  switch (tone) {
+    case 'success':
+      return DesignColors.accentEmerald;
+    case 'warning':
+      return DesignColors.semanticWarning;
+    case 'info':
+      return DesignColors.accentSky;
+    default:
+      return DesignColors.primary;
+  }
+}
+
 export function StaffMetricGrid({ items }: StaffMetricGridProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   return (
     <View style={styles.grid}>
       {items.map((item) => {
-        const toneColor =
-          item.tone === 'success'
-            ? DesignColors.accentEmerald
-            : item.tone === 'warning'
-              ? DesignColors.accentAmber
-              : item.tone === 'info'
-                ? DesignColors.accentSky
-                : DesignColors.primary;
+        const toneColor = resolveToneColor(item.tone, DesignColors);
 
         return (
           <View key={item.id} style={styles.cell}>
-            <View style={[styles.iconWrap, { backgroundColor: `${toneColor}18` }]}>
-              <Ionicons color={toneColor} name={item.icon} size={18} />
+            <View style={styles.metricBody}>
+              <View style={[styles.iconWrap, { backgroundColor: `${toneColor}1A`, borderColor: `${toneColor}33` }]}>
+                <Ionicons color={toneColor} name={item.icon} size={20} />
+              </View>
+              <View style={styles.metricCopy}>
+                <ThemedText style={[styles.value, { color: toneColor }]}>{item.value}</ThemedText>
+                <ThemedText style={styles.label}>{item.label}</ThemedText>
+              </View>
             </View>
-            <ThemedText style={styles.value}>{item.value}</ThemedText>
-            <ThemedText style={styles.label}>{item.label}</ThemedText>
           </View>
         );
       })}
@@ -48,40 +61,59 @@ export function StaffMetricGrid({ items }: StaffMetricGridProps) {
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: Spacing.sm,
+      justifyContent: 'space-between',
+      rowGap: Spacing.md,
     },
     cell: {
-      width: '47%',
-      flexGrow: 1,
+      width: '48%',
+      minHeight: 104,
       backgroundColor: DesignColors.surface2,
       borderRadius: Radius.lg,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       padding: Spacing.md,
-      gap: 4,
+      justifyContent: 'center',
+    },
+    metricBody: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
     },
     iconWrap: {
-      width: 32,
-      height: 32,
+      width: 40,
+      height: 40,
       borderRadius: Radius.md,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 4,
+      flexShrink: 0,
+    },
+    metricCopy: {
+      flex: 1,
+      justifyContent: 'center',
+      gap: 2,
+      minWidth: 0,
     },
     value: {
       ...Typography.metricValue,
-      fontSize: 24,
-      color: DesignColors.ink,
+      fontSize: 28,
+      lineHeight: 32,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+      includeFontPadding: false,
     },
     label: {
       ...Typography.caption,
-      color: DesignColors.inkMuted,
+      color: DesignColors.ink,
+      opacity: 0.82,
       fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '600',
     },
   });
 }

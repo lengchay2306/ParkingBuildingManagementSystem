@@ -172,6 +172,14 @@ function resolveApiVehicleLabel(
   vehicleType: string | undefined,
   t: (vi: string, en: string) => string,
 ): string {
+  return resolveParkingVehicleTypeLabel(vehicleType, t);
+}
+
+/** Nhãn hiển thị — đồng bộ enum VehicleType trên BE (10 loại). */
+export function resolveParkingVehicleTypeLabel(
+  vehicleType: string | undefined,
+  t: (vi: string, en: string) => string,
+): string {
   switch (vehicleType?.toUpperCase()) {
     case 'SEDAN':
       return t('Sedan', 'Sedan');
@@ -181,6 +189,18 @@ function resolveApiVehicleLabel(
       return t('MPV', 'MPV');
     case 'PICKUP':
       return t('Bán tải', 'Pickup');
+    case 'EBIKE':
+      return t('Xe máy điện', 'E-bike');
+    case 'ECAR':
+      return t('Ô tô điện', 'E-car');
+    case 'MOTORBIKE':
+      return t('Xe máy', 'Motorbike');
+    case 'BIKE':
+      return t('Xe đạp', 'Bicycle');
+    case 'HATCHBACK':
+      return t('Hatchback', 'Hatchback');
+    case 'CUV':
+      return t('CUV', 'CUV');
     default:
       return vehicleType ?? '—';
   }

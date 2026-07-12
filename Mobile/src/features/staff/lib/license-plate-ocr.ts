@@ -1,5 +1,7 @@
-/** Matches backend + customer validation: `51A-123.45` */
+/** Matches backend + customer validation: `51A-123.44` */
 export const LICENSE_PLATE_PATTERN = /^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/;
+
+export const LICENSE_PLATE_EXAMPLE = '51A-123.44';
 
 const LOOSE_PLATE_PATTERN = /[0-9OIlBZSGB]{2}[A-Z]-[0-9OIlBZSGB]{3}\.[0-9OIlBZSGB]{2}/gi;
 const COMPACT_PLATE_PATTERN = /[0-9OIlBZSGB]{2}[A-Z][0-9OIlBZSGB]{5}/gi;
@@ -40,22 +42,28 @@ function normalizeOcrPlateCandidate(raw: string): string {
     .join('');
 }
 
-function formatCompactPlate(raw: string): string {
+/** Format compact alphanumerics only when length is exactly 8 — never truncate extras. */
+function formatCompactPlate(raw: string): string | null {
   const chars = normalizeOcrPlateCandidate(raw.replace(/[^0-9A-Z]/gi, ''));
-  if (chars.length < 8) {
-    return chars;
+  if (chars.length !== 8) {
+    return null;
   }
   return `${chars.slice(0, 3)}-${chars.slice(3, 6)}.${chars.slice(6, 8)}`;
 }
 
 function tryNormalizePlate(raw: string): string | null {
-  const normalized = normalizeOcrPlateCandidate(raw);
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const normalized = normalizeOcrPlateCandidate(trimmed);
   if (LICENSE_PLATE_PATTERN.test(normalized)) {
     return normalized;
   }
 
-  const compact = formatCompactPlate(raw);
-  return LICENSE_PLATE_PATTERN.test(compact) ? compact : null;
+  const compact = formatCompactPlate(trimmed);
+  return compact && LICENSE_PLATE_PATTERN.test(compact) ? compact : null;
 }
 
 /**
@@ -116,7 +124,29 @@ export function normalizeLicensePlate(plate: string): string {
   return plate.trim().toUpperCase();
 }
 
-/** Normalize manual or OCR input to BE format `51A-123.45`, or null if invalid. */
+/** Normalize manual or OCR input to BE format `51A-123.44`, or null if invalid. */
 export function formatLicensePlateForApi(plate: string): string | null {
   return tryNormalizePlate(plate.trim());
+}
+
+export function isValidLicensePlate(plate: string): boolean {
+  return formatLicensePlateForApi(plate) != null;
+}
+
+/** Inline validation message for manual plate input; undefined when empty or valid. */
+export function getManualPlateValidationError(
+  plate: string,
+  t: (vi: string, en: string) => string = (vi) => vi,
+): string | undefined {
+  const trimmed = plate.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (formatLicensePlateForApi(trimmed)) {
+    return undefined;
+  }
+  return t(
+    `Định dạng: ${LICENSE_PLATE_EXAMPLE} (đủ số, không thừa)`,
+    `Format: ${LICENSE_PLATE_EXAMPLE} (exact length)`,
+  );
 }

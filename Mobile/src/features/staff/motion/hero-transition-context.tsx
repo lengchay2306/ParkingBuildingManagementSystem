@@ -47,11 +47,24 @@ type HeroTransitionContextValue = {
 };
 
 const TIMING_CONFIG: WithTimingConfig = {
-  duration: 420,
-  easing: Easing.bezier(0.22, 1, 0.36, 1),
+  duration: 580,
+  easing: Easing.out(Easing.cubic),
 };
 
 const HeroTransitionContext = createContext<HeroTransitionContextValue | null>(null);
+
+function boundsAtFrom(from: HeroBounds) {
+  return {
+    position: 'absolute' as const,
+    left: from.x,
+    top: from.y,
+    width: from.width,
+    height: from.height,
+    borderRadius: from.borderRadius,
+    overflow: 'hidden' as const,
+    zIndex: 9999,
+  };
+}
 
 function HeroTransitionOverlay({
   payload,
@@ -59,7 +72,7 @@ function HeroTransitionOverlay({
   onFinished,
 }: {
   payload: HeroPayload;
-  to: HeroBounds;
+  to: HeroBounds | null;
   onFinished: () => void;
 }) {
   const progress = useSharedValue(0);
@@ -67,6 +80,11 @@ function HeroTransitionOverlay({
   const from = payload.from;
 
   React.useEffect(() => {
+    if (!to) {
+      progress.value = 0;
+      return;
+    }
+
     finishedRef.current = false;
     progress.value = 0;
     progress.value = withTiming(1, TIMING_CONFIG, (finished) => {
@@ -77,16 +95,34 @@ function HeroTransitionOverlay({
     });
   }, [from, onFinished, progress, to]);
 
-  const overlayStyle = useAnimatedStyle(() => ({
-    position: 'absolute',
-    left: interpolate(progress.value, [0, 1], [from.x, to.x]),
-    top: interpolate(progress.value, [0, 1], [from.y, to.y]),
-    width: interpolate(progress.value, [0, 1], [from.width, to.width]),
-    height: interpolate(progress.value, [0, 1], [from.height, to.height]),
-    borderRadius: interpolate(progress.value, [0, 1], [from.borderRadius, to.borderRadius]),
-    overflow: 'hidden',
-    zIndex: 9999,
-  }));
+  const overlayStyle = useAnimatedStyle(() => {
+    if (!to) {
+      return boundsAtFrom(from);
+    }
+
+    const t = progress.value;
+    const fromCenterX = from.x + from.width / 2;
+    const fromCenterY = from.y + from.height / 2;
+    const toCenterX = to.x + to.width / 2;
+    const toCenterY = to.y + to.height / 2;
+
+    const centerX = interpolate(t, [0, 1], [fromCenterX, toCenterX]);
+    const centerY = interpolate(t, [0, 1], [fromCenterY, toCenterY]);
+    const scaleX = interpolate(t, [0, 1], [from.width / to.width, 1]);
+    const scaleY = interpolate(t, [0, 1], [from.height / to.height, 1]);
+
+    return {
+      position: 'absolute',
+      left: centerX - to.width / 2,
+      top: centerY - to.height / 2,
+      width: to.width,
+      height: to.height,
+      borderRadius: interpolate(t, [0, 1], [from.borderRadius, to.borderRadius]),
+      overflow: 'hidden',
+      zIndex: 9999,
+      transform: [{ scaleX }, { scaleY }],
+    };
+  });
 
   return (
     <View style={styles.overlayHost} pointerEvents="none">
@@ -138,14 +174,16 @@ export function HeroTransitionProvider({ children }: { children: ReactNode }) {
 
   return (
     <HeroTransitionContext.Provider value={value}>
-      {children}
-      {transition?.to ? (
-        <HeroTransitionOverlay
-          payload={transition.payload}
-          to={transition.to}
-          onFinished={finishHero}
-        />
-      ) : null}
+      <View style={styles.host}>
+        {children}
+        {transition ? (
+          <HeroTransitionOverlay
+            payload={transition.payload}
+            to={transition.to}
+            onFinished={finishHero}
+          />
+        ) : null}
+      </View>
     </HeroTransitionContext.Provider>
   );
 }
@@ -159,6 +197,9 @@ export function useHeroTransition() {
 }
 
 const styles = StyleSheet.create({
+  host: {
+    flex: 1,
+  },
   overlayHost: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 9999,

@@ -84,7 +84,8 @@ function summarizeActiveSessions(sessions: ParkingSession[]): string {
     .slice(0, 8)
     .map((s) => {
       const plate =
-        typeof s.vehicleId === 'object' ? (s.vehicleId.licensePlate ?? '?') : '?';
+        s.licensePlate ??
+        (typeof s.vehicleId === 'object' && s.vehicleId ? (s.vehicleId.licensePlate ?? '?') : '?');
       const slot =
         typeof s.parkingSlotId === 'object' ? (s.parkingSlotId.slotNumber ?? '?') : '?';
       return `- ${plate} tại slot ${slot}`;

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,10 +13,21 @@ type ChatMessageListProps = {
   isSending?: boolean;
 };
 
-export function ChatMessageList({ messages, isLoading, isSending }: ChatMessageListProps) {
+export type ChatMessageListHandle = {
+  scrollToEnd: () => void;
+};
+
+export const ChatMessageList = forwardRef<ChatMessageListHandle, ChatMessageListProps>(
+  function ChatMessageList({ messages, isLoading, isSending }, ref) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+
+  useImperativeHandle(ref, () => ({
+    scrollToEnd: () => {
+      listRef.current?.scrollToEnd({ animated: true });
+    },
+  }));
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -41,6 +52,7 @@ export function ChatMessageList({ messages, isLoading, isSending }: ChatMessageL
       style={styles.list}
       contentContainerStyle={styles.listContent}
       data={messages}
+      keyboardShouldPersistTaps="always"
       keyExtractor={(item) => item._id}
       renderItem={({ item }) => {
         const isUser = item.role === 'user';
@@ -65,7 +77,7 @@ export function ChatMessageList({ messages, isLoading, isSending }: ChatMessageL
       }
     />
   );
-}
+});
 
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({

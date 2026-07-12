@@ -2,14 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffTextInputProps = TextInputProps & {
   mono?: boolean;
 };
 
 export function StaffTextInput({ style, mono, onFocus, onBlur, ...rest }: StaffTextInputProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const [focused, setFocused] = useState(false);
   const styles = useMemo(() => createInputStyles(DesignColors), [DesignColors]);
 
@@ -35,7 +35,7 @@ export function StaffTextInput({ style, mono, onFocus, onBlur, ...rest }: StaffT
   );
 }
 
-function createInputStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createInputStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     input: {
       ...Typography.body,
