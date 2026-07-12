@@ -4,7 +4,17 @@ export type ParkingSlotApiStatus = 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE' | 'C
 
 export type ParkingSlotStatus = ParkingSlotApiStatus | string;
 
-export type ParkingVehicleType = 'SEDAN' | 'SUV' | 'MPV' | 'PICKUP';
+export type ParkingVehicleType =
+  | 'SEDAN'
+  | 'SUV'
+  | 'MPV'
+  | 'PICKUP'
+  | 'EBIKE'
+  | 'ECAR'
+  | 'MOTORBIKE'
+  | 'BIKE'
+  | 'HATCHBACK'
+  | 'CUV';
 
 export type ParkingSlot = {
   _id: string;

@@ -1,14 +1,17 @@
 /** Screen share reserved for the floating close/title row. */
-export const PLATE_SCANNER_HEADER_RESERVE = 0.11;
+export const PLATE_SCANNER_HEADER_RESERVE = 0.10;
 
-/** Screen share reserved for the bottom HUD card + safe area. */
-export const PLATE_SCANNER_HUD_RESERVE = 0.34;
+/**
+ * Screen share reserved for the bottom HUD + tab bar.
+ * Keep this ≥ real HUD height so the card never covers the viewfinder.
+ */
+export const PLATE_SCANNER_HUD_RESERVE = 0.42;
 
 /** Shared viewfinder geometry — preview clip and OCR crop use the same ratios. */
 export const PLATE_VIEWFINDER = {
-  marginX: 0.09,
-  width: 0.82,
-  height: 0.28,
+  marginX: 0.1,
+  width: 0.8,
+  height: 0.24,
 } as const;
 
 /** Vertically centers the frame between header and HUD zones. */

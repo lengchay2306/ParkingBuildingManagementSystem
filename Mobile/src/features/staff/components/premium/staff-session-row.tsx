@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import { StaffStatusBadge } from '@/features/staff/components/premium/staff-status-badge';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { StaffPressableScale } from '@/features/staff/motion/staff-motion';
 
 type StaffSessionRowProps = {
   plate: string;
@@ -22,15 +23,12 @@ export function StaffSessionRow({
   status,
   onPress,
 }: StaffSessionRowProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const isActive = status.toUpperCase() === 'ACTIVE';
 
   return (
-    <Pressable
-      disabled={!onPress}
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && onPress && styles.pressed]}>
+    <StaffPressableScale disabled={!onPress} onPress={onPress} scaleTo={0.985} style={styles.row}>
       <View style={styles.left}>
         <ThemedText style={styles.plate}>{plate}</ThemedText>
         <View style={styles.metaRow}>
@@ -46,11 +44,11 @@ export function StaffSessionRow({
         <StaffStatusBadge label={status} tone={isActive ? 'active' : 'exited'} />
         <ThemedText style={styles.time}>{timeLabel}</ThemedText>
       </View>
-    </Pressable>
+    </StaffPressableScale>
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -62,10 +60,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       padding: Spacing.md,
-    },
-    pressed: {
-      opacity: 0.9,
-      backgroundColor: DesignColors.surface2,
+      minHeight: 72,
     },
     left: {
       flex: 1,

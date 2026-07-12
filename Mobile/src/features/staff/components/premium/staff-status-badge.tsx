@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffStatusBadgeProps = {
   label: string;
@@ -11,7 +11,7 @@ type StaffStatusBadgeProps = {
 };
 
 export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgeProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const palette =
@@ -40,7 +40,7 @@ export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgePr
   );
 }
 
-function createStyles(_DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(_DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     badge: {
       borderRadius: Radius.pill,

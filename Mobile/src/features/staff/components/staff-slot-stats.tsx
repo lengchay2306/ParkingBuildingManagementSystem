@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { createStaffStyles } from '@/features/staff/styles/common';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffSlotStatsProps = {
   available: number;
@@ -17,7 +17,7 @@ type StaffSlotStatsProps = {
 };
 
 export function StaffSlotStats({ available, inUsed, total, labels }: StaffSlotStatsProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
 
   return (

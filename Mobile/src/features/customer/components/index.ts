@@ -5,6 +5,7 @@ export {
 } from './floor-slots-panel';
 export { ReservationCard, formatReservationDateTime, type ReservationCardStyles } from './reservation-card';
 export { VehicleCard, type VehicleCardStyles } from './vehicle-card';
+export { SubscriptionPaymentModal } from './subscription-payment-modal';
 export {
   StaggeredEnter,
   CustomerHomeOverviewCard,

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start",
     "prebuild": "expo prebuild --clean",
+    "setup:android:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-android-windows-build.ps1",
     "android:dev": "expo run:android",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -16,6 +17,7 @@
     "@expo/config-plugins": "~54.0.4",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/schema-utils": "^56.0.1",
+    "@lottiefiles/dotlottie-react-native": "^0.11.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-cookies/cookies": "^6.2.1",
     "@react-navigation/bottom-tabs": "^7.4.0",
@@ -27,6 +29,7 @@
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-device": "~8.0.10",
+    "expo-file-system": "~19.0.23",
     "expo-font": "~14.0.12",
     "expo-gl": "~16.0.10",
     "expo-glass-effect": "~0.1.10",
@@ -51,10 +54,12 @@
     "react-native-svg": "15.12.1",
     "react-native-view-shot": "4.0.3",
     "react-native-web": "~0.21.0",
+    "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
     "three": "^0.145.0"
   },
   "overrides": {
+    "expo-file-system": "~19.0.23",
     "expo-three": {
       "react": "$react"
     },

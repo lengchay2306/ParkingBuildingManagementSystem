@@ -12,6 +12,7 @@ import {
   clearPendingSubscriptionCheckout,
   loadPendingSubscriptionCheckout,
 } from "@/lib/pending-payment";
+import { redirectMobilePayOsToApp } from "@/lib/mobile-payos-redirect";
 import { requireRole } from "@/lib/auth";
 import { getMyVehicles } from "@/services/vehicle.service";
 
@@ -63,6 +64,10 @@ function PaymentReturnPage() {
   const [statusText, setStatusText] = useState("Đang kiểm tra kích hoạt thẻ tháng...");
 
   useEffect(() => {
+    if (redirectMobilePayOsToApp("return")) {
+      return;
+    }
+
     let cancelled = false;
     let attempts = 0;
     const maxAttempts = 10;

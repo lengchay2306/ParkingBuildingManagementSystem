@@ -9,6 +9,7 @@ import {
   cancelPendingSubscriptionCheckout,
   loadPendingSubscriptionCheckout,
 } from "@/lib/pending-payment";
+import { redirectMobilePayOsToApp } from "@/lib/mobile-payos-redirect";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/payment/cancel")({
@@ -31,6 +32,10 @@ function PaymentCancelPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (redirectMobilePayOsToApp("cancel")) {
+      return;
+    }
+
     const pending = loadPendingSubscriptionCheckout();
     void cancelPendingSubscriptionCheckout(pending);
   }, []);

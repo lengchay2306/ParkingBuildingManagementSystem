@@ -8,7 +8,25 @@
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "momo",
+          "momoopen",
+          "vietcombank",
+          "vcb",
+          "tcb",
+          "techcombankmobile",
+          "mbbank",
+          "mb",
+          "bidv",
+          "vietinbank",
+          "vtb",
+          "acb",
+          "vpbankneo",
+          "vpbank"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,8 +36,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
-        "android.permission.CAMERA",
         "android.permission.CAMERA"
       ],
       "package": "com.fogit.Mobile"
@@ -62,7 +80,9 @@
             "deploymentTarget": "16.0"
           }
         }
-      ]
+      ],
+      "@lottiefiles/dotlottie-react-native/plugin",
+      "./plugins/with-android-windows-long-paths"
     ],
     "experiments": {
       "typedRoutes": true,

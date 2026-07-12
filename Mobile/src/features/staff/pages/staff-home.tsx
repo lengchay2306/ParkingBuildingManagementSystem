@@ -1,34 +1,33 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import {
   StaffDarkCard,
   StaffDonutChart,
   StaffMetricGrid,
-  StaffScreenHeader,
 } from '@/features/staff/components/premium';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
+import { StaffLoadingReveal } from '@/features/staff/components/staff-loading-lottie';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { useStaffScreenTitles } from '@/features/staff/lib/staff-screen-titles';
+import { createStaffStyles } from '@/features/staff/styles/common';
 import { useLanguagePreference } from '@/hooks/language-preference';
-import { getMyProfile, type UserProfile } from '@/lib/auth-api';
-import { STAFF_ROUTES } from '@/roles';
 
 export default function StaffHomeScreen() {
   useStaffRoleGuard();
-  const router = useRouter();
   const { t } = useLanguagePreference();
-  const DesignColors = useDesignColors();
+  const titles = useStaffScreenTitles();
+  const DesignColors = useStaffDesignColors();
+  const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
   const { slotStats, todaySessionCount, isLoadingSlots, refreshWorkspace } = useStaffWorkspace();
-  const [profile, setProfile] = React.useState<UserProfile | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refreshWorkspace().catch(() => undefined);
-      void getMyProfile().then(setProfile).catch(() => setProfile(null));
     }, [refreshWorkspace]),
   );
 
@@ -74,43 +73,25 @@ export default function StaffHomeScreen() {
   );
 
   return (
-    <StaffPageShell
-      header={
-        <StaffScreenHeader
-          onProfilePress={() => router.push(STAFF_ROUTES.profile)}
-          rightLabel={profile?.fullName?.split(' ')[0]}
-          subtitle={t('Tổng quan bãi xe theo thời gian thực', 'Real-time lot overview')}
-          title={t('Dashboard', 'Dashboard')}
-        />
-      }>
-      <StaffDarkCard accentBorder="primary">
-        {isLoadingSlots && slotStats.total === 0 ? (
-          <ActivityIndicator color={DesignColors.primary} />
-        ) : (
-          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+    <StaffPageShell title={titles.dashboard}>
+      <StaffDarkCard accentBorder="primary" index={0}>
+        <StaffLoadingReveal loading={isLoadingSlots && slotStats.total === 0} size={120}>
+          <View style={styles.chartWrap}>
             <StaffDonutChart
               label={t('Đang chiếm', 'Occupied')}
               sublabel={`${slotStats.inUsed}/${slotStats.total} ${t('ô', 'spots')}`}
+              tone="occupied"
               value={occupancyPercent}
             />
           </View>
-        )}
+        </StaffLoadingReveal>
       </StaffDarkCard>
 
-      <StaffDarkCard>
-        <ThemedText style={{ color: DesignColors.inkMuted, fontSize: 12, marginBottom: 4 }}>
+      <StaffDarkCard index={1}>
+        <ThemedText style={[styles.sectionLabel, { color: DesignColors.ink }]}>
           {t('Tóm tắt nhanh', 'Quick summary')}
         </ThemedText>
         <StaffMetricGrid items={metrics} />
-      </StaffDarkCard>
-
-      <StaffDarkCard accentBorder="success">
-        <ThemedText style={{ color: DesignColors.ink, fontWeight: '600', fontSize: 15 }}>
-          {profile?.fullName ?? t('Nhân viên', 'Staff')}
-        </ThemedText>
-        <ThemedText style={{ color: DesignColors.inkMuted, fontSize: 13 }}>
-          {profile?.phone ?? profile?.email ?? '—'}
-        </ThemedText>
       </StaffDarkCard>
     </StaffPageShell>
   );

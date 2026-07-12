@@ -2,8 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -79,7 +79,21 @@ export function ChatbotPanel({
     }
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [visible]);
+
   const sheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
+
   const activeSession = sessions.find((s) => s._id === activeSessionId);
 
   const composerDisabled =
@@ -103,176 +117,179 @@ export function ChatbotPanel({
     setPanelView('chat');
   }
 
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <Modal animationType="slide" onRequestClose={handleClose} transparent visible={visible}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={handleClose} />
-        <View
-          style={[
-            styles.sheet,
-            {
-              height: sheetHeight,
-              paddingBottom: insets.bottom + Spacing.sm,
-            },
-          ]}>
-          <View style={styles.handle} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      pointerEvents="box-none"
+      style={styles.portal}>
+      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <View
+        style={[
+          styles.sheet,
+          {
+            height: sheetHeight,
+            paddingBottom: insets.bottom + Spacing.sm,
+          },
+        ]}>
+        <View style={styles.handle} />
 
-          {panelView === 'history' ? (
-            <>
-              <View style={styles.header}>
-                <Pressable
-                  onPress={() => setPanelView('chat')}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  <Ionicons color={DesignColors.ink} name="arrow-back" size={22} />
-                </Pressable>
-                <View style={styles.headerText}>
-                  <ThemedText style={styles.title}>
-                    {t('Lịch sử hội thoại', 'Conversation history')}
-                  </ThemedText>
-                  <ThemedText style={styles.subtitle}>
-                    {t(
-                      `${sessions.length} cuộc trò chuyện`,
-                      `${sessions.length} conversation${sessions.length === 1 ? '' : 's'}`,
-                    )}
-                  </ThemedText>
-                </View>
-                <Pressable
-                  disabled={isCreatingSession || isUnavailable}
-                  onPress={handleNewSession}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  {isCreatingSession ? (
-                    <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
-                  ) : (
-                    <Ionicons color={DesignColors.primaryFocus} name="add" size={22} />
+        {panelView === 'history' ? (
+          <>
+            <View style={styles.header}>
+              <Pressable
+                onPress={() => setPanelView('chat')}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                <Ionicons color={DesignColors.ink} name="arrow-back" size={22} />
+              </Pressable>
+              <View style={styles.headerText}>
+                <ThemedText style={styles.title}>
+                  {t('Lịch sử hội thoại', 'Conversation history')}
+                </ThemedText>
+                <ThemedText style={styles.subtitle}>
+                  {t(
+                    `${sessions.length} cuộc trò chuyện`,
+                    `${sessions.length} conversation${sessions.length === 1 ? '' : 's'}`,
                   )}
-                </Pressable>
-                <Pressable
-                  onPress={handleClose}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  <Ionicons color={DesignColors.ink} name="close" size={22} />
-                </Pressable>
+                </ThemedText>
               </View>
+              <Pressable
+                disabled={isCreatingSession || isUnavailable}
+                onPress={handleNewSession}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                {isCreatingSession ? (
+                  <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
+                ) : (
+                  <Ionicons color={DesignColors.primaryFocus} name="add" size={22} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={handleClose}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                <Ionicons color={DesignColors.ink} name="close" size={22} />
+              </Pressable>
+            </View>
 
-              <View style={styles.body}>
-                <ChatSessionList
-                  activeSessionId={activeSessionId}
-                  isCreatingSession={isCreatingSession}
-                  isLoading={isLoadingSessions}
-                  onNewSession={handleNewSession}
-                  onSelectSession={handleSelectSession}
-                  sessions={sessions}
+            <View style={styles.body}>
+              <ChatSessionList
+                activeSessionId={activeSessionId}
+                isCreatingSession={isCreatingSession}
+                isLoading={isLoadingSessions}
+                onNewSession={handleNewSession}
+                onSelectSession={handleSelectSession}
+                sessions={sessions}
+                t={t}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <Pressable
+                onPress={() => setPanelView('history')}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                <Ionicons color={DesignColors.ink} name="time-outline" size={22} />
+              </Pressable>
+              <View style={styles.headerText}>
+                <ThemedText style={styles.title}>{presentation.panelTitle}</ThemedText>
+                <ThemedText numberOfLines={1} style={styles.subtitle}>
+                  {activeSession?.title ? activeSession.title : presentation.panelSubtitle}
+                </ThemedText>
+              </View>
+              <Pressable
+                disabled={isCreatingSession || isUnavailable}
+                onPress={handleNewSession}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                {isCreatingSession ? (
+                  <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
+                ) : (
+                  <Ionicons color={DesignColors.primaryFocus} name="add" size={22} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={handleClose}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
+                <Ionicons color={DesignColors.ink} name="close" size={22} />
+              </Pressable>
+            </View>
+
+            {sessions.length > 0 ? (
+              <Pressable
+                onPress={() => setPanelView('history')}
+                style={({ pressed }) => [styles.historyHint, pressed && styles.historyHintPressed]}>
+                <Ionicons color={DesignColors.primaryFocus} name="layers-outline" size={16} />
+                <ThemedText style={styles.historyHintText}>
+                  {t(
+                    `${sessions.length} hội thoại · Xem lịch sử`,
+                    `${sessions.length} chat${sessions.length === 1 ? '' : 's'} · View history`,
+                  )}
+                </ThemedText>
+                <Ionicons color={DesignColors.inkSubtle} name="chevron-forward" size={16} />
+              </Pressable>
+            ) : null}
+
+            {isUnavailable ? (
+              <View style={styles.errorBanner}>
+                <ThemedText style={styles.errorText}>
+                  {unavailableMessage ?? t('Trợ lý AI chưa sẵn sàng.', 'AI assistant is unavailable.')}
+                </ThemedText>
+              </View>
+            ) : null}
+
+            <View style={styles.body}>
+              <ChatMessageList
+                isLoading={isLoadingMessages || isCreatingSession}
+                isSending={isSending}
+                messages={messages}
+              />
+            </View>
+
+            <View style={styles.footer}>
+              {showQuickPrompts ? (
+                <ChatQuickPrompts
+                  disabled={composerDisabled || isSending}
+                  onSelect={onSendMessage}
+                  prompts={presentation.quickPrompts}
                   t={t}
                 />
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.header}>
-                <Pressable
-                  onPress={() => setPanelView('history')}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  <Ionicons color={DesignColors.ink} name="time-outline" size={22} />
-                </Pressable>
-                <View style={styles.headerText}>
-                  <ThemedText style={styles.title}>{presentation.panelTitle}</ThemedText>
-                  <ThemedText numberOfLines={1} style={styles.subtitle}>
-                    {activeSession?.title
-                      ? activeSession.title
-                      : presentation.panelSubtitle}
-                  </ThemedText>
-                </View>
-                <Pressable
-                  disabled={isCreatingSession || isUnavailable}
-                  onPress={handleNewSession}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  {isCreatingSession ? (
-                    <ActivityIndicator color={DesignColors.primaryFocus} size="small" />
-                  ) : (
-                    <Ionicons color={DesignColors.primaryFocus} name="add" size={22} />
-                  )}
-                </Pressable>
-                <Pressable
-                  onPress={handleClose}
-                  style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}>
-                  <Ionicons color={DesignColors.ink} name="close" size={22} />
-                </Pressable>
-              </View>
-
-              {sessions.length > 0 ? (
-                <Pressable
-                  onPress={() => setPanelView('history')}
-                  style={({ pressed }) => [styles.historyHint, pressed && styles.historyHintPressed]}>
-                  <Ionicons color={DesignColors.primaryFocus} name="layers-outline" size={16} />
-                  <ThemedText style={styles.historyHintText}>
-                    {t(
-                      `${sessions.length} hội thoại · Xem lịch sử`,
-                      `${sessions.length} chat${sessions.length === 1 ? '' : 's'} · View history`,
-                    )}
-                  </ThemedText>
-                  <Ionicons color={DesignColors.inkSubtle} name="chevron-forward" size={16} />
-                </Pressable>
               ) : null}
 
-              {isUnavailable ? (
-                <View style={styles.errorBanner}>
-                  <ThemedText style={styles.errorText}>
-                    {unavailableMessage ?? t('Trợ lý AI chưa sẵn sàng.', 'AI assistant is unavailable.')}
+              <ChatComposer
+                disabled={composerDisabled}
+                isSending={isSending}
+                onSend={onSendMessage}
+                placeholder={t('Nhập câu hỏi…', 'Type a question…')}
+              />
+
+              {activeSessionId && !isUnavailable ? (
+                <Pressable
+                  disabled={isDeleting}
+                  onPress={onDeleteSession}
+                  style={styles.deleteLink}>
+                  <ThemedText style={styles.deleteText}>
+                    {isDeleting
+                      ? t('Đang xóa…', 'Deleting…')
+                      : t('Xóa hội thoại', 'Delete conversation')}
                   </ThemedText>
-                </View>
+                </Pressable>
               ) : null}
-
-              <View style={styles.body}>
-                <ChatMessageList
-                  isLoading={isLoadingMessages || isCreatingSession}
-                  isSending={isSending}
-                  messages={messages}
-                />
-              </View>
-
-              <View style={styles.footer}>
-                {showQuickPrompts ? (
-                  <ChatQuickPrompts
-                    disabled={composerDisabled || isSending}
-                    onSelect={onSendMessage}
-                    prompts={presentation.quickPrompts}
-                    t={t}
-                  />
-                ) : null}
-
-                <ChatComposer
-                  disabled={composerDisabled}
-                  isSending={isSending}
-                  onSend={onSendMessage}
-                  placeholder={t('Nhập câu hỏi…', 'Type a question…')}
-                />
-
-                {activeSessionId && !isUnavailable ? (
-                  <Pressable
-                    disabled={isDeleting}
-                    onPress={onDeleteSession}
-                    style={styles.deleteLink}>
-                    <ThemedText style={styles.deleteText}>
-                      {isDeleting
-                        ? t('Đang xóa…', 'Deleting…')
-                        : t('Xóa hội thoại', 'Delete conversation')}
-                    </ThemedText>
-                  </Pressable>
-                ) : null}
-              </View>
-            </>
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+            </View>
+          </>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
+    portal: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 50,
+      elevation: 50,
       justifyContent: 'flex-end',
     },
     backdrop: {
@@ -286,6 +303,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       overflow: 'hidden',
+      zIndex: 1,
     },
     handle: {
       alignSelf: 'center',

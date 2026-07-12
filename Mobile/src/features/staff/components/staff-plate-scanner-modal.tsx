@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -35,7 +35,8 @@ import {
   getPlateViewfinderMarginTop,
   getPlateViewfinderScanBandBottom,
 } from '@/features/staff/lib/plate-scanner-viewfinder';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { useThemePreference } from '@/hooks/theme-preference';
 
 const CAMERA_WARMUP_MS = 1200;
 
@@ -44,7 +45,6 @@ const SCAN_INTERVAL_MS = {
   cloud: 5000,
 } as const;
 
-const OVERLAY_DIM = 'rgba(8,12,20,0.38)';
 const CORNER_SIZE = 26;
 const CORNER_STROKE = 3;
 const APP_BRAND_NAME = 'PARKOS';
@@ -54,6 +54,13 @@ type StaffPlateScannerModalProps = {
   onClose: () => void;
   onPlateDetected: (plate: string) => void;
   t: (vi: string, en: string) => string;
+  /** Render inline (full screen) instead of a React Native Modal. */
+  embedded?: boolean;
+  showCloseButton?: boolean;
+  /** Extra bottom inset — e.g. when the tab bar stays visible. */
+  bottomInsetExtra?: number;
+  title?: string;
+  footer?: ReactNode;
 };
 
 function ViewfinderCorners({
@@ -119,7 +126,15 @@ function ViewfinderCorners({
   );
 }
 
-function PlateScanOverlay({ accentColor }: { accentColor: string }) {
+function PlateScanOverlay({
+  accentColor,
+  dimColor,
+  dimSoftColor,
+}: {
+  accentColor: string;
+  dimColor: string;
+  dimSoftColor: string;
+}) {
   const scanY = useSharedValue(0);
   const { marginX, width, height } = PLATE_VIEWFINDER;
   const marginTop = getPlateViewfinderMarginTop();
@@ -143,7 +158,12 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[overlayStyles.dim, { top: 0, left: 0, right: 0, height: `${marginTop * 100}%` }]} />
+      <View
+        style={[
+          overlayStyles.dim,
+          { top: 0, left: 0, right: 0, height: `${marginTop * 100}%`, backgroundColor: dimColor },
+        ]}
+      />
       {gapBandHeight > 0 ? (
         <View
           style={[
@@ -153,6 +173,7 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
               left: 0,
               right: 0,
               height: `${gapBandHeight * 100}%`,
+              backgroundColor: dimSoftColor,
             },
           ]}
         />
@@ -165,6 +186,7 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
             bottom: `${(1 - scanBandBottom) * 100}%`,
             left: 0,
             width: `${marginX * 100}%`,
+            backgroundColor: dimColor,
           },
         ]}
       />
@@ -176,6 +198,20 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
             bottom: `${(1 - scanBandBottom) * 100}%`,
             right: 0,
             width: `${marginX * 100}%`,
+            backgroundColor: dimColor,
+          },
+        ]}
+      />
+      {/* Light/dark chrome under HUD + tab cutout — stops raw camera black leaking through. */}
+      <View
+        style={[
+          overlayStyles.dim,
+          {
+            top: `${scanBandBottom * 100}%`,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: dimColor,
           },
         ]}
       />
@@ -200,11 +236,9 @@ function PlateScanOverlay({ accentColor }: { accentColor: string }) {
 const overlayStyles = StyleSheet.create({
   dim: {
     position: 'absolute',
-    backgroundColor: OVERLAY_DIM,
   },
   dimSoft: {
     position: 'absolute',
-    backgroundColor: 'rgba(8,12,20,0.18)',
   },
   frameHost: {
     position: 'absolute',
@@ -221,10 +255,23 @@ export function StaffPlateScannerModal({
   onClose,
   onPlateDetected,
   t,
+  embedded = false,
+  showCloseButton = true,
+  bottomInsetExtra = 0,
+  title,
+  footer,
 }: StaffPlateScannerModalProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
+  const { resolvedScheme } = useThemePreference();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const isDark = resolvedScheme === 'dark';
+  const styles = useMemo(
+    () => createStyles(DesignColors, isDark),
+    [DesignColors, isDark],
+  );
+  // Match page + tab bar canvas so the MoMo cutout has no color seam.
+  const overlayDim = isDark ? 'rgba(0,0,0,0.72)' : 'rgba(228,232,240,0.92)';
+  const overlayDimSoft = isDark ? 'rgba(0,0,0,0.28)' : 'rgba(228,232,240,0.55)';
   const cameraRef = useRef<CameraView>(null);
   const isScanningRef = useRef(false);
   const detectedRef = useRef(false);
@@ -395,6 +442,9 @@ export function StaffPlateScannerModal({
     scanIntervalMs,
   ]);
 
+  const topBarTitle = title ?? t('Quét biển số', 'Scan license plate');
+  const hudBottomPadding = bottomInsetExtra;
+
   const handleRequestPermission = useCallback(async () => {
     await requestPermission();
   }, [requestPermission]);
@@ -466,7 +516,11 @@ export function StaffPlateScannerModal({
             setCameraError(message);
           }}
         />
-        <PlateScanOverlay accentColor={DesignColors.primaryFocus} />
+        <PlateScanOverlay
+          accentColor={DesignColors.primaryFocus}
+          dimColor={overlayDim}
+          dimSoftColor={overlayDimSoft}
+        />
 
         <ThemedText
           pointerEvents="none"
@@ -479,7 +533,7 @@ export function StaffPlateScannerModal({
           {t('Đặt biển số vào khung', 'Align plate inside frame')}
         </ThemedText>
 
-        <View style={[styles.hud, { paddingBottom: insets.bottom + Spacing.md }]}>
+        <View style={[styles.hud, { paddingBottom: hudBottomPadding }]}>
           <View style={styles.hudCard}>
             <View style={styles.brandRow}>
               <View style={styles.brandMark}>
@@ -518,6 +572,7 @@ export function StaffPlateScannerModal({
                   : t('Quét ngay', 'Scan now')}
               </ThemedText>
             </Pressable>
+            {footer ? <View style={styles.footerSlot}>{footer}</View> : null}
           </View>
         </View>
       </>
@@ -528,6 +583,36 @@ export function StaffPlateScannerModal({
     return null;
   }
 
+  const scannerContent = (
+    <View style={styles.root}>
+      <View style={styles.cameraHost}>{renderBody()}</View>
+
+      <View style={[styles.floatingTopBar, { paddingTop: insets.top + Spacing.sm }]}>
+        {showCloseButton ? (
+          <Pressable
+            accessibilityLabel={t('Đóng', 'Close')}
+            hitSlop={12}
+            onPress={onClose}
+            style={styles.closeButton}>
+            <Ionicons color={DesignColors.ink} name="close" size={22} />
+          </Pressable>
+        ) : (
+          <View style={styles.topSpacer} />
+        )}
+        <View style={styles.titlePill}>
+          <View style={styles.topTitleChip}>
+            <ThemedText style={styles.topTitle}>{topBarTitle}</ThemedText>
+          </View>
+        </View>
+        <View style={styles.topSpacer} />
+      </View>
+    </View>
+  );
+
+  if (embedded) {
+    return scannerContent;
+  }
+
   return (
     <Modal
       animationType="fade"
@@ -535,32 +620,19 @@ export function StaffPlateScannerModal({
       onRequestClose={onClose}
       statusBarTranslucent
       visible>
-      <View style={styles.root}>
-        <View style={styles.cameraHost}>{renderBody()}</View>
-
-        <View style={[styles.floatingTopBar, { paddingTop: insets.top + Spacing.sm }]}>
-          <Pressable
-            accessibilityLabel={t('Đóng', 'Close')}
-            hitSlop={12}
-            onPress={onClose}
-            style={styles.closeButton}>
-            <Ionicons color="#F8FAFC" name="close" size={22} />
-          </Pressable>
-          <View style={styles.titlePill}>
-            <ThemedText style={styles.topTitle}>{t('Quét biển số', 'Scan license plate')}</ThemedText>
-          </View>
-          <View style={styles.topSpacer} />
-        </View>
-      </View>
+      {scannerContent}
     </Modal>
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(
+  DesignColors: ReturnType<typeof useStaffDesignColors>,
+  isDark: boolean,
+) {
   return StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: DesignColors.canvas,
     },
     floatingTopBar: {
       position: 'absolute',
@@ -579,30 +651,36 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderRadius: 20,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.88)',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.14)',
+      borderColor: DesignColors.hairlineStrong,
     },
     titlePill: {
       flex: 1,
       alignItems: 'center',
+      justifyContent: 'center',
       paddingHorizontal: Spacing.sm,
+    },
+    topTitleChip: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 6,
+      borderRadius: Radius.pill,
+      backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.92)',
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
     },
     topTitle: {
       ...Typography.bodySm,
-      color: '#F1F5F9',
+      color: DesignColors.ink,
       fontWeight: '600',
       fontSize: 15,
-      textShadowColor: 'rgba(0,0,0,0.5)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 4,
     },
     topSpacer: {
       width: 40,
     },
     cameraHost: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: DesignColors.canvas,
       overflow: 'hidden',
     },
     cameraFeed: {
@@ -611,14 +689,22 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     frameHint: {
       position: 'absolute',
+      alignSelf: 'center',
       left: Spacing.lg,
       right: Spacing.lg,
       ...Typography.caption,
-      color: 'rgba(241,245,249,0.82)',
+      color: DesignColors.ink,
       textAlign: 'center',
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: '600',
       letterSpacing: 0.2,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: 6,
+      borderRadius: Radius.pill,
+      backgroundColor: isDark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.92)',
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      overflow: 'hidden',
     },
     centered: {
       flex: 1,
@@ -656,17 +742,18 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       right: 0,
       bottom: 0,
       paddingHorizontal: Spacing.md,
-      paddingTop: Spacing.sm,
+      paddingTop: 0,
     },
     hudCard: {
       alignItems: 'stretch',
-      gap: Spacing.xs,
+      gap: 6,
       borderRadius: Radius.xl,
       paddingHorizontal: Spacing.md,
-      paddingVertical: Spacing.sm,
-      backgroundColor: 'rgba(12,16,26,0.82)',
+      paddingTop: Spacing.sm,
+      paddingBottom: Spacing.sm,
+      backgroundColor: DesignColors.surface1,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.08)',
+      borderColor: DesignColors.hairline,
     },
     brandRow: {
       flexDirection: 'row',
@@ -674,44 +761,44 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.sm,
     },
     brandMark: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'rgba(99,102,241,0.18)',
+      backgroundColor: DesignColors.glowViolet,
       borderWidth: 1,
-      borderColor: 'rgba(99,102,241,0.35)',
+      borderColor: DesignColors.primary,
     },
     brandCopy: {
       flex: 1,
-      gap: 2,
+      gap: 1,
     },
     brandName: {
       ...Typography.bodySm,
-      color: '#F8FAFC',
+      color: DesignColors.ink,
       fontWeight: '800',
-      fontSize: 16,
-      letterSpacing: 1.4,
+      fontSize: 15,
+      letterSpacing: 1.2,
     },
     brandTagline: {
       ...Typography.caption,
-      color: 'rgba(226,232,240,0.62)',
-      fontSize: 11,
+      color: DesignColors.inkMuted,
+      fontSize: 10,
     },
     hudHint: {
       ...Typography.caption,
-      color: 'rgba(226,232,240,0.72)',
+      color: DesignColors.inkMuted,
       textAlign: 'center',
-      lineHeight: 18,
-      fontSize: 12,
+      lineHeight: 16,
+      fontSize: 11,
     },
     hudStatus: {
       ...Typography.caption,
-      color: '#93C5FD',
+      color: DesignColors.accentSky,
       textAlign: 'center',
-      lineHeight: 18,
-      fontSize: 12,
+      lineHeight: 16,
+      fontSize: 11,
     },
     captureButton: {
       flexDirection: 'row',
@@ -720,13 +807,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       gap: Spacing.xs,
       borderRadius: Radius.pill,
       paddingHorizontal: Spacing.xl,
-      paddingVertical: 12,
-      minHeight: 48,
+      paddingVertical: 10,
+      minHeight: 44,
       alignSelf: 'center',
       minWidth: '72%',
       backgroundColor: DesignColors.primaryFocus,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.16)',
+      borderWidth: 0,
     },
     captureButtonLabel: {
       ...Typography.button,
@@ -740,6 +826,10 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     captureButtonDisabled: {
       opacity: 0.42,
+    },
+    footerSlot: {
+      alignItems: 'center',
+      paddingTop: 2,
     },
   });
 }
