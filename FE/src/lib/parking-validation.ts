@@ -15,6 +15,32 @@ export type LicensePlateBlockOptions = {
 export const normalizeLicensePlate = (licensePlate: string) =>
   licensePlate.trim().replace(/\s+/g, " ").toUpperCase();
 
+function hasActiveSessionForPlate(licensePlate: string, sessions: ParkingSession[]) {
+  const normalized = normalizeLicensePlate(licensePlate);
+  if (!normalized) {
+    return false;
+  }
+
+  return sessions.some((session) => {
+    if (session.status !== "ACTIVE" || session.checkOutTime) {
+      return false;
+    }
+    const sessionPlate = getSessionLicensePlate(session);
+    return sessionPlate ? normalizeLicensePlate(sessionPlate) === normalized : false;
+  });
+}
+
+function hasActiveSessionForVehicle(vehicleId: string, sessions: ParkingSession[]) {
+  return sessions.some((session) => {
+    if (session.status !== "ACTIVE" || session.checkOutTime) {
+      return false;
+    }
+    const sessionVehicleId =
+      typeof session.vehicleId === "object" ? session.vehicleId?._id : session.vehicleId;
+    return sessionVehicleId === vehicleId;
+  });
+}
+
 export const getLicensePlateBlockReason = (
   licensePlate: string,
   reservations: Reservation[],
@@ -26,15 +52,7 @@ export const getLicensePlateBlockReason = (
     return null;
   }
 
-  const hasActiveSession = sessions.some((session) => {
-    if (session.status !== "ACTIVE") {
-      return false;
-    }
-    const sessionPlate = getSessionLicensePlate(session);
-    return sessionPlate ? normalizeLicensePlate(sessionPlate) === normalized : false;
-  });
-
-  if (hasActiveSession) {
+  if (hasActiveSessionForPlate(normalized, sessions)) {
     return "Biển số này đang có xe gửi trong bãi, không thể tạo thêm reservation hoặc session.";
   }
 
@@ -49,7 +67,10 @@ export const getLicensePlateBlockReason = (
     }
 
     if (reservation.status === "CLAIMED") {
-      return "Biển số này đã check-in qua đặt chỗ, không thể tạo thêm reservation hoặc session.";
+      if (hasActiveSessionForPlate(normalized, sessions)) {
+        return "Biển số này đã check-in qua đặt chỗ, không thể tạo thêm reservation hoặc session.";
+      }
+      continue;
     }
 
     if (
@@ -78,7 +99,7 @@ export const getVehicleReserveBlockReason = (
   for (const session of sessions) {
     const sessionVehicleId =
       typeof session.vehicleId === "object" ? session.vehicleId?._id : session.vehicleId;
-    if (session.status === "ACTIVE" && sessionVehicleId === vehicleId) {
+    if (session.status === "ACTIVE" && !session.checkOutTime && sessionVehicleId === vehicleId) {
       return "Xe này đang gửi trong bãi, không thể đặt chỗ thêm.";
     }
   }
@@ -91,7 +112,10 @@ export const getVehicleReserveBlockReason = (
     if (reservationVehicleId !== vehicleId) {
       continue;
     }
-    if (reservation.status === "PENDING" || reservation.status === "CLAIMED") {
+    if (reservation.status === "PENDING") {
+      return "Xe này đã có đặt chỗ đang hoạt động (PENDING hoặc đã check-in).";
+    }
+    if (reservation.status === "CLAIMED" && hasActiveSessionForVehicle(vehicleId, sessions)) {
       return "Xe này đã có đặt chỗ đang hoạt động (PENDING hoặc đã check-in).";
     }
   }

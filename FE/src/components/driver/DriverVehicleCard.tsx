@@ -54,7 +54,7 @@ export function DriverVehicleCard({
   const hasMonthlyCard = Boolean(vehicle.monthlyCardId);
   const vehicleTypeName = getVehicleTypeName(vehicle, vehicleTypes);
   const monthlyCard = resolveMonthlyCard(vehicle.monthlyCardId);
-  const isInLot = parkingSession?.status === "ACTIVE";
+  const isInLot = parkingSession?.status === "ACTIVE" && !parkingSession?.checkOutTime;
 
   const handleToggleExpanded = () => {
     setIsExpanded((open) => {

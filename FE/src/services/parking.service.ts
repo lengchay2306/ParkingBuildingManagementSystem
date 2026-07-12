@@ -287,7 +287,7 @@ export const getActiveUserParkingSession = async (
   const payload = await parseJson<{ parkingSession?: ParkingSession }>(response);
 
   if (!response.ok) {
-    if (response.status === 400) {
+    if (response.status === 400 || response.status === 404) {
       return null;
     }
     throw new ParkingApiError(
@@ -369,9 +369,13 @@ export const fetchParkingSessionsForVehicleIds = async (vehicleIds: string[]) =>
 
   await Promise.all(
     uniqueIds.map(async (vehicleId) => {
-      const session = await getActiveUserParkingSession(vehicleId);
-      if (session) {
-        map.set(vehicleId, session);
+      try {
+        const session = await getActiveUserParkingSession(vehicleId);
+        if (session?.status === "ACTIVE" && !session.checkOutTime) {
+          map.set(vehicleId, session);
+        }
+      } catch {
+        // No active session for this vehicle — omit from map.
       }
     }),
   );
