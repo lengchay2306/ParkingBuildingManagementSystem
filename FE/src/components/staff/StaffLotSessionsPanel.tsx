@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { MapPin, RefreshCw, X } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import {
@@ -30,8 +30,6 @@ type StaffLotSessionsPanelProps = {
   sessions: ParkingSession[];
   parkingFloors: ParkingFloor[];
   isLoading?: boolean;
-  isRefreshing?: boolean;
-  onRefresh: () => void;
   onCheckoutSession: (session: ParkingSession) => void;
   isCheckingOut?: boolean;
 };
@@ -40,8 +38,6 @@ export function StaffLotSessionsPanel({
   sessions,
   parkingFloors,
   isLoading = false,
-  isRefreshing = false,
-  onRefresh,
   onCheckoutSession,
   isCheckingOut = false,
 }: StaffLotSessionsPanelProps) {
@@ -54,7 +50,9 @@ export function StaffLotSessionsPanel({
   const activeSessions = useMemo(
     () =>
       sortSessionsByCheckInAsc(
-        sessions.filter((session) => session.status === "ACTIVE"),
+        sessions.filter(
+          (session) => session.status === "ACTIVE" && !session.checkOutTime,
+        ),
       ),
     [sessions],
   );
@@ -91,25 +89,6 @@ export function StaffLotSessionsPanel({
 
   return (
     <div className="api-section rounded-2xl p-4 sm:p-5">
-      <div className="api-header mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold">Toàn bộ xe trong bãi</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {activeSessions.length} xe đang ACTIVE
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-10 rounded-xl"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`size-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          Làm mới
-        </Button>
-      </div>
-
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div className="w-full min-w-[200px] max-w-md flex-1 space-y-2">
           <Label htmlFor="lot-plate-search">Tìm biển số</Label>
@@ -120,7 +99,6 @@ export function StaffLotSessionsPanel({
               setSearch(event.target.value);
               setPage(1);
             }}
-            placeholder="51A-123.45"
             className="rounded-xl font-mono"
           />
         </div>

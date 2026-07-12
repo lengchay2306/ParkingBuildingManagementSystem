@@ -209,7 +209,6 @@ export function ReservationListPanel({
             id="reservation-plate-search"
             value={plateInput}
             onChange={(event) => setPlateInput(event.target.value.toUpperCase())}
-            placeholder="51A-123.45"
             className={cn(
               "h-9 w-[140px] rounded-xl font-mono text-xs",
               plateQuery && "border-primary/60 ring-1 ring-primary/20",
@@ -417,7 +416,10 @@ export function ReservationListPanel({
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{getDriverLabel(reservation)}</div>
-                    <div className="truncate font-mono text-[11px] text-muted-foreground">
+                    <div
+                      className="min-w-0 break-all font-mono text-[11px] text-muted-foreground"
+                      title={getDriverSubLabel(reservation)}
+                    >
                       {getDriverSubLabel(reservation)}
                     </div>
                   </div>

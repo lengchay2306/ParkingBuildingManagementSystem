@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CarFront, LoaderCircle, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DashboardEmptyState, DashboardLegend } from "@/components/dashboard-ui";
 import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
 import { cn } from "@/lib/utils";
@@ -28,6 +22,12 @@ import {
   type ParkingSlot,
   type ParkingSlotStatus,
 } from "@/services/parking.service";
+import {
+  formatPricePolicyHourRange,
+  formatVnd,
+  getAllPricePoliciesForVehicleType,
+  type PricePolicy,
+} from "@/services/payment.service";
 import type { Reservation } from "@/services/reservation.service";
 import type { Vehicle, VehicleType } from "@/services/vehicle.service";
 
@@ -93,8 +93,22 @@ export function DriverVehicleReserveDialog({
     [parkingFloors, vehicleTypeId],
   );
 
+  const pricePoliciesQuery = useQuery({
+    queryKey: ["vehicle-type-price-policies", vehicleTypeId] as const,
+    queryFn: () => getAllPricePoliciesForVehicleType(vehicleTypeId!),
+    enabled: open && Boolean(vehicleTypeId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const pricePolicies = pricePoliciesQuery.data ?? [];
+  const monthlyRate = useMemo(
+    () => pricePolicies.find((policy) => policy.monthlyRate)?.monthlyRate ?? null,
+    [pricePolicies],
+  );
+
   const [floorId, setFloorId] = useState("");
   const [selectedSlot, setSelectedSlot] = useState<SlotSelection | null>(null);
+  const [isSlotGridOpen, setIsSlotGridOpen] = useState(false);
   const [expectedArrivalDate, setExpectedArrivalDate] = useState(getDefaultExpectedArrivalDate);
   const [expectedArrivalTime, setExpectedArrivalTime] = useState(getDefaultExpectedArrivalTime);
 
@@ -108,6 +122,7 @@ export function DriverVehicleReserveDialog({
       return;
     }
 
+    setIsSlotGridOpen(false);
     setExpectedArrivalDate(getDefaultExpectedArrivalDate());
     setExpectedArrivalTime(getDefaultExpectedArrivalTime());
 
@@ -133,6 +148,30 @@ export function DriverVehicleReserveDialog({
 
   const selectedFloor = matchingFloors.find((floor) => floor._id === floorId) ?? null;
   const floorSlots = selectedFloor?.slots ?? [];
+
+  const handleFloorChange = (nextFloorId: string) => {
+    setFloorId(nextFloorId);
+    const nextFloor = matchingFloors.find((floor) => floor._id === nextFloorId);
+    if (!nextFloor) {
+      setSelectedSlot(null);
+      return;
+    }
+
+    const slotStillOnFloor =
+      selectedSlot?.floor._id === nextFloorId
+        ? nextFloor.slots.find((slot) => slot._id === selectedSlot.slot._id) ?? null
+        : null;
+
+    if (slotStillOnFloor?.status === "AVAILABLE") {
+      setSelectedSlot({ slot: slotStillOnFloor, floor: nextFloor });
+      return;
+    }
+
+    const firstAvailable = nextFloor.slots.find((slot) => slot.status === "AVAILABLE") ?? null;
+    setSelectedSlot(
+      firstAvailable ? { slot: firstAvailable, floor: nextFloor } : null,
+    );
+  };
 
   const blockReason = vehicle
     ? getVehicleReserveBlockReason(
@@ -208,7 +247,7 @@ export function DriverVehicleReserveDialog({
                 value={expectedArrivalDate}
                 onChange={(event) => setExpectedArrivalDate(event.target.value)}
                 min={getLocalDateInputValue()}
-                className="h-10 rounded-xl"
+                className="h-10 rounded-xl text-white [color-scheme:dark]"
               />
             </div>
             <div className="space-y-2">
@@ -219,7 +258,7 @@ export function DriverVehicleReserveDialog({
                 value={expectedArrivalTime}
                 onChange={(event) => setExpectedArrivalTime(event.target.value)}
                 min={minExpectedArrivalTime}
-                className="h-10 rounded-xl"
+                className="h-10 rounded-xl text-white [color-scheme:dark]"
               />
             </div>
           </div>
@@ -232,73 +271,106 @@ export function DriverVehicleReserveDialog({
             <DashboardEmptyState>Không có tầng cho loại xe này.</DashboardEmptyState>
           ) : (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="driver-reserve-floor">Tầng</Label>
-                <Select value={floorId} onValueChange={setFloorId}>
-                  <SelectTrigger id="driver-reserve-floor" className="h-10 rounded-xl">
-                    <SelectValue placeholder="Chọn tầng" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {matchingFloors.map((floor) => (
-                      <SelectItem key={floor._id} value={floor._id}>
-                        {floor.floorName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedSlot ? (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    Chỗ đã chọn
-                  </p>
-                  <p className="mt-1 text-sm font-semibold">
-                    {selectedSlot.slot.slotNumber} · {selectedSlot.floor.floorName}
-                  </p>
-                </div>
-              ) : null}
-
               <div className="flex flex-wrap gap-2">
-                <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
-              </div>
-
-              {floorSlots.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
-                  {floorSlots.map((slot) => {
-                    const isSelected = selectedSlot?.slot._id === slot._id;
-                    const isAvailable = slot.status === "AVAILABLE";
-
+                {matchingFloors.map((floor) => {
+                    const isActive = floor._id === floorId;
                     return (
                       <button
-                        key={slot._id}
+                        key={floor._id}
                         type="button"
-                        disabled={!isAvailable}
-                        onClick={() => {
-                          if (!selectedFloor || !isAvailable) {
-                            return;
-                          }
-                          setSelectedSlot({ slot, floor: selectedFloor });
-                        }}
+                        onClick={() => handleFloorChange(floor._id)}
                         className={cn(
-                          "relative min-h-11 rounded-xl border px-2 py-2.5 text-left text-sm font-semibold transition-all",
-                          slotButtonStyles[slot.status],
-                          isSelected && isAvailable
-                            ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
-                            : "",
+                          "rounded-xl border px-3 py-1.5 text-sm font-semibold transition-colors",
+                          isActive
+                            ? "border-primary/50 bg-primary/15 text-primary"
+                            : "border-border/70 bg-secondary/40 text-muted-foreground hover:border-primary/30 hover:text-foreground",
                         )}
-                        aria-label={`${slot.slotNumber} (${slotStatusText[slot.status]})`}
                       >
-                        <span className="font-mono text-xs">{slot.slotNumber}</span>
+                        {formatFloorLabel(floor.floorName)}
                       </button>
                     );
                   })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSlotGridOpen((current) => !current)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                  isSlotGridOpen
+                    ? "border-primary/45 bg-primary/10"
+                    : "border-border/70 bg-secondary/35 hover:border-primary/30 hover:bg-primary/5",
+                )}
+              >
+                <div className="ui-field-icon size-9 shrink-0">
+                  <MapPin className="size-4" />
                 </div>
-              ) : (
-                <DashboardEmptyState>Không có chỗ trên tầng này.</DashboardEmptyState>
-              )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Chọn ô đỗ
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-semibold">
+                    {selectedSlot
+                      ? `${selectedSlot.slot.slotNumber} · ${formatFloorLabel(selectedSlot.floor.floorName)}`
+                      : "Bấm để chọn chỗ trống"}
+                  </p>
+                </div>
+              </button>
+
+              {isSlotGridOpen ? (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
+                  </div>
+
+                  {floorSlots.length > 0 ? (
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
+                      {floorSlots.map((slot) => {
+                        const isSelected = selectedSlot?.slot._id === slot._id;
+                        const isAvailable = slot.status === "AVAILABLE";
+
+                        return (
+                          <button
+                            key={slot._id}
+                            type="button"
+                            disabled={!isAvailable}
+                            onClick={() => {
+                              if (!selectedFloor || !isAvailable) {
+                                return;
+                              }
+                              setSelectedSlot({ slot, floor: selectedFloor });
+                            }}
+                            className={cn(
+                              "relative min-h-11 rounded-xl border px-2 py-2.5 text-left text-sm font-semibold transition-all",
+                              slotButtonStyles[slot.status],
+                              isSelected && isAvailable
+                                ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
+                                : "",
+                            )}
+                            aria-label={`${slot.slotNumber} (${slotStatusText[slot.status]})`}
+                          >
+                            <span className="font-mono text-xs">{slot.slotNumber}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <DashboardEmptyState>Không có chỗ trên tầng này.</DashboardEmptyState>
+                  )}
+                </>
+              ) : null}
             </>
           )}
+
+          {vehicleTypeId ? (
+            <VehicleTypePricePanel
+              vehicleTypeName={vehicleTypeName}
+              policies={pricePolicies}
+              monthlyRate={monthlyRate}
+              isLoading={pricePoliciesQuery.isLoading}
+              error={pricePoliciesQuery.isError}
+            />
+          ) : null}
         </div>
 
         <div className="shrink-0 border-t border-border/70 px-6 py-4">
@@ -330,6 +402,11 @@ export function DriverVehicleReserveDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function formatFloorLabel(floorName: string) {
+  const shortLabel = floorName.split(" - ")[0]?.trim();
+  return shortLabel || floorName;
 }
 
 function getVehicleTypeId(vehicle: Vehicle): string | null {
@@ -375,4 +452,65 @@ function getDefaultExpectedArrivalDate() {
 
 function getDefaultExpectedArrivalTime() {
   return toLocalTimeInputValue(Date.now() + 60 * 60 * 1000);
+}
+
+type VehicleTypePricePanelProps = {
+  vehicleTypeName: string;
+  policies: PricePolicy[];
+  monthlyRate: number | null;
+  isLoading: boolean;
+  error: boolean;
+};
+
+function VehicleTypePricePanel({
+  vehicleTypeName,
+  policies,
+  monthlyRate,
+  isLoading,
+  error,
+}: VehicleTypePricePanelProps) {
+  return (
+    <section className="rounded-lg border border-border/60 bg-secondary/20 px-3 py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        Bảng giá · {vehicleTypeName}
+      </p>
+
+      {isLoading ? (
+        <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <LoaderCircle className="size-3.5 animate-spin" />
+          Đang tải...
+        </div>
+      ) : error ? (
+        <p className="mt-1.5 text-xs text-muted-foreground">Không thể tải bảng giá.</p>
+      ) : policies.length === 0 ? (
+        <p className="mt-1.5 text-xs text-muted-foreground">Chưa có bảng giá cho loại xe này.</p>
+      ) : (
+        <ul className="mt-1.5 space-y-0.5 text-xs">
+          {policies.map((policy) => (
+            <li
+              key={policy._id}
+              className="flex items-baseline justify-between gap-3 py-0.5"
+            >
+              <span className="text-muted-foreground">
+                {formatPricePolicyHourRange(policy.fromHour, policy.toHour)}
+              </span>
+              <span className="shrink-0 font-medium text-foreground">
+                {typeof policy.ratePerHour === "number"
+                  ? `${formatVnd(policy.ratePerHour)}/giờ`
+                  : "—"}
+              </span>
+            </li>
+          ))}
+          {monthlyRate ? (
+            <li className="flex items-baseline justify-between gap-3 border-t border-border/50 pt-1">
+              <span className="text-muted-foreground">Thẻ tháng</span>
+              <span className="shrink-0 font-medium text-primary">
+                {formatVnd(monthlyRate)}/tháng
+              </span>
+            </li>
+          ) : null}
+        </ul>
+      )}
+    </section>
+  );
 }

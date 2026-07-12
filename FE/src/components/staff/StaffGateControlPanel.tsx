@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { StaffPlateCameraScanner } from "@/components/staff/StaffPlateCameraScanner";
+import { StaffPaymentQrSection } from "@/components/staff/StaffPaymentQrSection";
 import { StaffWalkInSlotPickerDialog, type WalkInSlotSelection } from "@/components/staff/StaffWalkInSlotPickerDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,11 +46,13 @@ import {
   type ParkingFloor,
   type ParkingSession,
 } from "@/services/parking.service";
-import { StaffPaymentQrSection } from "@/components/staff/StaffPaymentQrSection";
+import {
+  cancelPendingPaymentSafe,
+  createStaffBillQrForSession,
+  type StaffBillQrWithPayment,
+} from "@/lib/pending-payment";
 import {
   checkStaffPayment,
-  createStaffBillQr,
-  type StaffBillQrResult,
 } from "@/services/payment.service";
 import {
   buildReservationCheckInPayload,
@@ -89,7 +92,7 @@ export function StaffGateControlPanel({
   const [walkInVehicleTypeId, setWalkInVehicleTypeId] = useState("");
   const [walkInSelectedSlot, setWalkInSelectedSlot] = useState<WalkInSlotSelection | null>(null);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
-  const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
 
   const vehicleTypesQuery = useQuery({
     queryKey: ["vehicle-types"],
@@ -215,7 +218,7 @@ export function StaffGateControlPanel({
         });
       }
 
-      const bill = await createStaffBillQr(activeSession._id);
+      const bill = await createStaffBillQrForSession(activeSession._id);
       return { bill, session: activeSession };
     },
     onSuccess: (result) => {
@@ -241,6 +244,31 @@ export function StaffGateControlPanel({
     },
   });
 
+  const cancelPaymentBillMutation = useMutation({
+    mutationFn: async (bill: StaffBillQrWithPayment) => {
+      await cancelPendingPaymentSafe(bill.paymentId);
+    },
+    onSuccess: () => {
+      setPaymentBill(null);
+      toast.success("Đã hủy QR thanh toán", {
+        description: "Có thể tạo mã QR mới cho phiên này.",
+      });
+    },
+    onError: (error) => {
+      setPaymentBill(null);
+      toast.message("Đã đóng QR", {
+        description: error instanceof Error ? error.message : "Có thể tạo mã QR mới.",
+      });
+    },
+  });
+
+  const handleCancelPaymentBill = () => {
+    if (!paymentBill) {
+      return;
+    }
+    cancelPaymentBillMutation.mutate(paymentBill);
+  };
+
   const checkPaymentMutation = useMutation({
     mutationFn: (orderCode: number) => checkStaffPayment(orderCode),
     onSuccess: async (result) => {
@@ -257,6 +285,9 @@ export function StaffGateControlPanel({
   });
 
   const resetFlow = () => {
+    if (paymentBill) {
+      void cancelPendingPaymentSafe(paymentBill.paymentId);
+    }
     setGateMode(null);
     setPhase("choose-mode");
     setScannedPlate("");
@@ -276,6 +307,9 @@ export function StaffGateControlPanel({
   };
 
   const handlePlateDetected = (plate: string) => {
+    if (paymentBill) {
+      void cancelPendingPaymentSafe(paymentBill.paymentId);
+    }
     setPaymentBill(null);
     setScannedPlate(plate);
   };
@@ -292,6 +326,9 @@ export function StaffGateControlPanel({
       return;
     }
     setManualError(null);
+    if (paymentBill) {
+      void cancelPendingPaymentSafe(paymentBill.paymentId);
+    }
     setPaymentBill(null);
     setScannedPlate(normalized);
   };
@@ -456,6 +493,8 @@ export function StaffGateControlPanel({
                 checkPaymentMutation.mutate(paymentBill.orderCode);
               }
             }}
+            onCancelPayment={handleCancelPaymentBill}
+            isCancellingPayment={cancelPaymentBillMutation.isPending}
           />
         ) : (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-6 text-center">
@@ -639,11 +678,13 @@ type CheckoutResultPanelProps = {
   slotNumber?: string;
   floorName?: string;
   vehicleTypeLabel?: string;
-  paymentBill: StaffBillQrResult | null;
+  paymentBill: StaffBillQrWithPayment | null;
   isSubmitting: boolean;
   isConfirmingPayment: boolean;
+  isCancellingPayment: boolean;
   onCheckout: () => void;
   onConfirmPayment: () => void;
+  onCancelPayment: () => void;
 };
 
 function CheckoutResultPanel({
@@ -655,8 +696,10 @@ function CheckoutResultPanel({
   paymentBill,
   isSubmitting,
   isConfirmingPayment,
+  isCancellingPayment,
   onCheckout,
   onConfirmPayment,
+  onCancelPayment,
 }: CheckoutResultPanelProps) {
   const isMonthlySession = session.sessionType === "MONTH";
   const isGuest = session.isGuest || !session.checkInUserId;
@@ -719,7 +762,9 @@ function CheckoutResultPanel({
           bill={paymentBill}
           licensePlate={plate}
           isConfirming={isConfirmingPayment}
+          isCancelling={isCancellingPayment}
           onConfirmPayment={onConfirmPayment}
+          onCancelPayment={onCancelPayment}
           embedded
         />
       )}

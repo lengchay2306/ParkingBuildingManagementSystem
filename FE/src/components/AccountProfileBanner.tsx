@@ -153,18 +153,19 @@ export function AccountProfileBanner({
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="grid gap-2">
+                    <div className="grid gap-2 sm:col-span-2">
                       <Label htmlFor="account-profile-email">Email</Label>
-                      <div className="relative">
+                      <div className="relative min-w-0">
                         <div className="ui-field-icon pointer-events-none absolute left-2 top-1/2 size-7 -translate-y-1/2">
                           <Mail className="size-3.5" />
                         </div>
-                        <Input
+                        <div
                           id="account-profile-email"
-                          value={profile.email}
-                          className="h-11 rounded-xl pl-11"
-                          readOnly
-                        />
+                          className="flex min-h-11 w-full min-w-0 items-center rounded-xl border border-border/70 bg-secondary/45 py-2 pl-11 pr-3 text-sm break-all text-foreground"
+                          title={profile.email}
+                        >
+                          {profile.email}
+                        </div>
                       </div>
                     </div>
 

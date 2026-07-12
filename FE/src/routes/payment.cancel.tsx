@@ -1,9 +1,14 @@
+import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { XCircle } from "lucide-react";
 
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { DashboardMain, DashboardSection } from "@/components/dashboard-ui";
+import {
+  cancelPendingSubscriptionCheckout,
+  loadPendingSubscriptionCheckout,
+} from "@/lib/pending-payment";
 import { requireRole } from "@/lib/auth";
 
 export const Route = createFileRoute("/payment/cancel")({
@@ -24,6 +29,11 @@ export const Route = createFileRoute("/payment/cancel")({
 
 function PaymentCancelPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const pending = loadPendingSubscriptionCheckout();
+    void cancelPendingSubscriptionCheckout(pending);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

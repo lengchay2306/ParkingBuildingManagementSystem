@@ -7,6 +7,11 @@ import { toast } from "sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { DashboardMain, DashboardSection } from "@/components/dashboard-ui";
+import {
+  cancelPendingSubscriptionCheckout,
+  clearPendingSubscriptionCheckout,
+  loadPendingSubscriptionCheckout,
+} from "@/lib/pending-payment";
 import { requireRole } from "@/lib/auth";
 import { getMyVehicles } from "@/services/vehicle.service";
 
@@ -64,10 +69,14 @@ function PaymentReturnPage() {
 
     const looksCancelled = cancel === "true" || status?.toUpperCase() === "CANCELLED";
     if (looksCancelled) {
+      const pending = loadPendingSubscriptionCheckout();
+      void cancelPendingSubscriptionCheckout(pending);
       setStatusText("Giao dịch đã bị hủy trên PayOS.");
       toast.message("Thanh toán đã hủy");
       return;
     }
+
+    clearPendingSubscriptionCheckout();
 
     toast.success("Đã quay lại từ PayOS", {
       description: orderCode
@@ -84,6 +93,7 @@ function PaymentReturnPage() {
 
         const activated = vehicles.some((vehicle) => Boolean(vehicle.monthlyCardId));
         if (activated) {
+          clearPendingSubscriptionCheckout();
           if (!cancelled) {
             setStatusText("Thẻ tháng đã được kích hoạt.");
             toast.success("Thẻ tháng đã kích hoạt");

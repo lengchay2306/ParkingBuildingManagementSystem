@@ -138,6 +138,7 @@ export type ParkingSession = {
   checkInUserId?: string | ParkingSessionUser | null;
   checkOutUserId?: string | ParkingSessionUser | null;
   checkInStaffId?: string | ParkingSessionUser;
+  checkOutStaffId?: string | ParkingSessionUser | null;
   checkInTime?: string;
   checkOutTime?: string | null;
   status: "ACTIVE" | "COMPLETED" | string;
@@ -397,15 +398,37 @@ const buildRecentLocalDateKeys = (days: number) => {
   return keys;
 };
 
-/** Staff: ACTIVE + COMPLETED over recent days (BE requires an explicit check-in date). */
+/** Staff: ACTIVE sessions over recent check-in days (BE requires an explicit date). */
 export const fetchStaffOccupancySessions = async () => {
   const dateKeys = buildRecentLocalDateKeys(STAFF_OCCUPANCY_LOOKBACK_DAYS);
 
   const results = await Promise.all(
-    dateKeys.flatMap((date) => [
+    dateKeys.map((date) =>
       getParkingSessionsSafe({ page: 1, limit: 300, status: "ACTIVE", date }),
+    ),
+  );
+
+  const byId = new Map<string, ParkingSession>();
+  for (const result of results) {
+    for (const session of result.parkingSessions) {
+      if (session.status !== "ACTIVE" || session.checkOutTime) {
+        continue;
+      }
+      byId.set(session._id, session);
+    }
+  }
+
+  return [...byId.values()];
+};
+
+/** Staff history: COMPLETED sessions over recent check-in days (no default date filter). */
+export const fetchStaffCompletedHistorySessions = async () => {
+  const dateKeys = buildRecentLocalDateKeys(STAFF_OCCUPANCY_LOOKBACK_DAYS);
+
+  const results = await Promise.all(
+    dateKeys.map((date) =>
       getParkingSessionsSafe({ page: 1, limit: 100, status: "COMPLETED", date }),
-    ]),
+    ),
   );
 
   const byId = new Map<string, ParkingSession>();
@@ -415,8 +438,36 @@ export const fetchStaffOccupancySessions = async () => {
     }
   }
 
-  return [...byId.values()];
+  return sortCompletedHistorySessions([...byId.values()]);
 };
+
+/** Staff history: COMPLETED sessions for a single check-in day. */
+export const fetchStaffCompletedHistorySessionsForDate = async (date: string) => {
+  const result = await getParkingSessionsSafe({
+    page: 1,
+    limit: 100,
+    status: "COMPLETED",
+    date,
+  });
+  return sortCompletedHistorySessions(result.parkingSessions);
+};
+
+function sortCompletedHistorySessions(sessions: ParkingSession[]) {
+  return [...sessions].sort((left, right) => {
+    const leftTime = getSessionHistorySortTime(left);
+    const rightTime = getSessionHistorySortTime(right);
+    return rightTime - leftTime;
+  });
+}
+
+function getSessionHistorySortTime(session: ParkingSession) {
+  const value = session.checkOutTime ?? session.checkInTime;
+  if (!value) {
+    return 0;
+  }
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
 
 /** Staff: load active parking sessions; returns empty list if API has no rows. */
 export const fetchActiveParkingSessions = async () => {
