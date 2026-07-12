@@ -3,8 +3,31 @@ import { BadRequestError, NotFoundError } from "../error/error.js"
 import { calculatedParkingFee } from "../utils/calculateFunction.js";
 configDotenv();
 
-const RETURN_URL = process.env.FE_RETURN_URL;
-const CANCEL_URL = process.env.FE_CANCEL_URL
+const FE_RETURN_URL = process.env.FE_RETURN_URL;
+const FE_CANCEL_URL = process.env.FE_CANCEL_URL;
+const MOBILE_RETURN_URL = process.env.MOBILE_RETURN_URL;
+const MOBILE_CANCEL_URL = process.env.MOBILE_CANCEL_URL;
+
+const resolvePayOsRedirectUrls = (platform = 'web') => {
+    if (platform === 'mobile') {
+        if (!MOBILE_RETURN_URL || !MOBILE_CANCEL_URL) {
+            throw new BadRequestError('Mobile PayOS return/cancel URLs are not configured');
+        }
+        return {
+            returnUrl: MOBILE_RETURN_URL,
+            cancelUrl: MOBILE_CANCEL_URL,
+        };
+    }
+
+    if (!FE_RETURN_URL || !FE_CANCEL_URL) {
+        throw new BadRequestError('Web PayOS return/cancel URLs are not configured');
+    }
+
+    return {
+        returnUrl: FE_RETURN_URL,
+        cancelUrl: FE_CANCEL_URL,
+    };
+};
 
 class PaymentService {
     #pricePolicyRepository
@@ -302,8 +325,8 @@ class PaymentService {
             orderCode,
             amount: calculatedFee,
             description: `CHECK_OUT_${orderCode}`,
-            returnUrl: RETURN_URL,
-            cancelUrl : CANCEL_URL,
+            returnUrl: FE_RETURN_URL,
+            cancelUrl: FE_CANCEL_URL,
         });
 
         return {
@@ -317,6 +340,7 @@ class PaymentService {
     subscriptionPayment = async ({
         userId,
         vehicleId,
+        platform = 'web',
     }) => {
         const existingUser = await this.#userRepository.findByUserId({
             userId,
@@ -348,13 +372,14 @@ class PaymentService {
 
         const amount = thisVehiclePricePolicy.monthlyRate
         const orderCode = Number(String(Date.now()).slice(-6) + Math.floor(100 + Math.random() * 900))
+        const { returnUrl, cancelUrl } = resolvePayOsRedirectUrls(platform)
 
         const paymentBody = {
             orderCode,
             amount,
             description: `SUBSCRIPTION_${orderCode}`,
-            returnUrl: RETURN_URL,
-            cancelUrl: CANCEL_URL,
+            returnUrl,
+            cancelUrl,
         }
 
         const newPayment = await this.#paymentRepository.savePayment({

@@ -54,7 +54,7 @@ export async function createSubscriptionCheckoutLink(
   const response = await authenticatedFetch('/payment/subscription/create-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ vehicleId }),
+    body: JSON.stringify({ vehicleId, platform: 'mobile' }),
   });
   const payload = await parsePaymentResponse<{ checkoutUrl?: string }>(response, 201);
   const checkoutUrl = payload.data?.checkoutUrl;

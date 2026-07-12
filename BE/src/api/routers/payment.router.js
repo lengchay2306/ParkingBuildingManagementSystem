@@ -238,6 +238,14 @@ router.get(
  *                 type: string
  *                 description: ObjectId of the customer's vehicle to subscribe
  *                 example: "665a1b2c3d4e5f6a7b8c9d0e"
+ *               platform:
+ *                 type: string
+ *                 enum: [web, mobile]
+ *                 default: web
+ *                 description: |
+ *                   Select PayOS return/cancel URLs.
+ *                   `web` uses FE_RETURN_URL / FE_CANCEL_URL.
+ *                   `mobile` uses MOBILE_RETURN_URL / MOBILE_CANCEL_URL (deep link).
  *     responses:
  *       201:
  *         description: PayOS checkout link created successfully
