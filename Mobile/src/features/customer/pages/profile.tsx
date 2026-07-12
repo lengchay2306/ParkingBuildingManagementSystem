@@ -376,26 +376,52 @@ export default function ProfileScreen() {
           t('Đã hủy thanh toán thẻ tháng.', 'Monthly card payment was cancelled.'),
           'error',
         );
-      } else if (checkoutResult.outcome === 'paid') {
+        return;
+      }
+
+      if (checkoutResult.outcome === 'paid') {
         showToast(
           t(
-            'Thanh toán xong. Đang cập nhật thẻ tháng...',
-            'Payment complete. Updating monthly card...',
+            'Thanh toán xong. Đang chờ kích hoạt thẻ tháng…',
+            'Payment complete. Waiting for monthly card activation…',
           ),
           'success',
         );
       } else {
         showToast(
           t(
-            'Đã quay lại app. Kéo xuống để làm mới nếu thẻ chưa hiện.',
-            'Back in the app. Pull to refresh if the card is not visible yet.',
+            'Đã quay lại app. Đang kiểm tra thẻ tháng…',
+            'Back in the app. Checking monthly card…',
           ),
           'success',
         );
       }
 
-      const refreshed = await getMyProfile();
-      setProfile(refreshed);
+      // PayOS webhook activates the card asynchronously — poll a few times.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const refreshed = await getMyProfile();
+        setProfile(refreshed);
+        const updated = refreshed.vehicles?.find((item) => item._id === vehicle._id);
+        const card = updated?.monthlyCardId;
+        const hasCard =
+          Boolean(card) &&
+          (typeof card === 'object'
+            ? Boolean(card._id) || card.status?.toUpperCase() === 'ACTIVE'
+            : true);
+        if (hasCard) {
+          showToast(t('Thẻ tháng đã kích hoạt', 'Monthly card activated'), 'success');
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      showToast(
+        t(
+          'Chưa thấy thẻ. Kéo xuống hồ sơ để làm mới sau vài giây.',
+          'Card not visible yet. Pull to refresh profile in a few seconds.',
+        ),
+        'error',
+      );
     } catch (buyError) {
       showToast(
         buyError instanceof Error

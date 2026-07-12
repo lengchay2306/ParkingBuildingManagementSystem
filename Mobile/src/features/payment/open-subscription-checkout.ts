@@ -4,16 +4,16 @@ import * as WebBrowser from 'expo-web-browser';
 WebBrowser.maybeCompleteAuthSession();
 
 /**
- * Must match MOBILE_RETURN_URL / MOBILE_CANCEL_URL path prefix on the BE
- * (default scheme from app.json: mobile://payment/...).
+ * Must be a prefix of BE MOBILE_RETURN_URL / MOBILE_CANCEL_URL
+ * (BE .env: mobile://payment/return | mobile://payment/cancel).
  */
 function getMobilePayOsRedirectPrefix() {
   const fromEnv = process.env.EXPO_PUBLIC_MOBILE_PAYOS_REDIRECT_PREFIX?.trim();
   if (fromEnv) {
     return fromEnv;
   }
-  // Linking.createURL('payment') → mobile://payment (dev may use exp://...)
-  return Linking.createURL('payment');
+  // Prefer the same scheme PayOS is given by BE — do not use exp:// here.
+  return 'mobile://payment';
 }
 
 export type SubscriptionCheckoutOutcome = 'paid' | 'cancelled' | 'dismissed';
@@ -25,43 +25,30 @@ export type SubscriptionCheckoutResult = {
 };
 
 function parseCheckoutRedirect(url: string): Omit<SubscriptionCheckoutResult, 'redirectUrl'> {
-  try {
-    const parsed = new URL(url);
-    const cancel = parsed.searchParams.get('cancel');
-    const status = parsed.searchParams.get('status');
-    const orderCode = parsed.searchParams.get('orderCode') ?? undefined;
-    const path = parsed.pathname.toLowerCase();
-    const looksCancelled =
-      cancel === 'true' ||
-      (status != null && status.toUpperCase() === 'CANCELLED') ||
-      path.includes('cancel');
+  const lower = url.toLowerCase();
+  // Custom-scheme URLs are unreliable with URL() on some RN runtimes.
+  const parsed = Linking.parse(url);
+  const query = parsed.queryParams ?? {};
+  const cancel = typeof query.cancel === 'string' ? query.cancel : undefined;
+  const status = typeof query.status === 'string' ? query.status : undefined;
+  const orderCode = typeof query.orderCode === 'string' ? query.orderCode : undefined;
+  const path = `${parsed.hostname ?? ''}/${parsed.path ?? ''}`.toLowerCase();
 
-    return {
-      outcome: looksCancelled ? 'cancelled' : 'paid',
-      orderCode: orderCode ?? undefined,
-    };
-  } catch {
-    const parsed = Linking.parse(url);
-    const query = parsed.queryParams ?? {};
-    const cancel = typeof query.cancel === 'string' ? query.cancel : undefined;
-    const status = typeof query.status === 'string' ? query.status : undefined;
-    const orderCode = typeof query.orderCode === 'string' ? query.orderCode : undefined;
-    const path = (parsed.path ?? '').toLowerCase();
-    const looksCancelled =
-      cancel === 'true' ||
-      (status != null && status.toUpperCase() === 'CANCELLED') ||
-      path.includes('cancel');
+  const looksCancelled =
+    cancel === 'true' ||
+    (status != null && status.toUpperCase() === 'CANCELLED') ||
+    lower.includes('/payment/cancel') ||
+    path.includes('cancel');
 
-    return {
-      outcome: looksCancelled ? 'cancelled' : 'paid',
-      orderCode,
-    };
-  }
+  return {
+    outcome: looksCancelled ? 'cancelled' : 'paid',
+    orderCode,
+  };
 }
 
 /**
- * Opens PayOS checkout. BE sets return/cancel to mobile deep links when
- * platform=mobile, so the in-app browser closes back into the app.
+ * Opens PayOS checkout. With BE platform=mobile, PayOS redirects to
+ * mobile://payment/return|cancel and the auth session closes back into the app.
  */
 export async function openSubscriptionCheckout(
   checkoutUrl: string,
