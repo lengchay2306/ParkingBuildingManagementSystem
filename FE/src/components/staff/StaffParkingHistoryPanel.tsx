@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,15 @@ import {
   DashboardClientPagination,
   DashboardEmptyState,
   DashboardLoadingState,
+  paginateItems,
 } from "@/components/dashboard-ui";
+import { liveQueryOptions } from "@/lib/live-query";
+import { cn } from "@/lib/utils";
 import {
+  fetchStaffCompletedHistorySessions,
+  fetchStaffCompletedHistorySessionsForDate,
   getFloorForParkingSlotId,
   getParkingSessionSlotId,
-  getParkingSessionsSafe,
   getSessionLicensePlate,
   getSessionVehicleTypeLabel,
   type ParkingFloor,
@@ -27,77 +31,136 @@ type StaffParkingHistoryPanelProps = {
   parkingFloors: ParkingFloor[];
 };
 
-function getLocalDateInputValue(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function formatFloorLabel(floorName: string) {
+  return floorName.split(" - ")[0]?.trim() || floorName;
 }
 
 export function StaffParkingHistoryPanel({ parkingFloors }: StaffParkingHistoryPanelProps) {
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [page, setPage] = useState(1);
   const [sessionDate, setSessionDate] = useState(() => getLocalDateInputValue());
+  const [isDateFilterActive, setIsDateFilterActive] = useState(false);
   const [viewingSession, setViewingSession] = useState<ParkingSession | null>(null);
 
   const historyQuery = useQuery({
-    queryKey: ["staff-parking-history", page, sessionDate],
+    queryKey: ["staff-parking-history", { isDateFilterActive, sessionDate }],
     queryFn: () =>
-      getParkingSessionsSafe({
-        page,
-        limit: pageSize,
-        status: "COMPLETED",
-        date: sessionDate,
-      }),
+      isDateFilterActive
+        ? fetchStaffCompletedHistorySessionsForDate(sessionDate)
+        : fetchStaffCompletedHistorySessions(),
+    ...liveQueryOptions,
   });
 
-  const sessions = historyQuery.data?.parkingSessions ?? [];
-  const pagination = historyQuery.data?.pagination;
-  const totalPages = pagination?.totalPage ?? 1;
+  const allSessions = historyQuery.data ?? [];
+  const pagination = useMemo(
+    () => paginateItems(allSessions, page, pageSize),
+    [allSessions, page],
+  );
 
   const viewingSlotId = viewingSession ? getParkingSessionSlotId(viewingSession) : null;
   const viewingFloor = viewingSlotId
     ? getFloorForParkingSlotId(viewingSlotId, parkingFloors)
     : null;
 
+  const clearDateFilter = () => {
+    setPage(1);
+    setIsDateFilterActive(false);
+    setSessionDate(getLocalDateInputValue());
+  };
+
+  const openDatePicker = () => {
+    setPage(1);
+    setIsDateFilterActive(true);
+    dateInputRef.current?.showPicker?.();
+  };
+
   return (
     <div className="api-section rounded-2xl p-4 sm:p-5">
-      <div className="api-header mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold">Lịch sử phiên đỗ xe</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Các phiên đã checkout theo ngày check-in
-          </p>
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="staff-history-date" className="text-[10px] uppercase tracking-[0.14em]">
+            Ngày check-in
+          </Label>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isDateFilterActive ? (
+              <Input
+                ref={dateInputRef}
+                id="staff-history-date"
+                type="date"
+                value={sessionDate}
+                onChange={(event) => {
+                  setSessionDate(event.target.value);
+                  setPage(1);
+                }}
+                className="h-10 w-[160px] rounded-xl border-primary/60 ring-1 ring-primary/20"
+              />
+            ) : (
+              <Input
+                ref={dateInputRef}
+                id="staff-history-date"
+                type="date"
+                value={sessionDate}
+                onChange={(event) => {
+                  setSessionDate(event.target.value);
+                }}
+                className="pointer-events-none absolute h-0 w-0 opacity-0"
+                tabIndex={-1}
+                aria-hidden
+              />
+            )}
+            <Button
+              type="button"
+              size={isDateFilterActive ? "icon" : "sm"}
+              variant={isDateFilterActive ? "default" : "secondary"}
+              onClick={openDatePicker}
+              className={cn(
+                "shrink-0 rounded-xl",
+                isDateFilterActive ? "size-10" : "h-10 gap-2 px-3",
+              )}
+              aria-label="Lọc lịch sử theo ngày check-in"
+              title="Lọc theo ngày"
+            >
+              <CalendarDays className="size-4" />
+              {!isDateFilterActive ? "Lọc theo ngày" : null}
+            </Button>
+          </div>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-10 rounded-xl"
-          onClick={() => historyQuery.refetch()}
-          disabled={historyQuery.isFetching}
-        >
-          <RefreshCw className={`size-4 ${historyQuery.isFetching ? "animate-spin" : ""}`} />
-          Làm mới
-        </Button>
-      </div>
 
-      <div className="mb-4 max-w-xs space-y-2">
-        <Label htmlFor="history-date">Ngày check-in</Label>
-        <Input
-          id="history-date"
-          type="date"
-          value={sessionDate}
-          onChange={(event) => {
-            setSessionDate(event.target.value);
-            setPage(1);
-          }}
-          className="rounded-xl"
-        />
+        {isDateFilterActive ? (
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setPage(1);
+                setSessionDate(getLocalDateInputValue());
+              }}
+              className="h-10 rounded-xl"
+            >
+              Hôm nay
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={clearDateFilter}
+              className="h-10 rounded-xl"
+            >
+              Bỏ lọc ngày
+            </Button>
+          </>
+        ) : null}
       </div>
 
       {historyQuery.isLoading ? (
         <DashboardLoadingState label="Đang tải lịch sử..." />
-      ) : sessions.length === 0 ? (
-        <DashboardEmptyState>Không có phiên hoàn tất trong ngày này.</DashboardEmptyState>
+      ) : allSessions.length === 0 ? (
+        <DashboardEmptyState>
+          {isDateFilterActive
+            ? `Không có phiên checkout ngày ${formatSessionDateLabel(sessionDate)}.`
+            : "Chưa có phiên đã checkout."}
+        </DashboardEmptyState>
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border border-border/70">
@@ -113,7 +176,7 @@ export function StaffParkingHistoryPanel({ parkingFloors }: StaffParkingHistoryP
                 </tr>
               </thead>
               <tbody>
-                {sessions.map((session) => {
+                {pagination.items.map((session) => {
                   const slotId = getParkingSessionSlotId(session);
                   const floor = slotId ? getFloorForParkingSlotId(slotId, parkingFloors) : null;
                   const slotNumber =
@@ -131,7 +194,7 @@ export function StaffParkingHistoryPanel({ parkingFloors }: StaffParkingHistoryP
                       </td>
                       <td className="px-4 py-3">
                         {slotNumber}
-                        {floor?.floorName ? ` · ${floor.floorName}` : ""}
+                        {floor?.floorName ? ` · ${formatFloorLabel(floor.floorName)}` : ""}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {session.checkInTime ? formatDateTime(session.checkInTime) : "—"}
@@ -158,8 +221,9 @@ export function StaffParkingHistoryPanel({ parkingFloors }: StaffParkingHistoryP
           </div>
 
           <DashboardClientPagination
-            page={page}
-            totalPages={totalPages}
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
             onPageChange={setPage}
             className="mt-4"
           />
@@ -190,6 +254,26 @@ export function StaffParkingHistoryPanel({ parkingFloors }: StaffParkingHistoryP
       />
     </div>
   );
+}
+
+function getLocalDateInputValue(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatSessionDateLabel(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  if (!year || !month || !day) {
+    return dateKey;
+  }
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 }
 
 function formatDateTime(value: string) {

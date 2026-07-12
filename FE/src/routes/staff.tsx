@@ -14,6 +14,11 @@ import {
   DashboardSection,
   DashboardTabs,
 } from "@/components/dashboard-ui";
+import {
+  cancelPendingPaymentSafe,
+  createStaffBillQrForSession,
+  type StaffBillQrWithPayment,
+} from "@/lib/pending-payment";
 import { requireRole } from "@/lib/auth";
 import {
   checkoutParkingSession,
@@ -27,10 +32,9 @@ import {
 } from "@/services/parking.service";
 import {
   checkStaffPayment,
-  createStaffBillQr,
-  type StaffBillQrResult,
 } from "@/services/payment.service";
 import { fetchAllReservationsPages, type Reservation } from "@/services/reservation.service";
+import { liveQueryOptions } from "@/lib/live-query";
 
 export const Route = createFileRoute("/staff")({
   beforeLoad: async () => {
@@ -65,7 +69,7 @@ function StaffPage() {
   const queryClient = useQueryClient();
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<StaffTab>("gate");
-  const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
   const [paymentBillPlate, setPaymentBillPlate] = useState<string | undefined>();
 
   useEffect(() => {
@@ -88,16 +92,12 @@ function StaffPage() {
     queryKey: staffParkingSessionsQueryKey,
     queryFn: () => fetchStaffOccupancySessions(),
     enabled: hasMounted,
+    ...liveQueryOptions,
   });
 
   const parkingFloors = parkingFloorsQuery.data ?? emptyParkingFloors;
   const allReservations = reservationsQuery.data ?? [];
   const allParkingSessions = parkingSessionsQuery.data ?? [];
-
-  const isRefreshing =
-    parkingFloorsQuery.isFetching ||
-    reservationsQuery.isFetching ||
-    parkingSessionsQuery.isFetching;
 
   const handleRefresh = () => {
     void Promise.all([
@@ -108,6 +108,15 @@ function StaffPage() {
   };
 
   const upsertSessionInCache = (session: ParkingSession) => {
+    if (session.status !== "ACTIVE" || session.checkOutTime) {
+      queryClient.setQueryData(
+        staffParkingSessionsQueryKey,
+        (current: ParkingSession[] | undefined) =>
+          (current ?? []).filter((item) => item._id !== session._id),
+      );
+      return;
+    }
+
     queryClient.setQueryData(
       staffParkingSessionsQueryKey,
       (current: ParkingSession[] | undefined) => {
@@ -141,7 +150,7 @@ function StaffPage() {
         });
       }
 
-      const bill = await createStaffBillQr(session._id);
+      const bill = await createStaffBillQrForSession(session._id);
       return { bill, session };
     },
     onSuccess: (result) => {
@@ -162,6 +171,35 @@ function StaffPage() {
       });
     },
   });
+
+  const cancelPaymentBillMutation = useMutation({
+    mutationFn: async (bill: StaffBillQrWithPayment) => {
+      await cancelPendingPaymentSafe(bill.paymentId);
+    },
+    onSuccess: () => {
+      setPaymentBill(null);
+      setPaymentBillPlate(undefined);
+      toast.success("Đã hủy QR thanh toán", {
+        description: "Có thể tạo mã QR mới cho phiên này.",
+      });
+    },
+    onError: (error) => {
+      setPaymentBill(null);
+      setPaymentBillPlate(undefined);
+      toast.message("Đã đóng QR", {
+        description: error instanceof Error ? error.message : "Có thể tạo mã QR mới.",
+      });
+    },
+  });
+
+  const handleCancelPaymentBill = () => {
+    if (!paymentBill) {
+      setPaymentBill(null);
+      setPaymentBillPlate(undefined);
+      return;
+    }
+    cancelPaymentBillMutation.mutate(paymentBill);
+  };
 
   const checkPaymentMutation = useMutation({
     mutationFn: checkStaffPayment,
@@ -250,8 +288,6 @@ function StaffPage() {
               sessions={allParkingSessions}
               parkingFloors={parkingFloors}
               isLoading={parkingSessionsQuery.isLoading}
-              isRefreshing={isRefreshing}
-              onRefresh={handleRefresh}
               onCheckoutSession={(session) => checkoutSessionMutation.mutate(session)}
               isCheckingOut={checkoutSessionMutation.isPending}
             />
@@ -266,19 +302,20 @@ function StaffPage() {
       <StaffPaymentQrDialog
         open={paymentBill !== null}
         onOpenChange={(open) => {
-          if (!open) {
-            setPaymentBill(null);
-            setPaymentBillPlate(undefined);
+          if (!open && paymentBill && !checkPaymentMutation.isPending) {
+            handleCancelPaymentBill();
           }
         }}
         bill={paymentBill}
         licensePlate={paymentBillPlate}
         isConfirming={checkPaymentMutation.isPending}
+        isCancelling={cancelPaymentBillMutation.isPending}
         onConfirmPayment={() => {
           if (paymentBill?.orderCode) {
             checkPaymentMutation.mutate(paymentBill.orderCode);
           }
         }}
+        onCancelPayment={handleCancelPaymentBill}
       />
     </div>
   );

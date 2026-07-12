@@ -131,7 +131,6 @@ export function PaymentListPanel({
             id="payment-plate-filter"
             value={plateInput}
             onChange={(event) => setPlateInput(event.target.value.toUpperCase())}
-            placeholder="51A-123.45"
             className="h-9 rounded-xl font-mono text-[12px]"
             onKeyDown={(event) => {
               if (event.key === "Enter") {

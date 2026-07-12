@@ -8,7 +8,9 @@ type StaffPaymentQrSectionProps = {
   bill: StaffBillQrResult;
   licensePlate?: string;
   isConfirming?: boolean;
+  isCancelling?: boolean;
   onConfirmPayment: () => void;
+  onCancelPayment?: () => void;
   embedded?: boolean;
 };
 
@@ -16,7 +18,9 @@ export function StaffPaymentQrSection({
   bill,
   licensePlate,
   isConfirming = false,
+  isCancelling = false,
   onConfirmPayment,
+  onCancelPayment,
   embedded = false,
 }: StaffPaymentQrSectionProps) {
   return (
@@ -60,7 +64,7 @@ export function StaffPaymentQrSection({
       <Button
         type="button"
         className="h-12 w-full rounded-xl text-sm font-semibold"
-        disabled={isConfirming}
+        disabled={isConfirming || isCancelling}
         onClick={onConfirmPayment}
       >
         {isConfirming ? (
@@ -72,6 +76,25 @@ export function StaffPaymentQrSection({
           "Đã thanh toán — xác nhận ra cổng"
         )}
       </Button>
+
+      {onCancelPayment ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-11 w-full rounded-xl text-sm font-semibold text-destructive hover:text-destructive"
+          disabled={isConfirming || isCancelling}
+          onClick={onCancelPayment}
+        >
+          {isCancelling ? (
+            <>
+              <LoaderCircle className="size-4 animate-spin" />
+              Đang hủy QR...
+            </>
+          ) : (
+            "Hủy QR và tạo lại"
+          )}
+        </Button>
+      ) : null}
     </div>
   );
 }

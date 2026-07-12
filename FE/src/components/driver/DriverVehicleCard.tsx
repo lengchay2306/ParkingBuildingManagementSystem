@@ -26,6 +26,7 @@ type DriverVehicleCardProps = {
   vehicleTypes: VehicleType[];
   pendingReservation: Reservation | null;
   parkingSession: ParkingSession | null;
+  canReserve?: boolean;
   isDeleting?: boolean;
   isSubscribing?: boolean;
   onReserve: () => void;
@@ -39,6 +40,7 @@ export function DriverVehicleCard({
   vehicleTypes,
   pendingReservation,
   parkingSession,
+  canReserve = true,
   isDeleting = false,
   isSubscribing = false,
   onReserve,
@@ -125,17 +127,6 @@ export function DriverVehicleCard({
             </Button>
           </div>
 
-          {!isExpanded ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {getCollapsedSummary({
-                pendingReservation,
-                isInLot,
-                hasMonthlyCard,
-                createdAt: vehicle.createdAt,
-              })}
-            </p>
-          ) : null}
-
           <div
             className={cn(
               "grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out",
@@ -144,7 +135,7 @@ export function DriverVehicleCard({
           >
             <div className="overflow-hidden">
               <div className="space-y-2 pb-1">
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <InfoTile
                     icon={CalendarClock}
                     label="Ngày đăng ký"
@@ -154,28 +145,6 @@ export function DriverVehicleCard({
                     icon={Clock3}
                     label="Cập nhật"
                     value={formatShortDate(vehicle.updatedAt)}
-                  />
-                  <InfoTile
-                    icon={MapPin}
-                    label="Đặt chỗ chờ"
-                    value={
-                      pendingReservation
-                        ? `${getReservationSlotLabel(pendingReservation)} · ${formatShortDateTime(pendingReservation.expectedArrival)}`
-                        : "Không có"
-                    }
-                    highlight={Boolean(pendingReservation)}
-                  />
-                  <InfoTile
-                    icon={ParkingCircle}
-                    label="Trong bãi"
-                    value={
-                      isInLot
-                        ? parkingSession?.checkInTime
-                          ? `Từ ${formatShortDateTime(parkingSession.checkInTime)}`
-                          : "Đang đỗ"
-                        : "Không"
-                    }
-                    highlight={isInLot}
                   />
                 </div>
 
@@ -214,15 +183,17 @@ export function DriverVehicleCard({
 
       {!isInactive ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-border/60 bg-background/30 px-4 py-3 sm:px-5">
-          <Button
-            type="button"
-            size="sm"
-            onClick={onReserve}
-            className="h-9 rounded-xl px-3 text-xs font-semibold"
-          >
-            <MapPin className="size-3.5" />
-            Đặt chỗ
-          </Button>
+          {canReserve ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onReserve}
+              className="h-9 rounded-xl px-3 text-xs font-semibold"
+            >
+              <MapPin className="size-3.5" />
+              Đặt chỗ
+            </Button>
+          ) : null}
           {!hasMonthlyCard ? (
             <Button
               type="button"
@@ -244,6 +215,38 @@ export function DriverVehicleCard({
                 </>
               )}
             </Button>
+          ) : null}
+          {pendingReservation ? (
+            <span
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-status-yours/35 bg-status-yours/10 px-2.5 py-1 text-[10px] font-semibold text-status-yours"
+              title={
+                pendingReservation.expectedArrival
+                  ? `Đến ${formatShortDateTime(pendingReservation.expectedArrival)}`
+                  : undefined
+              }
+            >
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">
+                Đặt chỗ {getReservationSlotLabel(pendingReservation)}
+              </span>
+            </span>
+          ) : null}
+          {isInLot ? (
+            <span
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-[10px] font-semibold text-status-empty"
+              title={
+                parkingSession?.checkInTime
+                  ? `Check-in ${formatShortDateTime(parkingSession.checkInTime)}`
+                  : undefined
+              }
+            >
+              <ParkingCircle className="size-3 shrink-0" />
+              <span className="truncate">
+                {parkingSession?.checkInTime
+                  ? `Trong bãi · ${formatShortDateTime(parkingSession.checkInTime)}`
+                  : "Trong bãi"}
+              </span>
+            </span>
           ) : null}
           <div className="ml-auto flex items-center gap-1">
             <Button
@@ -276,31 +279,6 @@ export function DriverVehicleCard({
       ) : null}
     </article>
   );
-}
-
-function getCollapsedSummary({
-  pendingReservation,
-  isInLot,
-  hasMonthlyCard,
-  createdAt,
-}: {
-  pendingReservation: Reservation | null;
-  isInLot: boolean;
-  hasMonthlyCard: boolean;
-  createdAt?: string;
-}) {
-  const parts: string[] = [];
-  parts.push(`Đăng ký ${formatShortDate(createdAt)}`);
-  if (pendingReservation) {
-    parts.push(`Có đặt chỗ ${getReservationSlotLabel(pendingReservation)}`);
-  }
-  if (isInLot) {
-    parts.push("Đang trong bãi");
-  }
-  if (hasMonthlyCard) {
-    parts.push("Có thẻ tháng");
-  }
-  return parts.join(" · ");
 }
 
 function InfoTile({

@@ -1,7 +1,6 @@
 import { LoaderCircle, QrCode } from "lucide-react";
 
 import { StaffPaymentQrSection } from "@/components/staff/StaffPaymentQrSection";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,9 @@ type StaffPaymentQrDialogProps = {
   bill: StaffBillQrResult | null;
   licensePlate?: string;
   isConfirming?: boolean;
+  isCancelling?: boolean;
   onConfirmPayment: () => void;
+  onCancelPayment: () => void;
 };
 
 export function StaffPaymentQrDialog({
@@ -26,14 +27,20 @@ export function StaffPaymentQrDialog({
   bill,
   licensePlate,
   isConfirming = false,
+  isCancelling = false,
   onConfirmPayment,
+  onCancelPayment,
 }: StaffPaymentQrDialogProps) {
   if (!bill) {
     return null;
   }
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
         <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
           <DialogHeader>
@@ -53,7 +60,9 @@ export function StaffPaymentQrDialog({
             bill={bill}
             licensePlate={licensePlate}
             isConfirming={isConfirming}
+            isCancelling={isCancelling}
             onConfirmPayment={onConfirmPayment}
+            onCancelPayment={onCancelPayment}
           />
         </div>
       </DialogContent>

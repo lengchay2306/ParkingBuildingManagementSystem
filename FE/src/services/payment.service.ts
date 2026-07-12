@@ -96,6 +96,38 @@ export const getPricePolicies = async ({
   };
 };
 
+/** Fetch all price policy tiers for a vehicle type (paginates past API limit of 10). */
+export const getAllPricePoliciesForVehicleType = async (vehicleTypeId: string) => {
+  const collected: PricePolicy[] = [];
+  let page = 1;
+  let totalPage = 1;
+
+  do {
+    const result = await getPricePolicies({ page, limit: 10, vehicleTypeId });
+    collected.push(...result.pricePolicies);
+    totalPage = result.pagination?.totalPage ?? 1;
+    page += 1;
+  } while (page <= totalPage);
+
+  return collected.sort((left, right) => (left.fromHour ?? 0) - (right.fromHour ?? 0));
+};
+
+export const formatPricePolicyHourRange = (
+  fromHour?: number,
+  toHour?: number | null,
+) => {
+  if (fromHour === undefined) {
+    return "—";
+  }
+  if (toHour === null || toHour === undefined || toHour >= 9999) {
+    return `Từ giờ ${fromHour + 1} trở đi`;
+  }
+  if (fromHour === 0) {
+    return `${toHour} giờ đầu`;
+  }
+  return `Giờ ${fromHour + 1}–${toHour}`;
+};
+
 /** Matches BE `POST /payment/staff/bill-qr` response `data`. */
 export type StaffBillQrResult = {
   orderCode: number;

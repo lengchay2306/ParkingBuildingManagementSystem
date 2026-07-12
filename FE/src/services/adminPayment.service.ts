@@ -72,6 +72,8 @@ export type GetAdminPaymentsParams = {
   status?: PaymentStatus;
   paymentMethod?: PaymentMethod;
   orderCode?: number;
+  vehicleId?: string;
+  parkingSessionId?: string;
   licensePlate?: string;
   sortBy?: "createdAt" | "amount" | "orderCode" | "status";
   sortOrder?: "asc" | "desc" | 1 | -1;
@@ -84,6 +86,8 @@ export const getAdminPayments = async ({
   status,
   paymentMethod,
   orderCode,
+  vehicleId,
+  parkingSessionId,
   licensePlate,
   sortBy = "createdAt",
   sortOrder = "desc",
@@ -97,6 +101,8 @@ export const getAdminPayments = async ({
   if (status) params.set("status", status);
   if (paymentMethod) params.set("paymentMethod", paymentMethod);
   if (orderCode !== undefined) params.set("orderCode", String(orderCode));
+  if (vehicleId) params.set("vehicleId", vehicleId);
+  if (parkingSessionId) params.set("parkingSessionId", parkingSessionId);
   if (licensePlate) params.set("licensePlate", licensePlate);
 
   const response = await authFetch(`${API_BASE}/api/v1/payment?${params}`, {
@@ -119,6 +125,17 @@ export const getAdminPayments = async ({
     payments: payload.data?.payments ?? [],
     pagination: payload.data?.pagination,
   };
+};
+
+/** GET /api/v1/payment?parkingSessionId=... — STAFF | MANAGER | ADMIN */
+export const getPaymentsByParkingSessionId = async (parkingSessionId: string) => {
+  const result = await getAdminPayments({
+    parkingSessionId,
+    limit: 5,
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  });
+  return result.payments;
 };
 
 /** GET /api/v1/payment/:paymentId — ADMIN | MANAGER | STAFF */

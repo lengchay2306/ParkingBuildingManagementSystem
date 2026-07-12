@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  getPaymentsByParkingSessionId,
+  type AdminPayment,
+} from "@/services/adminPayment.service";
+import { formatVnd } from "@/services/payment.service";
 import {
   getSessionLicensePlate,
   getSessionVehicleTypeLabel,
@@ -45,6 +51,17 @@ export function ParkingSessionDetailDialog({
   open,
   onOpenChange,
 }: ParkingSessionDetailDialogProps) {
+  const sessionId = session?._id ?? null;
+  const isCompleted = session?.status === "COMPLETED";
+  const showHistoryDetails = isCompleted && !showCheckoutAction;
+
+  const paymentQuery = useQuery({
+    queryKey: ["parking-session-payment", sessionId] as const,
+    queryFn: () => getPaymentsByParkingSessionId(sessionId!),
+    enabled: open && showHistoryDetails && Boolean(sessionId),
+    staleTime: 60_000,
+  });
+
   if (!session) {
     return null;
   }
@@ -60,13 +77,20 @@ export function ParkingSessionDetailDialog({
     slotNumber ??
     (typeof session.parkingSlotId === "object" ? session.parkingSlotId.slotNumber : undefined) ??
     "—";
+  const paidCheckoutPayment =
+    paymentQuery.data?.find((payment) => payment.status === "PAID") ??
+    paymentQuery.data?.[0] ??
+    null;
+  const parkingDuration = formatParkingDuration(session.checkInTime, session.checkOutTime);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl border-border/70 bg-card p-0">
         <div className="api-dialog-head shrink-0 px-6 pb-4 pt-6">
           <DialogHeader>
-            <DialogTitle>Thông tin xe đang gửi</DialogTitle>
+            <DialogTitle>
+              {showHistoryDetails ? "Chi tiết phiên gửi xe" : "Thông tin xe đang gửi"}
+            </DialogTitle>
             <DialogDescription>
               Slot {resolvedSlotNumber}
               {floorName ? ` · ${floorName}` : ""}
@@ -78,7 +102,15 @@ export function ParkingSessionDetailDialog({
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
           <section className="space-y-3">
             <SectionHeading>Trạng thái</SectionHeading>
-            <Badge className="border border-emerald-400/40 bg-emerald-500/10 text-emerald-500" variant="outline">
+            <Badge
+              className={cn(
+                "border",
+                isCompleted
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-emerald-400/40 bg-emerald-500/10 text-emerald-500",
+              )}
+              variant="outline"
+            >
               {session.status}
             </Badge>
           </section>
@@ -121,8 +153,59 @@ export function ParkingSessionDetailDialog({
               <DetailRow label="Loại phiên" value={session.sessionType} />
               <DetailRow label="Check-in lúc" value={formatDateTime(session.checkInTime)} />
               <DetailRow label="Nhân viên check-in" value={getUserName(session.checkInStaffId)} />
+              {showHistoryDetails ? (
+                <>
+                  <DetailRow label="Check-out lúc" value={formatDateTime(session.checkOutTime)} />
+                  <DetailRow
+                    label="Nhân viên check-out"
+                    value={getUserName(session.checkOutStaffId)}
+                  />
+                  <DetailRow label="Thời gian gửi" value={parkingDuration} />
+                </>
+              ) : null}
             </DetailGrid>
           </section>
+
+          {showHistoryDetails ? (
+            <section className="space-y-3">
+              <SectionHeading>Thanh toán</SectionHeading>
+              {paymentQuery.isLoading ? (
+                <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-secondary/30 px-3 py-3 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Đang tải thông tin thanh toán...
+                </div>
+              ) : isMonthlySession ? (
+                <DetailGrid>
+                  <DetailRow label="Hình thức" value="Thẻ tháng" />
+                  <DetailRow label="Phí checkout" value="Không tính phí gửi ngày" />
+                </DetailGrid>
+              ) : paidCheckoutPayment ? (
+                <DetailGrid>
+                  <DetailRow
+                    label="Số tiền"
+                    value={formatVnd(paidCheckoutPayment.amount)}
+                  />
+                  <DetailRow
+                    label="Trạng thái"
+                    value={getPaymentStatusLabel(paidCheckoutPayment.status)}
+                  />
+                  <DetailRow
+                    label="Phương thức"
+                    value={getPaymentMethodLabel(paidCheckoutPayment.paymentMethod)}
+                  />
+                  <DetailRow
+                    label="Mã đơn"
+                    value={String(paidCheckoutPayment.orderCode)}
+                    mono
+                  />
+                </DetailGrid>
+              ) : (
+                <p className="rounded-xl border border-border/70 bg-secondary/30 px-3 py-3 text-sm text-muted-foreground">
+                  Không có hóa đơn thanh toán cho phiên này.
+                </p>
+              )}
+            </section>
+          ) : null}
 
           {showCheckoutAction && session.status === "ACTIVE" ? (
             <section className="space-y-3 border-t border-border pt-4">
@@ -225,4 +308,54 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+}
+
+function formatParkingDuration(checkInTime?: string, checkOutTime?: string | null) {
+  if (!checkInTime || !checkOutTime) {
+    return "—";
+  }
+
+  const start = new Date(checkInTime).getTime();
+  const end = new Date(checkOutTime).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+    return "—";
+  }
+
+  const totalMinutes = Math.round((end - start) / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes} phút`;
+  }
+  if (minutes === 0) {
+    return `${hours} giờ`;
+  }
+  return `${hours} giờ ${minutes} phút`;
+}
+
+function getPaymentStatusLabel(status: AdminPayment["status"]) {
+  switch (status) {
+    case "PAID":
+      return "Đã thanh toán";
+    case "PENDING":
+      return "Chờ thanh toán";
+    case "CANCELLED":
+      return "Đã hủy";
+    default:
+      return status;
+  }
+}
+
+function getPaymentMethodLabel(method: AdminPayment["paymentMethod"]) {
+  switch (method) {
+    case "TRANSFER":
+      return "Chuyển khoản (VietQR)";
+    case "CARD":
+      return "Thẻ";
+    case "CASH":
+      return "Tiền mặt";
+    default:
+      return method;
+  }
 }

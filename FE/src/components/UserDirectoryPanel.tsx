@@ -656,19 +656,29 @@ export function UserDirectoryPanel({
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
+                <div className="grid gap-2 sm:col-span-2">
                   <Label htmlFor="user-email">Email</Label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="user-email"
-                      value={isEditing ? editEmail : selectedUser.email}
-                      onChange={(event) => setEditEmail(event.target.value)}
-                      type="email"
-                      className="h-11 rounded-xl pl-9"
-                      disabled={fieldsDisabled}
-                      autoComplete="email"
-                    />
+                    {isEditing ? (
+                      <Input
+                        id="user-email"
+                        value={editEmail}
+                        onChange={(event) => setEditEmail(event.target.value)}
+                        type="email"
+                        className="h-11 rounded-xl pl-9"
+                        disabled={fieldsDisabled}
+                        autoComplete="email"
+                      />
+                    ) : (
+                      <div
+                        id="user-email"
+                        className="flex min-h-11 w-full min-w-0 items-center rounded-xl border border-border/70 bg-secondary/45 py-2 pl-9 pr-3 text-sm break-all text-foreground"
+                        title={selectedUser.email}
+                      >
+                        {selectedUser.email}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1169,7 +1179,9 @@ function UserRow({
         </div>
         <span className="truncate font-medium">{user.fullName}</span>
       </div>
-      <span className="truncate text-muted-foreground">{user.email}</span>
+      <span className="min-w-0 break-all text-muted-foreground" title={user.email}>
+        {user.email}
+      </span>
       <span className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">
         {roleName}
       </span>
