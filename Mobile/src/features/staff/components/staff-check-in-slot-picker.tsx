@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,8 +9,9 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/staff/api';
+import { StaffLoadingLottie } from '@/features/staff/components/staff-loading-lottie';
 import { resolveFloorPresentation, sortFloorsLikeParkingMap } from '@/lib/parking-floor-config';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 const GRID_COLUMNS = 4;
 const CELL_GAP = 6;
@@ -34,7 +34,7 @@ export function StaffCheckInSlotPicker({
   isLoading,
   t,
 }: StaffCheckInSlotPickerProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
@@ -81,7 +81,7 @@ export function StaffCheckInSlotPicker({
   if (isLoading) {
     return (
       <View style={styles.section}>
-        <ActivityIndicator color={DesignColors.primaryFocus} style={{ marginVertical: 24 }} />
+        <StaffLoadingLottie size={96} style={styles.loading} />
       </View>
     );
   }
@@ -180,15 +180,18 @@ export function StaffCheckInSlotPicker({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     section: {
-      backgroundColor: DesignColors.surface1,
+      backgroundColor: DesignColors.surface2,
       borderRadius: Radius.xl,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       padding: SECTION_PADDING,
       gap: Spacing.sm,
+    },
+    loading: {
+      marginVertical: Spacing.lg,
     },
     sectionTitle: {
       ...Typography.bodySm,

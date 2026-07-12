@@ -19,7 +19,7 @@ import {
 import { StaffInlinePlateScanner } from '@/features/staff/components/staff-inline-plate-scanner';
 import type { StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
 import { resolveVehicleTypeLabel } from '@/features/staff/api';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 const VEHICLE_BANNER_SLOT = 52;
 const FIELD_GAP = 12;
@@ -55,7 +55,7 @@ export function StaffCheckInVehicleSection({
   onPlateScanned,
   t,
 }: StaffCheckInVehicleSectionProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [permission, requestPermission] = useCameraPermissions();
   const [isScanning, setIsScanning] = useState(false);
@@ -137,7 +137,7 @@ export function StaffCheckInVehicleSection({
                   autoCapitalize="characters"
                   editable={!isDisabled && !isSearching}
                   onChangeText={onPlateChange}
-                  placeholder="51A-123.45"
+                  placeholder="51A-123.44"
                   placeholderTextColor={DesignColors.placeholder}
                   style={[styles.input, styles.plateInput]}
                   value={plateQuery}
@@ -226,7 +226,7 @@ export function StaffCheckInVehicleSection({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     section: {
       backgroundColor: DesignColors.surface1,

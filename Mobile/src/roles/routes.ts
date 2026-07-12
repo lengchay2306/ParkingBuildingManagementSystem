@@ -14,7 +14,9 @@ export const CUSTOMER_ROUTES = {
 
 export const STAFF_ROUTES = {
   home: '/staff-home',
-  checkIn: '/staff-check-in',
+  scan: '/staff-scan',
+  /** @deprecated Alias for scan — check-in merged into scan tab. */
+  checkIn: '/staff-scan',
   slots: '/staff-slots',
   slotDetail: '/staff-slots/[slotId]',
   sessions: '/staff-sessions',

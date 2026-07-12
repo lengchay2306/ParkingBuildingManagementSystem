@@ -11,7 +11,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffActionButtonProps = {
   label: string;
@@ -32,7 +32,7 @@ export function StaffActionButton({
   compact = false,
   style,
 }: StaffActionButtonProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createButtonStyles(DesignColors), [DesignColors]);
   const isPrimary = variant === 'primary' || variant === 'danger';
 
@@ -98,7 +98,7 @@ export function StaffActionButton({
   );
 }
 
-function createButtonStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createButtonStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     base: {
       borderRadius: Radius.lg,

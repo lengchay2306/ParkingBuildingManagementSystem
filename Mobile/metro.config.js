@@ -9,6 +9,10 @@ const config = getDefaultConfig(__dirname);
 // toggling package exports), which breaks WebGL buffers and shows white line spikes.
 const THREE_ENTRY = path.resolve(__dirname, 'node_modules/three/build/three.module.js');
 
+if (!config.resolver.assetExts.includes('lottie')) {
+  config.resolver.assetExts.push('lottie');
+}
+
 const upstreamResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'three') {

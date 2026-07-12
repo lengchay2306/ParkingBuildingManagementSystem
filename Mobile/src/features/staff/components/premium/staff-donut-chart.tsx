@@ -4,7 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffDonutChartProps = {
   value: number;
@@ -12,6 +12,8 @@ type StaffDonutChartProps = {
   sublabel?: string;
   size?: number;
   strokeWidth?: number;
+  /** Progress ring tone — occupied uses amber to match status cards. */
+  tone?: 'occupied' | 'primary';
 };
 
 export function StaffDonutChart({
@@ -20,13 +22,15 @@ export function StaffDonutChart({
   sublabel,
   size = 168,
   strokeWidth = 14,
+  tone = 'occupied',
 }: StaffDonutChartProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const clamped = Math.min(100, Math.max(0, value));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = (clamped / 100) * circumference;
+  const progressColor = tone === 'occupied' ? DesignColors.semanticWarning : DesignColors.primary;
 
   return (
     <View style={styles.wrap}>
@@ -46,7 +50,7 @@ export function StaffDonutChart({
           r={radius}
           rotation={-90}
           origin={`${size / 2}, ${size / 2}`}
-          stroke={DesignColors.primary}
+          stroke={progressColor}
           strokeDasharray={`${progress} ${circumference}`}
           strokeLinecap="round"
           strokeWidth={strokeWidth}
@@ -61,7 +65,9 @@ export function StaffDonutChart({
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
+  const isDarkCanvas = DesignColors.ink === '#FFFFFF';
+
   return StyleSheet.create({
     wrap: {
       alignItems: 'center',
@@ -71,7 +77,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       ...StyleSheet.absoluteFillObject,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 2,
+      gap: 3,
     },
     value: {
       ...Typography.metricValue,
@@ -81,16 +87,19 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     label: {
       ...Typography.caption,
-      color: DesignColors.inkMuted,
+      color: DesignColors.ink,
+      opacity: isDarkCanvas ? 0.72 : 0.68,
       textTransform: 'uppercase',
       letterSpacing: 1,
       fontSize: 10,
+      fontWeight: '600',
     },
     sublabel: {
       ...Typography.caption,
-      color: DesignColors.accentEmerald,
-      fontSize: 11,
-      fontWeight: '600',
+      color: isDarkCanvas ? '#FFFFFF' : '#E2E8F0',
+      fontSize: 12,
+      fontWeight: '500',
+      letterSpacing: 0.2,
     },
   });
 }

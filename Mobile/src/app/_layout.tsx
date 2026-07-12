@@ -10,10 +10,15 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppToastProvider } from '@/components/app-toast';
 import { Typography } from '@/constants/design';
 import { MobileChatbotWidget } from '@/features/chatbot/components/mobile-chatbot-widget';
-import { StaffTabIcon } from '@/features/staff/components/staff-tab-icon';
+import {
+  createStaffTabBarStyle,
+  getStaffTabBarBottomInset,
+  StaffTabBar,
+} from '@/features/staff/components/staff-tab-bar';
 import { StaffWorkspaceProvider } from '@/features/staff/context/staff-workspace-context';
 import { useAndroidAuthenticatedBack } from '@/hooks/use-android-authenticated-back';
 import { useDesignColors } from '@/hooks/use-design-colors';
+import { DesignColorsStaffLight } from '@/constants/design';
 import { LanguagePreferenceProvider, useLanguagePreference } from '@/hooks/language-preference';
 import { SessionRoleProvider, useSessionRole } from '@/hooks/session-role';
 import { ThemePreferenceProvider, useThemePreference } from '@/hooks/theme-preference';
@@ -41,11 +46,13 @@ function RootNavigator() {
   const insets = useSafeAreaInsets();
   const { role, isAuthenticated, isLoading: isRoleLoading } = useSessionRole();
   const isStaff = role === 'STAFF';
+  const staffColors = isStaff && resolvedScheme === 'light' ? DesignColorsStaffLight : DesignColors;
+  const screenColors = isStaff ? staffColors : DesignColors;
 
   useAndroidAuthenticatedBack(isAuthenticated);
 
-  const tabBarBottomInset =
-    insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 32 : 0;
+  // Staff custom tab bar applies its own inset; keep raw value for createStaffTabBarStyle.
+  const tabBarBottomInset = isStaff ? insets.bottom : getStaffTabBarBottomInset(insets.bottom);
   const tabBarContentHeight = 52;
   const tabBarVerticalPadding = 6;
 
@@ -53,55 +60,58 @@ function RootNavigator() {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      background: DesignColors.canvas,
-      card: DesignColors.surface1,
-      text: DesignColors.ink,
-      border: DesignColors.hairline,
-      primary: DesignColors.primary,
+      background: screenColors.canvas,
+      card: screenColors.surface1,
+      text: screenColors.ink,
+      border: screenColors.hairline,
+      primary: screenColors.primary,
     },
   };
   const darkTheme = {
     ...DarkTheme,
     colors: {
       ...DarkTheme.colors,
-      background: DesignColors.canvas,
-      card: DesignColors.surface1,
-      text: DesignColors.ink,
-      border: DesignColors.hairline,
-      primary: DesignColors.primary,
+      background: screenColors.canvas,
+      card: screenColors.surface1,
+      text: screenColors.ink,
+      border: screenColors.hairline,
+      primary: screenColors.primary,
     },
   };
 
-  const tabBarStyle = {
-    backgroundColor: DesignColors.surface1,
-    borderTopWidth: 1,
-    borderTopColor: DesignColors.hairline,
-    height: tabBarContentHeight + tabBarVerticalPadding * 2 + tabBarBottomInset,
-    paddingBottom: tabBarBottomInset + tabBarVerticalPadding,
-    paddingTop: tabBarVerticalPadding,
-    elevation: 0,
-    shadowOpacity: 0,
-  };
+  const tabBarStyle = isStaff
+    ? createStaffTabBarStyle(tabBarBottomInset)
+    : {
+        backgroundColor: screenColors.surface1,
+        borderTopWidth: 1,
+        borderTopColor: screenColors.hairline,
+        height: tabBarContentHeight + tabBarVerticalPadding * 2 + tabBarBottomInset,
+        paddingBottom: tabBarBottomInset + tabBarVerticalPadding,
+        paddingTop: tabBarVerticalPadding,
+        elevation: 0,
+        shadowOpacity: 0,
+      };
 
-  const staffTabBarActiveTintColor = DesignColors.primary;
-  const staffTabBarInactiveTintColor = DesignColors.inkSubtle;
+  const staffTabBarActiveTintColor = screenColors.primary;
+  const staffTabBarInactiveTintColor = screenColors.inkSubtle;
 
   return (
     <ThemeProvider value={resolvedScheme === 'dark' ? darkTheme : lightTheme}>
-      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: DesignColors.canvas }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: screenColors.canvas }}>
         <StatusBar
           style={resolvedScheme === 'dark' ? 'light' : 'dark'}
-          backgroundColor={DesignColors.canvas}
+          backgroundColor={screenColors.canvas}
           translucent={false}
         />
         <AppToastProvider>
           <AnimatedSplashOverlay />
           <Tabs
+            tabBar={isStaff ? (props) => <StaffTabBar {...props} /> : undefined}
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarActiveTintColor: isStaff ? staffTabBarActiveTintColor : DesignColors.ink,
               tabBarInactiveTintColor: isStaff ? staffTabBarInactiveTintColor : DesignColors.inkSubtle,
-              tabBarShowLabel: true,
+              tabBarShowLabel: !isStaff,
               tabBarStyle,
               tabBarLabelStyle: {
                 ...Typography.caption,
@@ -109,7 +119,9 @@ function RootNavigator() {
                 marginTop: 2,
                 fontWeight: '500',
               },
-              tabBarIcon: ({ color, size, focused }) => {
+              tabBarIcon: isStaff
+                ? () => null
+                : ({ color, size, focused }) => {
                 const iconSize = size + 1;
                 if (route.name === '(customer)/home') {
                   return <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize} color={color} />;
@@ -128,61 +140,6 @@ function RootNavigator() {
                 if (route.name === '(customer)/settings') {
                   return (
                     <Ionicons name={focused ? 'settings' : 'settings-outline'} size={iconSize} color={color} />
-                  );
-                }
-                if (route.name === '(staff)/staff-home') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="speedometer"
-                      outlineName="speedometer-outline"
-                      size={size}
-                    />
-                  );
-                }
-                if (route.name === '(staff)/staff-slots') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="grid"
-                      outlineName="grid-outline"
-                      size={size}
-                    />
-                  );
-                }
-                if (route.name === '(staff)/staff-check-in') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="scan"
-                      outlineName="scan-outline"
-                      size={size}
-                    />
-                  );
-                }
-                if (route.name === '(staff)/staff-sessions') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="list"
-                      outlineName="list-outline"
-                      size={size}
-                    />
-                  );
-                }
-                if (route.name === '(staff)/staff-profile') {
-                  return (
-                    <StaffTabIcon
-                      color={color}
-                      focused={focused}
-                      name="person"
-                      outlineName="person-outline"
-                      size={size}
-                    />
                   );
                 }
                 if (route.name === '(staff)/staff-settings') {
@@ -233,8 +190,9 @@ function RootNavigator() {
               }}
             />
             <Tabs.Screen name="(customer)/settings" options={{ href: null }} />
-            <Tabs.Screen name="(manager)/manager" options={{ href: null }} />
             <Tabs.Screen name="(customer)/driver" options={{ href: null }} />
+            <Tabs.Screen name="payment" options={{ href: null }} />
+            <Tabs.Screen name="(manager)/manager" options={{ href: null }} />
             <Tabs.Screen name="(admin)/admin" options={{ href: null }} />
 
             <Tabs.Screen
@@ -252,12 +210,13 @@ function RootNavigator() {
               }}
             />
             <Tabs.Screen
-              name="(staff)/staff-check-in"
+              name="(staff)/staff-scan"
               options={{
-                title: t('Check-in', 'Check-in'),
-                href: isStaff || isRoleLoading ? '/staff-check-in' : null,
+                title: t('Quét QR', 'Scan QR'),
+                href: isStaff || isRoleLoading ? '/staff-scan' : null,
               }}
             />
+            <Tabs.Screen name="(staff)/staff-check-in" options={{ href: null }} />
             <Tabs.Screen
               name="(staff)/staff-sessions"
               options={{
@@ -266,7 +225,13 @@ function RootNavigator() {
               }}
             />
             <Tabs.Screen name="(staff)/staff-operations" options={{ href: null }} />
-            <Tabs.Screen name="(staff)/staff-profile" options={{ href: null }} />
+            <Tabs.Screen
+              name="(staff)/staff-profile"
+              options={{
+                title: t('Staff', 'Staff'),
+                href: isStaff || isRoleLoading ? '/staff-profile' : null,
+              }}
+            />
             <Tabs.Screen name="(staff)/staff-settings" options={{ href: null }} />
             <Tabs.Screen name="(staff)/staff" options={{ href: null }} />
           </Tabs>

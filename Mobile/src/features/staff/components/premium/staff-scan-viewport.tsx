@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 type StaffScanViewportProps = {
   onPress: () => void;
@@ -13,7 +13,7 @@ type StaffScanViewportProps = {
 };
 
 export function StaffScanViewport({ onPress, statusText, disabled }: StaffScanViewportProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   return (
@@ -38,7 +38,7 @@ export function StaffScanViewport({ onPress, statusText, disabled }: StaffScanVi
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   const cornerBase = {
     position: 'absolute' as const,
     width: 28,

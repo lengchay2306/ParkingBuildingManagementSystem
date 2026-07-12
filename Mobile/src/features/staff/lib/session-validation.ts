@@ -31,6 +31,18 @@ export function validateStaffPhoneInput(
   return { ok: true, phone };
 }
 
+/** Optional phone for guest walk-in — validates only when non-empty. */
+export function validateOptionalStaffPhone(value: string): { ok: true; phone?: string } | StaffPhoneValidation {
+  const phone = normalizeStaffPhone(value);
+  if (!phone) {
+    return { ok: true, phone: undefined };
+  }
+  if (!STAFF_PHONE_PATTERN.test(phone)) {
+    return { ok: false, messageKey: 'invalid' };
+  }
+  return { ok: true, phone };
+}
+
 export function staffPhoneErrorMessage(
   key: 'empty' | 'invalid',
   t: (vi: string, en: string) => string,

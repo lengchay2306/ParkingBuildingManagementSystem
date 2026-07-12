@@ -251,30 +251,12 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       ...Typography.caption,
       color: DesignColors.inkMuted,
     },
-    quickGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: Spacing.sm,
-    },
-    quickItem: {
-      flexBasis: '47%',
-      flexGrow: 1,
-      borderRadius: Radius.lg,
-      borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.sm,
-      alignItems: 'center',
-    },
-    quickText: {
-      ...Typography.bodySm,
-      color: DesignColors.ink,
-      fontWeight: '500',
-      textAlign: 'center',
-    },
     sessionList: {
       gap: Spacing.sm,
+    },
+    slotsListHeader: {
+      gap: Spacing.lg,
+      marginBottom: Spacing.sm,
     },
     sessionRow: {
       flexDirection: 'row',
@@ -331,16 +313,19 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkSubtle,
     },
     navCard: {
-      borderRadius: Radius.lg,
+      borderRadius: Radius.xl,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
+      backgroundColor: DesignColors.surface1,
       padding: Spacing.md,
       gap: 4,
+      minHeight: 72,
+      justifyContent: 'center',
     },
     navCardPressed: {
-      opacity: 0.85,
-      backgroundColor: DesignColors.surface3,
+      opacity: 0.88,
+      backgroundColor: DesignColors.surface2,
+      transform: [{ scale: 0.985 }],
     },
     navCardTitle: {
       ...Typography.bodySm,
@@ -351,6 +336,23 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       ...Typography.caption,
       color: DesignColors.inkMuted,
     },
+    navCardRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    navCardIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: Radius.lg,
+      backgroundColor: `${DesignColors.primaryFocus}14`,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    navCardText: {
+      flex: 1,
+      gap: 4,
+    },
     settingsButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -360,6 +362,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
       paddingHorizontal: Spacing.md,
+      minHeight: 48,
       paddingVertical: Spacing.md,
     },
     settingsButtonText: {
@@ -371,6 +374,9 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       ...Typography.cardTitle,
       color: DesignColors.ink,
       fontWeight: '600',
+    },
+    profileBlock: {
+      gap: Spacing.xs,
     },
     profileMeta: {
       ...Typography.bodySm,
@@ -603,6 +609,42 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       color: DesignColors.inkSubtle,
       fontSize: 11,
     },
+    floorMetaCompact: {
+      gap: 2,
+    },
+    floorMetaCompactTitle: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontWeight: '600',
+      fontSize: 11,
+    },
+    floorMetaCompactStats: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+      fontWeight: '600',
+      fontSize: 13,
+    },
+    legendRowCompact: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+    },
+    legendItemCompact: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    legendTextCompact: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 10,
+    },
+    slotGridContent: {
+      gap: Spacing.sm,
+    },
+    slotGridRow: {
+      gap: Spacing.sm,
+    },
     slotPickerPanel: {
       gap: Spacing.sm,
     },
@@ -666,6 +708,87 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     compactSlotCellTextSelected: {
       color: DesignColors.ink,
       fontWeight: '700',
+    },
+    chartWrap: {
+      alignItems: 'center',
+      paddingVertical: Spacing.sm,
+    },
+    sectionLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      fontSize: 11,
+      fontWeight: '600',
+      marginBottom: Spacing.xs,
+    },
+    navSection: {
+      gap: Spacing.sm,
+    },
+    navGrid: {
+      gap: Spacing.sm,
+    },
+    dateNavRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    dateNavBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dateNavBtnText: {
+      ...Typography.headline,
+      color: DesignColors.ink,
+      fontSize: 22,
+      lineHeight: 24,
+    },
+    dateNavCenter: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 2,
+    },
+    dateNavLabel: {
+      ...Typography.body,
+      color: DesignColors.ink,
+      fontWeight: '700',
+    },
+    dateNavMeta: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 11,
+    },
+    dateTodayBtn: {
+      minHeight: 44,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: `${DesignColors.primaryFocus}55`,
+      backgroundColor: `${DesignColors.primaryFocus}14`,
+      paddingHorizontal: Spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dateTodayBtnText: {
+      ...Typography.button,
+      color: DesignColors.primaryFocus,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    emptyState: {
+      ...Typography.body,
+      color: DesignColors.inkMuted,
+      textAlign: 'center',
+      marginTop: Spacing.lg,
+      paddingHorizontal: Spacing.md,
+    },
+    loadingIndicator: {
+      marginTop: Spacing.lg,
     },
   });
 }

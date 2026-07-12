@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { StaffPressableScale } from '@/features/staff/motion/staff-motion';
 
 type StaffSpotListCardProps = {
   title: string;
@@ -23,7 +24,7 @@ export function StaffSpotListCard({
   tone,
   onPress,
 }: StaffSpotListCardProps) {
-  const DesignColors = useDesignColors();
+  const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const dotColor =
@@ -37,14 +38,11 @@ export function StaffSpotListCard({
     tone === 'available' ? DesignColors.accentEmerald : tone === 'occupied' ? DesignColors.accentAmber : 'transparent';
 
   return (
-    <Pressable
+    <StaffPressableScale
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { borderLeftColor: accentBorder },
-        pressed && onPress && styles.pressed,
-      ]}>
+      scaleTo={0.985}
+      style={[styles.card, { borderLeftColor: accentBorder }]}>
       <View style={styles.left}>
         <ThemedText style={styles.title}>{title}</ThemedText>
         <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
@@ -56,11 +54,11 @@ export function StaffSpotListCard({
         </View>
         {timestamp ? <ThemedText style={styles.time}>{timestamp}</ThemedText> : null}
       </View>
-    </Pressable>
+    </StaffPressableScale>
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     card: {
       flexDirection: 'row',
@@ -73,10 +71,12 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderColor: DesignColors.hairline,
       borderLeftWidth: 3,
       padding: Spacing.md,
-    },
-    pressed: {
-      opacity: 0.9,
-      backgroundColor: DesignColors.surface2,
+      minHeight: 72,
+      shadowColor: DesignColors.semanticOverlay,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 1,
     },
     left: {
       flex: 1,

@@ -9,23 +9,42 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 type ChatComposerProps = {
   disabled?: boolean;
   isSending?: boolean;
+  onBlur?: () => void;
+  onFocus?: () => void;
   onSend: (message: string) => void;
   placeholder: string;
 };
 
-export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatComposerProps) {
+export function ChatComposer({
+  disabled,
+  isSending,
+  onBlur,
+  onFocus,
+  onSend,
+  placeholder,
+}: ChatComposerProps) {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [text, setText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const canSend = !disabled && !isSending && text.trim().length > 0;
 
   return (
     <View style={styles.row}>
       <TextInput
+        blurOnSubmit={false}
         editable={!disabled && !isSending}
         multiline
+        onBlur={() => {
+          setIsFocused(false);
+          onBlur?.();
+        }}
         onChangeText={setText}
+        onFocus={() => {
+          setIsFocused(true);
+          onFocus?.();
+        }}
         onSubmitEditing={() => {
           if (!canSend) {
             return;
@@ -36,7 +55,8 @@ export function ChatComposer({ disabled, isSending, onSend, placeholder }: ChatC
         }}
         placeholder={placeholder}
         placeholderTextColor={DesignColors.placeholder}
-        style={styles.input}
+        returnKeyType="send"
+        style={[styles.input, isFocused && styles.inputFocused]}
         value={text}
       />
       <Pressable
@@ -69,8 +89,8 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     },
     input: {
       flex: 1,
-      minHeight: 42,
-      maxHeight: 100,
+      minHeight: 44,
+      maxHeight: 120,
       ...Typography.bodySm,
       color: DesignColors.ink,
       backgroundColor: DesignColors.surface3,
@@ -79,6 +99,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       borderColor: DesignColors.hairlineStrong,
       paddingHorizontal: Spacing.md,
       paddingVertical: 10,
+      textAlignVertical: 'center',
+    },
+    inputFocused: {
+      borderColor: DesignColors.primaryFocus,
+      backgroundColor: DesignColors.canvas,
     },
     sendBtn: {
       width: 42,

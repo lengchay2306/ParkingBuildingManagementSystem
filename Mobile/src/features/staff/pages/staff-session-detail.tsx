@@ -1,11 +1,10 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import {
   checkStaffPayment,
@@ -18,7 +17,14 @@ import {
   type StaffDetailCell,
 } from '@/features/staff/components/premium';
 import { StaffActionButton } from '@/features/staff/components/staff-action-button';
+import { StaffBackButton } from '@/features/staff/components/staff-back-button';
 import { StaffPaymentQrModal } from '@/features/staff/components/staff-payment-qr-modal';
+import {
+  createHiddenStaffTabBarStyle,
+  createStaffTabBarStyle,
+} from '@/features/staff/components/staff-tab-bar';
+import { findStaffActiveSessionById } from '@/features/staff/api';
+import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { useStaffRoleGuard } from '@/features/staff/hooks/use-staff-role-guard';
@@ -30,22 +36,42 @@ import {
   estimateSessionCost,
   formatDurationFrom,
   formatTimeLabel,
+  mapParkingSessionToRecord,
+  type StaffCheckInRecord,
 } from '@/features/staff/lib/utils';
-import { useDesignColors } from '@/hooks/use-design-colors';
+import { createStaffStyles } from '@/features/staff/styles/common';
+import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { STAFF_ROUTES } from '@/roles';
+
+function resolveRouteParam(value: string | string[] | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export default function StaffSessionDetailScreen() {
   useStaffRoleGuard();
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
+  const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId: string | string[] }>();
+  const resolvedSessionId = resolveRouteParam(sessionIdParam);
   const { showToast } = useAppToast();
   const { t } = useLanguagePreference();
-  const DesignColors = useDesignColors();
-  const { parkingSessions, loadParkingSessions, checkoutSession } = useStaffWorkspace();
+  const DesignColors = useStaffDesignColors();
+  const commonStyles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
+  const {
+    parkingSessions,
+    loadParkingSessions,
+    loadParkingSlots,
+    checkoutSession,
+    recordCheckIn,
+  } = useStaffWorkspace();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [hydratedSession, setHydratedSession] = useState<StaffCheckInRecord | null>(null);
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [tick, setTick] = useState(0);
@@ -53,10 +79,38 @@ export default function StaffSessionDetailScreen() {
   const [isCreatingBill, setIsCreatingBill] = useState(false);
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
 
-  const session = useMemo(
-    () => parkingSessions.find((item) => item.id === sessionId) ?? null,
-    [parkingSessions, sessionId],
-  );
+  const session = useMemo(() => {
+    if (!resolvedSessionId) {
+      return null;
+    }
+    return (
+      parkingSessions.find((item) => item.id === resolvedSessionId) ??
+      (hydratedSession?.id === resolvedSessionId ? hydratedSession : null)
+    );
+  }, [hydratedSession, parkingSessions, resolvedSessionId]);
+
+  const hydrateSession = useCallback(async () => {
+    if (!resolvedSessionId || session) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await loadParkingSessions({ status: 'ACTIVE', limit: 200 }).catch(() => undefined);
+
+      const remoteSession = await findStaffActiveSessionById(resolvedSessionId);
+      if (!remoteSession) {
+        return;
+      }
+
+      const floors = await loadParkingSlots().catch(() => []);
+      const record = mapParkingSessionToRecord(remoteSession, floors);
+      recordCheckIn(record);
+      setHydratedSession(record);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadParkingSessions, loadParkingSlots, recordCheckIn, resolvedSessionId, session]);
 
   const isActive = session?.status.toUpperCase() === 'ACTIVE';
   const isMonthlySession = session?.sessionType?.toUpperCase() === 'MONTH';
@@ -68,14 +122,8 @@ export default function StaffSessionDetailScreen() {
   }, [checkoutPhone, session?.customerPhone]);
 
   useEffect(() => {
-    if (!sessionId || session) {
-      return;
-    }
-    setIsLoading(true);
-    void loadParkingSessions()
-      .catch(() => undefined)
-      .finally(() => setIsLoading(false));
-  }, [loadParkingSessions, session, sessionId]);
+    void hydrateSession();
+  }, [hydrateSession]);
 
   useEffect(() => {
     if (!isActive) {
@@ -136,13 +184,19 @@ export default function StaffSessionDetailScreen() {
     navigation.setOptions({ animation: 'none' });
   }, [navigation]);
 
+  const tabNavigation = navigation.getParent()?.getParent();
+
   const hideTabBar = useCallback(() => {
-    navigation.getParent()?.setOptions({ tabBarStyle: { display: 'none' } });
-  }, [navigation]);
+    tabNavigation?.setOptions({ tabBarStyle: createHiddenStaffTabBarStyle() });
+  }, [tabNavigation]);
+
+  const tabBarBottomInset = insets.bottom;
 
   const restoreTabBar = useCallback(() => {
-    navigation.getParent()?.setOptions({ tabBarStyle: undefined });
-  }, [navigation]);
+    tabNavigation?.setOptions({
+      tabBarStyle: createStaffTabBarStyle(tabBarBottomInset),
+    });
+  }, [tabNavigation, tabBarBottomInset]);
 
   useEffect(() => {
     hideTabBar();
@@ -227,49 +281,57 @@ export default function StaffSessionDetailScreen() {
 
   if (isLoading && !session) {
     return (
-      <ThemedView style={styles.container}>
+      <View style={[styles.container, { backgroundColor: DesignColors.canvas }]}>
         <View style={[styles.centered, { paddingTop: insets.top + Spacing.xl }]}>
           <ActivityIndicator color={DesignColors.primary} />
         </View>
-      </ThemedView>
+      </View>
     );
   }
 
   if (!session) {
     return (
-      <ThemedView style={styles.container}>
-        <View style={[styles.content, { paddingTop: insets.top + Spacing.md }]}>
-          <Pressable onPress={() => router.back()}>
-            <ThemedText style={styles.back}>{t('← Quay lại', '← Back')}</ThemedText>
-          </Pressable>
+      <StaffPageShell reserveBottomNav={false} scrollable>
+        <StaffBackButton
+          label={t('Quay lại', 'Back')}
+          onPress={() => router.replace(STAFF_ROUTES.sessions as never)}
+        />
+        <View style={commonStyles.card}>
           <ThemedText style={styles.missing}>
             {t('Không tìm thấy phiên gửi xe.', 'Parking session not found.')}
           </ThemedText>
           <StaffActionButton
             label={t('Tải lại', 'Reload')}
-            onPress={() => void loadParkingSessions()}
-            style={{ marginTop: Spacing.md }}
+            onPress={() => void hydrateSession()}
+            style={commonStyles.fullWidthButton}
             variant="secondary"
           />
+          <StaffActionButton
+            label={t('Về danh sách', 'Back to list')}
+            onPress={() => router.replace(STAFF_ROUTES.sessions as never)}
+            style={commonStyles.fullWidthButton}
+            variant="ghost"
+          />
         </View>
-      </ThemedView>
+      </StaffPageShell>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: DesignColors.canvas }]}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: insets.top + Spacing.md,
-            paddingBottom: isActive ? insets.bottom + 220 : insets.bottom + Spacing.xl,
+            // Root SafeAreaView already applies top inset — don't add insets.top again.
+            paddingTop: Spacing.sm,
+            paddingBottom: Spacing.lg,
           },
         ]}
-        showsVerticalScrollIndicator={false}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => pressed && { opacity: 0.8 }}>
-          <ThemedText style={styles.back}>{t('← Quay lại', '← Back')}</ThemedText>
-        </Pressable>
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}>
+        <StaffBackButton label={t('Quay lại', 'Back')} onPress={() => router.back()} />
 
         <View style={styles.headerCapsule}>
           <ThemedText style={styles.plate}>{session.plate}</ThemedText>
@@ -345,29 +407,28 @@ export default function StaffSessionDetailScreen() {
         onConfirm={() => void handleConfirmQrPayment()}
         t={t}
       />
-    </ThemedView>
+    </View>
   );
 }
 
-function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
+function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: DesignColors.canvas,
     },
+    scroll: {
+      flex: 1,
+    },
     content: {
       paddingHorizontal: Spacing.md,
-      gap: Spacing.lg,
+      gap: Spacing.md,
+      flexGrow: 0,
     },
     centered: {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    back: {
-      ...Typography.bodySm,
-      color: DesignColors.accentSky,
-      fontWeight: '600',
     },
     missing: {
       ...Typography.body,
@@ -395,7 +456,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     costDivider: {
       height: 1,
       backgroundColor: DesignColors.hairline,
-      marginTop: Spacing.sm,
+      marginTop: Spacing.xs,
     },
     costLabel: {
       ...Typography.caption,
@@ -406,7 +467,7 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
     costValue: {
       ...Typography.metricValue,
       color: DesignColors.accentSky,
-      fontSize: 32,
+      fontSize: 28,
     },
     costMeta: {
       ...Typography.caption,
@@ -418,10 +479,6 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       fontStyle: 'italic',
     },
     checkoutBar: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
       gap: Spacing.sm,
       paddingHorizontal: Spacing.md,
       paddingTop: Spacing.sm,

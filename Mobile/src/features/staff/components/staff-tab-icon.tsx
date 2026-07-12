@@ -2,8 +2,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { useDesignColors } from '@/hooks/use-design-colors';
-
 type StaffTabIconProps = {
   focused: boolean;
   color: string;
@@ -13,8 +11,6 @@ type StaffTabIconProps = {
 };
 
 export function StaffTabIcon({ focused, color, size, name, outlineName }: StaffTabIconProps) {
-  const DesignColors = useDesignColors();
-
   return (
     <View style={styles.wrap}>
       <Ionicons color={color} name={focused ? name : outlineName} size={size + 1} />
@@ -23,8 +19,8 @@ export function StaffTabIcon({ focused, color, size, name, outlineName }: StaffT
           style={[
             styles.dot,
             {
-              backgroundColor: DesignColors.accentViolet,
-              shadowColor: DesignColors.accentViolet,
+              backgroundColor: color,
+              shadowColor: color,
             },
           ]}
         />
