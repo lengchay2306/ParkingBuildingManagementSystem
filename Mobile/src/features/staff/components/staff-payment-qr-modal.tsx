@@ -93,9 +93,6 @@ export function StaffPaymentQrModal({
           ]}>
           <View style={styles.header}>
             <ThemedText style={styles.title}>{t('Thanh toán VietQR', 'VietQR payment')}</ThemedText>
-            <Pressable onPress={onClose} hitSlop={12}>
-              <ThemedText style={styles.close}>{t('Đóng', 'Close')}</ThemedText>
-            </Pressable>
           </View>
 
           {notice ? (
@@ -216,19 +213,11 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       paddingBottom: Spacing.sm,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       marginBottom: Spacing.xs,
     },
     title: {
       ...Typography.cardTitle,
       color: DesignColors.ink,
-    },
-    close: {
-      ...Typography.bodySm,
-      color: DesignColors.primary,
-      fontWeight: '600',
     },
     unpaidBanner: {
       flexDirection: 'row',
