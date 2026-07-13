@@ -33,9 +33,7 @@ import {
   validateStaffPhoneInput,
 } from '@/features/staff/lib/session-validation';
 import {
-  estimateSessionCost,
   formatDurationFrom,
-  formatTimeLabel,
   mapParkingSessionToRecord,
   type StaffCheckInRecord,
 } from '@/features/staff/lib/utils';
@@ -361,33 +359,6 @@ export default function StaffSessionDetailScreen() {
         </View>
 
         <StaffSessionDetailGrid cells={detailCells} />
-
-        <View style={styles.costDivider} />
-        <ThemedText style={styles.costLabel}>
-          {isMonthlySession
-            ? t('Thẻ tháng', 'Monthly card')
-            : t('Chi phí ước tính', 'Estimated cost')}
-        </ThemedText>
-        <ThemedText style={styles.costValue}>
-          {isMonthlySession
-            ? t('Miễn phí (thẻ tháng)', 'Free (monthly card)')
-            : estimateSessionCost(session.checkInTime)}
-        </ThemedText>
-        <ThemedText style={styles.costMeta}>
-          {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
-          {formatTimeLabel(session.checkInTime ?? '')}
-        </ThemedText>
-        <ThemedText style={styles.costHint}>
-          {isMonthlySession
-            ? t(
-                'Phiên thẻ tháng: xác nhận SĐT để ra cổng.',
-                'Monthly session: confirm phone to exit.',
-              )
-            : t(
-                'Phiên ngày: tạo VietQR → khách quét → xác nhận thanh toán.',
-                'Daily session: create VietQR → customer pays → confirm.',
-              )}
-        </ThemedText>
       </ScrollView>
 
       {isActive ? (
@@ -479,31 +450,6 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       fontWeight: '700',
       letterSpacing: 0.6,
       flex: 1,
-    },
-    costDivider: {
-      height: 1,
-      backgroundColor: DesignColors.hairline,
-      marginTop: Spacing.xs,
-    },
-    costLabel: {
-      ...Typography.caption,
-      color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    costValue: {
-      ...Typography.metricValue,
-      color: DesignColors.accentSky,
-      fontSize: 28,
-    },
-    costMeta: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
-    },
-    costHint: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
-      fontStyle: 'italic',
     },
     checkoutBar: {
       gap: Spacing.sm,
