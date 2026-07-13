@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -74,6 +74,7 @@ export function ChatbotPanel({
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [panelView, setPanelView] = useState<PanelView>('chat');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const windowHeightWhenClosedRef = useRef(windowHeight);
 
   useEffect(() => {
     if (!visible) {
@@ -81,6 +82,12 @@ export function ChatbotPanel({
       setKeyboardHeight(0);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (keyboardHeight === 0) {
+      windowHeightWhenClosedRef.current = windowHeight;
+    }
+  }, [keyboardHeight, windowHeight]);
 
   useEffect(() => {
     if (!visible) {
@@ -116,9 +123,10 @@ export function ChatbotPanel({
     return () => subscription.remove();
   }, [visible]);
 
-  // Sit the sheet above the keyboard; shrink height so the composer stays visible.
-  // Android uses softwareKeyboardLayoutMode "resize" (window already shrinks) — don't add margin again.
-  const keyboardOffset = Platform.OS === 'ios' ? Math.max(0, keyboardHeight) : 0;
+  // Lift sheet above keyboard. On Android adjustResize the window may already
+  // shrink — only offset by the remaining overlap to avoid double-lift.
+  const resizedBy = Math.max(0, windowHeightWhenClosedRef.current - windowHeight);
+  const keyboardOffset = Math.max(0, keyboardHeight - (Platform.OS === 'android' ? resizedBy : 0));
   const maxSheetHeight = Math.max(280, windowHeight - keyboardOffset - SHEET_TOP_GAP);
   const preferredSheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
   const sheetHeight = Math.min(preferredSheetHeight, maxSheetHeight);
