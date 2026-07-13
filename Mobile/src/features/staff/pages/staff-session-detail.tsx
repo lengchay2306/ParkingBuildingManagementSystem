@@ -67,6 +67,7 @@ export default function StaffSessionDetailScreen() {
     parkingSessions,
     loadParkingSessions,
     loadParkingSlots,
+    refreshWorkspace,
     checkoutSession,
     recordCheckIn,
   } = useStaffWorkspace();
@@ -236,6 +237,9 @@ export default function StaffSessionDetailScreen() {
       setIsCheckingOut(true);
       try {
         await checkoutSession(session.id, phoneResult.phone);
+        setHydratedSession((current) =>
+          current ? { ...current, status: 'COMPLETED' } : current,
+        );
         showToast(
           t(`${paymentLabel}: checkout thành công`, `${paymentLabel}: checkout successful`),
           'success',
@@ -315,7 +319,15 @@ export default function StaffSessionDetailScreen() {
     try {
       const message = await checkStaffPayment(paymentBill.orderCode);
       setPaymentBill(null);
-      await loadParkingSessions();
+      setHydratedSession((current) =>
+        current
+          ? {
+              ...current,
+              status: 'COMPLETED',
+            }
+          : current,
+      );
+      await refreshWorkspace({ status: 'ACTIVE', limit: 200 });
       showToast(message || t('Thanh toán thành công', 'Payment successful'), 'success');
       goBack();
     } catch (error) {
@@ -332,7 +344,7 @@ export default function StaffSessionDetailScreen() {
     } finally {
       setIsConfirmingPayment(false);
     }
-  }, [goBack, loadParkingSessions, paymentBill, showToast, t]);
+  }, [goBack, paymentBill, refreshWorkspace, showToast, t]);
 
   if (isLoading && !session) {
     return (

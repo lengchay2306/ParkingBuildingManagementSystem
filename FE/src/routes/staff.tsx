@@ -101,12 +101,27 @@ function StaffPage() {
   const allReservations = reservationsQuery.data ?? [];
   const allParkingSessions = parkingSessionsQuery.data ?? [];
 
-  const handleRefresh = () => {
-    void Promise.all([
+  const handleRefresh = async () => {
+    await Promise.all([
       parkingFloorsQuery.refetch(),
       reservationsQuery.refetch(),
       parkingSessionsQuery.refetch(),
+      queryClient.invalidateQueries({ queryKey: ["staff-parking-history"] }),
+      queryClient.invalidateQueries({ queryKey: ["staff-gate-lookup"] }),
+      queryClient.invalidateQueries({ queryKey: ["staff-checkout-payment"] }),
     ]);
+  };
+
+  const invalidateStaffData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: staffReservationsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: staffParkingSessionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["staff-parking-history"] }),
+      queryClient.invalidateQueries({ queryKey: ["staff-gate-lookup"] }),
+      queryClient.invalidateQueries({ queryKey: ["staff-checkout-payment"] }),
+    ]);
+    await handleRefresh();
   };
 
   const upsertSessionInCache = (session: ParkingSession) => {
@@ -210,8 +225,16 @@ function StaffPage() {
   const checkPaymentMutation = useMutation({
     mutationFn: checkStaffPayment,
     onSuccess: async (result) => {
+      const completedSessionId = paymentBill?.parkingSessionId;
       setPaymentBill(null);
       setPaymentBillPlate(undefined);
+      if (completedSessionId) {
+        queryClient.setQueryData(
+          staffParkingSessionsQueryKey,
+          (current: ParkingSession[] | undefined) =>
+            (current ?? []).filter((item) => item._id !== completedSessionId),
+        );
+      }
       await invalidateStaffData();
       toast.success("Thanh toán thành công", { description: result.message });
     },
@@ -222,21 +245,16 @@ function StaffPage() {
     },
   });
 
-  const invalidateStaffData = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: staffReservationsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: staffParkingSessionsQueryKey }),
-      queryClient.invalidateQueries({ queryKey: ["staff-parking-history"] }),
-      queryClient.invalidateQueries({ queryKey: ["staff-gate-lookup"] }),
-    ]);
-  };
-
   const handleCheckInSuccess = (session: ParkingSession) => {
     upsertSessionInCache(session);
   };
 
-  const handleCheckoutSuccess = (_session: ParkingSession) => {
+  const handleCheckoutSuccess = (session: ParkingSession) => {
+    upsertSessionInCache({
+      ...session,
+      status: "COMPLETED",
+      checkOutTime: session.checkOutTime ?? new Date().toISOString(),
+    });
     void invalidateStaffData();
   };
 

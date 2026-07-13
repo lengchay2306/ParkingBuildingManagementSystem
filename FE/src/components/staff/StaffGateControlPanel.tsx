@@ -73,7 +73,7 @@ type StaffGateControlPanelProps = {
   allParkingSessions: ParkingSession[];
   onCheckInSuccess: (session: ParkingSession) => void;
   onCheckoutSuccess: (session: ParkingSession) => void;
-  onRefreshData: () => void;
+  onRefreshData: () => void | Promise<void>;
 };
 
 type PanelPhase = "choose-mode" | "scanning";
@@ -280,9 +280,23 @@ export function StaffGateControlPanel({
     mutationFn: (orderCode: number) => checkStaffPayment(orderCode),
     onSuccess: async (result) => {
       toast.success("Thanh toán thành công", { description: result.message });
+      const completedSession = activeSession;
       setPaymentBill(null);
-      resetFlow();
-      onRefreshData();
+      setGateMode(null);
+      setPhase("choose-mode");
+      setScannedPlate("");
+      setManualInput("");
+      setManualError(null);
+      setWalkInSelectedSlot(null);
+      setSlotPickerOpen(false);
+      if (completedSession) {
+        onCheckoutSuccess({
+          ...completedSession,
+          status: "COMPLETED",
+          checkOutTime: new Date().toISOString(),
+        });
+      }
+      await Promise.resolve(onRefreshData());
     },
     onError: (error) => {
       toast.error("Chưa xác nhận được thanh toán", {
