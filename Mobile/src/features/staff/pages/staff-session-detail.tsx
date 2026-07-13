@@ -9,6 +9,7 @@ import { Radius, Spacing, Typography } from '@/constants/design';
 import {
   checkStaffPayment,
   createStaffBillQr,
+  formatVnd,
   type StaffBillQrResult,
 } from '@/features/payment/api';
 import {
@@ -33,7 +34,6 @@ import {
   validateStaffPhoneInput,
 } from '@/features/staff/lib/session-validation';
 import {
-  estimateSessionCost,
   formatDurationFrom,
   formatTimeLabel,
   mapParkingSessionToRecord,
@@ -364,19 +364,28 @@ export default function StaffSessionDetailScreen() {
 
         <View style={styles.costDivider} />
         <ThemedText style={styles.costLabel}>
-          {isMonthlySession
-            ? t('Thẻ tháng', 'Monthly card')
-            : t('Chi phí ước tính', 'Estimated cost')}
+          {t('Số tiền phải trả', 'Amount due')}
         </ThemedText>
         <ThemedText style={styles.costValue}>
           {isMonthlySession
             ? t('Miễn phí (thẻ tháng)', 'Free (monthly card)')
-            : estimateSessionCost(session.checkInTime)}
+            : paymentBill
+              ? formatVnd(paymentBill.amount)
+              : t('Hiện sau khi tạo VietQR', 'Shown after creating VietQR')}
         </ThemedText>
-        <ThemedText style={styles.costMeta}>
-          {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
-          {formatTimeLabel(session.checkInTime ?? '')}
-        </ThemedText>
+        {paymentBill && !isMonthlySession ? (
+          <ThemedText style={styles.costMeta}>
+            {t('Thời gian gửi', 'Parking duration')}:{' '}
+            {Number.isFinite(paymentBill.totalHours)
+              ? `${paymentBill.totalHours.toFixed(1)} h`
+              : '—'}
+          </ThemedText>
+        ) : (
+          <ThemedText style={styles.costMeta}>
+            {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
+            {formatTimeLabel(session.checkInTime ?? '')}
+          </ThemedText>
+        )}
         <ThemedText style={styles.costHint}>
           {isMonthlySession
             ? t(

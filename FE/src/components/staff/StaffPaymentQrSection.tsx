@@ -30,18 +30,21 @@ export function StaffPaymentQrSection({
         {licensePlate ? ` · ${licensePlate}` : ""}
       </div>
 
-      <div className="ui-detail-grid grid grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-4">
-        <div>
-          <p className="ui-section-kicker">Số tiền</p>
-          <p className="mt-1 text-lg font-semibold text-primary">{formatVnd(bill.amount)}</p>
-        </div>
+      <div className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-4 text-center">
+        <p className="ui-section-kicker">Số tiền phải trả</p>
+        <p className="mt-1 text-3xl font-bold tracking-tight text-primary">
+          {formatVnd(bill.amount)}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-4">
         <div>
           <p className="ui-section-kicker">Thời gian</p>
           <p className="mt-1 text-lg font-semibold">
             {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} giờ` : "—"}
           </p>
         </div>
-        <div className="col-span-2">
+        <div>
           <p className="ui-section-kicker">Mã đơn</p>
           <p className="mt-1 font-mono text-sm font-medium">{bill.orderCode}</p>
         </div>

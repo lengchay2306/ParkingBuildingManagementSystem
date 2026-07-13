@@ -210,10 +210,20 @@ export function ParkingSessionDetailDialog({
           {showCheckoutAction && session.status === "ACTIVE" ? (
             <section className="space-y-3 border-t border-border pt-4">
               <SectionHeading>Ra cổng</SectionHeading>
+              <DetailGrid>
+                <DetailRow
+                  label="Số tiền phải trả"
+                  value={
+                    isMonthlySession
+                      ? "Miễn phí (thẻ tháng)"
+                      : "Hiện sau khi tạo VietQR"
+                  }
+                />
+              </DetailGrid>
               <p className="text-xs text-muted-foreground">
                 {isMonthlySession
                   ? "Xe có thẻ tháng — kết thúc phiên không cần quét VietQR."
-                  : "Phiên gửi ngày — tạo mã VietQR để khách thanh toán trước khi ra cổng."}
+                  : "Phiên gửi ngày — tạo mã VietQR để khách thanh toán trước khi ra cổng. Số tiền thật sẽ hiện trên màn VietQR."}
               </p>
               <Button
                 type="button"
