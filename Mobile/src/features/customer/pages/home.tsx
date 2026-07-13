@@ -18,7 +18,6 @@ import {
   type ParkingFloor,
 } from '@/features/customer/api/parking';
 import { getMyReservations, type Reservation } from '@/features/customer/api/reservations';
-import { CustomerHomeBottomSection } from '@/features/customer/components/customer-home-bottom-section';
 import { CustomerHomeOverviewCard } from '@/features/customer/components/customer-home-overview-card';
 import { CustomerHomeQrButton } from '@/features/customer/components/customer-home-qr-button';
 import { CustomerHomeSlotsSection } from '@/features/customer/components/customer-home-slots-section';
@@ -190,10 +189,6 @@ export default function CustomerHomeScreen() {
             t={t}
             DesignColors={DesignColors}
           />
-        </StaggeredEnter>
-
-        <StaggeredEnter index={4}>
-          <CustomerHomeBottomSection reservations={reservations} t={t} DesignColors={DesignColors} />
         </StaggeredEnter>
       </ScrollView>
     </ThemedView>

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -22,15 +23,25 @@ import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { getMyProfile, type UserVehicle } from '@/lib/auth-api';
 import {
+  getActiveUserParkingSession,
   getParkingSlots,
   type ParkingFloor,
 } from '@/features/customer/api/parking';
 import {
-  buildExpectedArrival,
+  formatPricePolicyHourRange,
+  formatVnd,
+  getAllPricePoliciesForVehicleType,
+  type PricePolicy,
+} from '@/features/customer/api/payment';
+import {
   canCancelReservation,
   cancelReservation,
   createReservation,
+  getDefaultExpectedArrivalDate,
+  getDefaultExpectedArrivalTime,
   getMyReservations,
+  isExpectedArrivalValid,
+  parseExpectedArrival,
   type Reservation,
   type ReservationStatus,
 } from '@/features/customer/api/reservations';
@@ -44,13 +55,6 @@ import {
   getReservationVehicleId,
   getVehicleReserveBlockReasonLocalized,
 } from '@/features/customer/lib/parking-validation';
-
-const ARRIVAL_PRESETS = [
-  { minutes: 30, vi: '30 phút', en: '30 min' },
-  { minutes: 60, vi: '1 giờ', en: '1 hour' },
-  { minutes: 120, vi: '2 giờ', en: '2 hours' },
-  { minutes: 180, vi: '3 giờ', en: '3 hours' },
-] as const;
 
 const STATUS_FILTERS: Array<{ value: ReservationStatus | null; vi: string; en: string }> = [
   { value: null, vi: 'Tất cả', en: 'All' },
@@ -66,6 +70,17 @@ function resolveVehicleTypeLabel(vehicle: UserVehicle): string | null {
     return null;
   }
   return type.type ?? null;
+}
+
+function resolveVehicleTypeId(vehicle: UserVehicle): string | null {
+  const type = vehicle.vehicleTypeId;
+  if (!type) {
+    return null;
+  }
+  if (typeof type === 'string') {
+    return type;
+  }
+  return type._id ?? null;
 }
 
 export default function ReservationsScreen() {
@@ -87,7 +102,11 @@ export default function ReservationsScreen() {
   const [bookingFloors, setBookingFloors] = useState<ParkingFloor[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [arrivalMinutes, setArrivalMinutes] = useState(60);
+  const [arrivalDate, setArrivalDate] = useState(getDefaultExpectedArrivalDate);
+  const [arrivalTime, setArrivalTime] = useState(getDefaultExpectedArrivalTime);
+  const [pricePolicies, setPricePolicies] = useState<PricePolicy[]>([]);
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+  const [activeSessionVehicleIds, setActiveSessionVehicleIds] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
@@ -120,9 +139,12 @@ export default function ReservationsScreen() {
   const bookableVehicles = useMemo(
     () =>
       activeVehicles.filter(
-        (vehicle) => !getVehicleReserveBlockReasonLocalized(vehicle._id, pendingReservations, t),
+        (vehicle) =>
+          !getVehicleReserveBlockReasonLocalized(vehicle._id, pendingReservations, t, {
+            hasActiveSession: activeSessionVehicleIds.has(vehicle._id),
+          }),
       ),
-    [activeVehicles, pendingReservations, t],
+    [activeVehicles, pendingReservations, t, activeSessionVehicleIds],
   );
 
   const selectedVehicle = useMemo(
@@ -145,9 +167,30 @@ export default function ReservationsScreen() {
           getMyReservations(statusFilter ?? undefined, { limit: 100 }),
           getMyReservations('PENDING', { limit: 100 }),
         ]);
-        setVehicles(profile.vehicles ?? []);
+        const profileVehicles = profile.vehicles ?? [];
+        setVehicles(profileVehicles);
         setReservations(reservationList);
         setPendingReservations(pendingList);
+
+        const activeVehiclesList = profileVehicles.filter(
+          (vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE',
+        );
+        const sessionEntries = await Promise.all(
+          activeVehiclesList.map(async (vehicle) => {
+            try {
+              const session = await getActiveUserParkingSession(vehicle._id);
+              if (session?.status?.toUpperCase() === 'ACTIVE') {
+                return vehicle._id;
+              }
+            } catch {
+              // ignore
+            }
+            return null;
+          }),
+        );
+        setActiveSessionVehicleIds(
+          new Set(sessionEntries.filter((id): id is string => Boolean(id))),
+        );
       } catch (loadError) {
         const message =
           loadError instanceof Error
@@ -205,6 +248,39 @@ export default function ReservationsScreen() {
       setSelectedSlotId(null);
     }
   }, [bookingOpen, selectedVehicle, selectedSlotId, bookingFloors]);
+
+  useEffect(() => {
+    if (!bookingOpen || !selectedVehicle) {
+      setPricePolicies([]);
+      return;
+    }
+    const vehicleTypeId = resolveVehicleTypeId(selectedVehicle);
+    if (!vehicleTypeId) {
+      setPricePolicies([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingPrices(true);
+    void getAllPricePoliciesForVehicleType(vehicleTypeId)
+      .then((policies) => {
+        if (!cancelled) {
+          setPricePolicies(policies);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPricePolicies([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingPrices(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookingOpen, selectedVehicle]);
 
   async function handleCancelReservation(reservation: Reservation) {
     if (!canCancelReservation(reservation)) {
@@ -324,7 +400,8 @@ export default function ReservationsScreen() {
       return;
     }
     setSelectedVehicleId(bookableVehicles[0]._id);
-    setArrivalMinutes(60);
+    setArrivalDate(getDefaultExpectedArrivalDate());
+    setArrivalTime(getDefaultExpectedArrivalTime());
     setSelectedSlotId(null);
     setBookingOpen(true);
   }
@@ -349,9 +426,30 @@ export default function ReservationsScreen() {
       selectedVehicleId,
       pendingReservations,
       t,
+      { hasActiveSession: activeSessionVehicleIds.has(selectedVehicleId) },
     );
     if (blockReason) {
       showToast(blockReason, 'error');
+      return;
+    }
+
+    if (!isExpectedArrivalValid(arrivalDate, arrivalTime)) {
+      showToast(
+        t(
+          'Thời gian dự kiến đến phải hợp lệ và ở tương lai',
+          'Expected arrival must be valid and in the future',
+        ),
+        'error',
+      );
+      return;
+    }
+
+    const expectedArrival = parseExpectedArrival(arrivalDate, arrivalTime);
+    if (!expectedArrival) {
+      showToast(
+        t('Định dạng ngày/giờ không hợp lệ (YYYY-MM-DD và HH:mm)', 'Invalid date/time (YYYY-MM-DD and HH:mm)'),
+        'error',
+      );
       return;
     }
 
@@ -360,7 +458,7 @@ export default function ReservationsScreen() {
       await createReservation({
         vehicleId: selectedVehicleId,
         parkingSlotId: selectedSlotId,
-        expectedArrival: buildExpectedArrival(arrivalMinutes),
+        expectedArrival: expectedArrival.toISOString(),
       });
       showToast(t('Đặt chỗ thành công', 'Reservation created'), 'success');
       closeBooking();
@@ -514,6 +612,7 @@ export default function ReservationsScreen() {
                     vehicle._id,
                     pendingReservations,
                     t,
+                    { hasActiveSession: activeSessionVehicleIds.has(vehicle._id) },
                   );
                   const disabled = !!blockReason;
                   return (
@@ -556,29 +655,79 @@ export default function ReservationsScreen() {
               <ThemedText style={[styles.fieldLabel, styles.sectionGap]}>
                 {t('Thời gian dự kiến đến', 'Expected arrival')}
               </ThemedText>
-              <View style={styles.chipRow}>
-                {ARRIVAL_PRESETS.map((preset) => {
-                  const active = arrivalMinutes === preset.minutes;
-                  return (
-                    <Pressable
-                      key={preset.minutes}
-                      onPress={() => setArrivalMinutes(preset.minutes)}
-                      style={({ pressed }) => [
-                        styles.typeChip,
-                        active && styles.typeChipActive,
-                        pressed && styles.buttonPressed,
-                      ]}
-                    >
-                      <ThemedText style={[styles.typeChipText, active && styles.typeChipTextActive]}>
-                        {t(preset.vi, preset.en)}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
+              <View style={styles.arrivalInputsRow}>
+                <View style={styles.arrivalField}>
+                  <ThemedText style={styles.arrivalFieldLabel}>{t('Ngày', 'Date')}</ThemedText>
+                  <TextInput
+                    value={arrivalDate}
+                    onChangeText={setArrivalDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={DesignColors.placeholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.arrivalInput}
+                  />
+                </View>
+                <View style={styles.arrivalField}>
+                  <ThemedText style={styles.arrivalFieldLabel}>{t('Giờ', 'Time')}</ThemedText>
+                  <TextInput
+                    value={arrivalTime}
+                    onChangeText={setArrivalTime}
+                    placeholder="HH:mm"
+                    placeholderTextColor={DesignColors.placeholder}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.arrivalInput}
+                  />
+                </View>
               </View>
-              <ThemedText style={styles.modalHint}>
-                {t('Dự kiến', 'Expected')}: {formatReservationDateTime(buildExpectedArrival(arrivalMinutes))}
+              <ThemedText
+                style={[
+                  styles.modalHint,
+                  !isExpectedArrivalValid(arrivalDate, arrivalTime) && styles.arrivalInvalidHint,
+                ]}
+              >
+                {isExpectedArrivalValid(arrivalDate, arrivalTime)
+                  ? `${t('Dự kiến', 'Expected')}: ${formatReservationDateTime(
+                      parseExpectedArrival(arrivalDate, arrivalTime)!.toISOString(),
+                    )}`
+                  : t(
+                      'Nhập ngày/giờ tương lai (YYYY-MM-DD · HH:mm)',
+                      'Enter a future date/time (YYYY-MM-DD · HH:mm)',
+                    )}
               </ThemedText>
+
+              {selectedVehicle ? (
+                <View style={styles.pricePanel}>
+                  <ThemedText style={styles.priceTitle}>
+                    {t('Bảng giá', 'Price rates')} · {resolveVehicleTypeLabel(selectedVehicle) ?? '—'}
+                  </ThemedText>
+                  {isLoadingPrices ? (
+                    <ActivityIndicator color={DesignColors.primary} />
+                  ) : pricePolicies.length === 0 ? (
+                    <ThemedText style={styles.modalHint}>
+                      {t('Chưa có bảng giá cho loại xe này', 'No price policy for this vehicle type')}
+                    </ThemedText>
+                  ) : (
+                    <View style={styles.priceList}>
+                      {pricePolicies.map((policy) => (
+                        <View key={policy._id} style={styles.priceRow}>
+                          <ThemedText style={styles.priceLabel}>
+                            {policy.monthlyRate != null
+                              ? t('Theo tháng', 'Monthly')
+                              : formatPricePolicyHourRange(policy.fromHour, policy.toHour)}
+                          </ThemedText>
+                          <ThemedText style={styles.priceValue}>
+                            {policy.monthlyRate != null
+                              ? formatVnd(policy.monthlyRate)
+                              : `${formatVnd(policy.ratePerHour)}/${t('giờ', 'h')}`}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ) : null}
 
               <ThemedText style={[styles.fieldLabel, styles.sectionGap]}>
                 {t('Chọn chỗ đỗ', 'Select parking slot')}
@@ -622,11 +771,20 @@ export default function ReservationsScreen() {
 
             <Pressable
               onPress={handleCreateReservation}
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                !selectedVehicleId ||
+                !selectedSlotId ||
+                !isExpectedArrivalValid(arrivalDate, arrivalTime)
+              }
               style={({ pressed }) => [
                 styles.primaryButton,
                 (pressed || isSubmitting) && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
+                (isSubmitting ||
+                  !selectedVehicleId ||
+                  !selectedSlotId ||
+                  !isExpectedArrivalValid(arrivalDate, arrivalTime)) &&
+                  styles.buttonDisabled,
               ]}
             >
               {isSubmitting ? (
@@ -905,6 +1063,64 @@ function createStyles(DesignColors: DesignColorPalette) {
     modalHint: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
+    },
+    arrivalInvalidHint: {
+      color: DesignColors.semanticDanger,
+    },
+    arrivalInputsRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+    arrivalField: {
+      flex: 1,
+      gap: 4,
+    },
+    arrivalFieldLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    arrivalInput: {
+      ...Typography.mono,
+      fontSize: 14,
+      color: DesignColors.ink,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 10,
+    },
+    pricePanel: {
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      padding: Spacing.sm,
+      gap: Spacing.xs,
+      marginTop: Spacing.xs,
+    },
+    priceTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+      fontWeight: '600',
+    },
+    priceList: {
+      gap: 6,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: Spacing.sm,
+    },
+    priceLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      flex: 1,
+    },
+    priceValue: {
+      ...Typography.caption,
+      color: DesignColors.ink,
+      fontWeight: '600',
     },
     fieldLabel: {
       ...Typography.caption,

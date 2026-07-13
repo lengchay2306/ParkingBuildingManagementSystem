@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -26,9 +27,12 @@ import {
   type ParkingSlot,
 } from '@/features/customer/api/parking';
 import {
-  buildExpectedArrival,
   createReservation,
+  getDefaultExpectedArrivalDate,
+  getDefaultExpectedArrivalTime,
   getMyReservations,
+  isExpectedArrivalValid,
+  parseExpectedArrival,
   sortReservationsNewestFirst,
   type Reservation,
 } from '@/features/customer/api/reservations';
@@ -44,12 +48,6 @@ import {
   resolveParkingVehicleTypeLabel,
   sortFloorsLikeParkingMap,
 } from '@/lib/parking-floor-config';
-const ARRIVAL_PRESETS = [
-  { minutes: 30, vi: '30 phút', en: '30 min' },
-  { minutes: 60, vi: '1 giờ', en: '1 hour' },
-  { minutes: 120, vi: '2 giờ', en: '2 hours' },
-  { minutes: 180, vi: '3 giờ', en: '3 hours' },
-] as const;
 
 /** Live map poll while screen focused — staff check-in should appear quickly. */
 const MAP_LIVE_POLL_MS = 5_000;
@@ -169,7 +167,8 @@ export default function ParkingMapScreen() {
 
   const [bookOpen, setBookOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [arrivalMinutes, setArrivalMinutes] = useState(60);
+  const [arrivalDate, setArrivalDate] = useState(getDefaultExpectedArrivalDate);
+  const [arrivalTime, setArrivalTime] = useState(getDefaultExpectedArrivalTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useProtectedSession();
@@ -471,7 +470,8 @@ export default function ParkingMapScreen() {
     }
 
     setSelectedVehicleId(bookable[0]._id);
-    setArrivalMinutes(60);
+    setArrivalDate(getDefaultExpectedArrivalDate());
+    setArrivalTime(getDefaultExpectedArrivalTime());
     setBookOpen(true);
   }
 
@@ -499,12 +499,32 @@ export default function ParkingMapScreen() {
             return;
           }
 
+    if (!isExpectedArrivalValid(arrivalDate, arrivalTime)) {
+      showToast(
+        t(
+          'Thời gian dự kiến đến phải hợp lệ và ở tương lai',
+          'Expected arrival must be valid and in the future',
+        ),
+        'error',
+      );
+      return;
+    }
+
+    const expectedArrival = parseExpectedArrival(arrivalDate, arrivalTime);
+    if (!expectedArrival) {
+      showToast(
+        t('Định dạng ngày/giờ không hợp lệ (YYYY-MM-DD và HH:mm)', 'Invalid date/time (YYYY-MM-DD and HH:mm)'),
+        'error',
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await createReservation({
         vehicleId: selectedVehicleId,
         parkingSlotId: selectedSlot._id,
-        expectedArrival: buildExpectedArrival(arrivalMinutes),
+        expectedArrival: expectedArrival.toISOString(),
       });
 
       // Optimistic: mark slot reserved immediately so the 3D map recolors without waiting.
@@ -769,26 +789,37 @@ export default function ParkingMapScreen() {
                       {t('Thời gian đến dự kiến', 'Expected arrival')}
                     </ThemedText>
                     <View style={styles.arrivalRow}>
-                      {ARRIVAL_PRESETS.map((preset) => {
-                        const active = arrivalMinutes === preset.minutes;
-                        return (
-                <Pressable
-                            key={preset.minutes}
-                            onPress={() => setArrivalMinutes(preset.minutes)}
-                            style={[styles.arrivalChip, active && styles.arrivalChipActive]}
-                          >
-                            <ThemedText
-                              style={[
-                                styles.arrivalChipText,
-                                active && styles.arrivalChipTextActive,
-                              ]}
-                            >
-                              {t(preset.vi, preset.en)}
-                            </ThemedText>
-                </Pressable>
-                        );
-                      })}
-              </View>
+                      <View style={styles.arrivalField}>
+                        <ThemedText style={styles.arrivalFieldLabel}>{t('Ngày', 'Date')}</ThemedText>
+                        <TextInput
+                          value={arrivalDate}
+                          onChangeText={setArrivalDate}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={DesignColors.placeholder}
+                          autoCapitalize="none"
+                          style={styles.arrivalInput}
+                        />
+                      </View>
+                      <View style={styles.arrivalField}>
+                        <ThemedText style={styles.arrivalFieldLabel}>{t('Giờ', 'Time')}</ThemedText>
+                        <TextInput
+                          value={arrivalTime}
+                          onChangeText={setArrivalTime}
+                          placeholder="HH:mm"
+                          placeholderTextColor={DesignColors.placeholder}
+                          autoCapitalize="none"
+                          style={styles.arrivalInput}
+                        />
+                      </View>
+                    </View>
+                    {!isExpectedArrivalValid(arrivalDate, arrivalTime) ? (
+                      <ThemedText style={styles.arrivalHint}>
+                        {t(
+                          'Nhập ngày/giờ tương lai (YYYY-MM-DD · HH:mm)',
+                          'Enter a future date/time (YYYY-MM-DD · HH:mm)',
+                        )}
+                      </ThemedText>
+                    ) : null}
 
                     <View style={styles.sheetActions}>
                       <Pressable onPress={() => setBookOpen(false)} style={styles.secondaryButton}>
@@ -798,10 +829,18 @@ export default function ParkingMapScreen() {
                       </Pressable>
                 <Pressable
                         onPress={handleCreateReservation}
-                        disabled={isSubmitting || !selectedVehicle || eligibleVehicles.length === 0}
+                        disabled={
+                          isSubmitting ||
+                          !selectedVehicle ||
+                          eligibleVehicles.length === 0 ||
+                          !isExpectedArrivalValid(arrivalDate, arrivalTime)
+                        }
                         style={[
                           styles.primaryButton,
-                          (isSubmitting || !selectedVehicle || eligibleVehicles.length === 0) &&
+                          (isSubmitting ||
+                            !selectedVehicle ||
+                            eligibleVehicles.length === 0 ||
+                            !isExpectedArrivalValid(arrivalDate, arrivalTime)) &&
                             styles.buttonDisabled,
                         ]}
                       >
@@ -1091,27 +1130,30 @@ const createStyles = (DesignColors: DesignColorPalette) =>
   },
     arrivalRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-    arrivalChip: {
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-    paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
-  },
-    arrivalChipActive: {
-      borderColor: DesignColors.primary,
-      backgroundColor: DesignColors.primary,
-  },
-    arrivalChipText: {
-    ...Typography.caption,
+      gap: Spacing.sm,
+    },
+    arrivalField: {
+      flex: 1,
+      gap: 4,
+    },
+    arrivalFieldLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    arrivalInput: {
+      ...Typography.mono,
+      fontSize: 14,
       color: DesignColors.ink,
-      fontWeight: '600',
-  },
-    arrivalChipTextActive: {
-      color: DesignColors.onPrimary,
-  },
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 10,
+    },
+    arrivalHint: {
+      ...Typography.caption,
+      color: DesignColors.semanticDanger,
+      marginTop: 4,
+    },
 });

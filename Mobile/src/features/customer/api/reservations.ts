@@ -54,7 +54,11 @@ type ApiEnvelope<T> = {
 async function parseReservationResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    const nested =
+      payload?.data && typeof payload.data === 'object' && 'message' in (payload.data as object)
+        ? String((payload.data as { message?: string }).message ?? '')
+        : '';
+    throw new Error(payload?.message || nested || 'Request failed');
   }
   return payload ?? {};
 }
@@ -105,7 +109,11 @@ export async function createReservation(payload: CreateReservationPayload): Prom
   const response = await authenticatedFetch('/reservations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      vehicleId: payload.vehicleId,
+      parkingSlotId: payload.parkingSlotId,
+      expectedArrival: payload.expectedArrival,
+    }),
   });
   const result = await parseReservationResponse<{ reservation?: Reservation }>(response);
   const reservation = result.data?.reservation;
@@ -124,6 +132,49 @@ export async function cancelReservation(reservationId: string): Promise<Reservat
   return result.data?.cancelledReservation ?? null;
 }
 
+function pad2(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+/** Local YYYY-MM-DD for date inputs (matches FE). */
+export function toLocalDateInputValue(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** Local HH:mm for time inputs (matches FE). */
+export function toLocalTimeInputValue(ms: number = Date.now()): string {
+  const date = new Date(ms);
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
+export function getDefaultExpectedArrivalDate(): string {
+  return toLocalDateInputValue(new Date());
+}
+
+/** Default: now + 1 hour (same as FE). */
+export function getDefaultExpectedArrivalTime(): string {
+  return toLocalTimeInputValue(Date.now() + 60 * 60_000);
+}
+
+/** Parse local date+time strings into a Date (null if invalid). */
+export function parseExpectedArrival(dateValue: string, timeValue: string): Date | null {
+  const date = dateValue.trim();
+  const time = timeValue.trim();
+  if (!date || !time) {
+    return null;
+  }
+  // Accept HH:mm or HH:mm:ss
+  const normalizedTime = /^\d{1,2}:\d{2}$/.test(time) ? time : time;
+  const parsed = new Date(`${date}T${normalizedTime}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function isExpectedArrivalValid(dateValue: string, timeValue: string): boolean {
+  const parsed = parseExpectedArrival(dateValue, timeValue);
+  return parsed !== null && parsed.getTime() > Date.now();
+}
+
+/** @deprecated Prefer parseExpectedArrival + toISOString for free-form booking. */
 export function buildExpectedArrival(minutesFromNow: number): string {
   return new Date(Date.now() + minutesFromNow * 60_000).toISOString();
 }
