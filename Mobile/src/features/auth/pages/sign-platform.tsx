@@ -5,9 +5,12 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -133,7 +136,8 @@ export default function SignPlatformScreen() {
   const [activeView, setActiveView] = useState<AuthView>('login');
   const [focusedField, setFocusedField] = useState<FocusField>(null);
   const [authWidth, setAuthWidth] = useState(0);
-  const [stageHeight, setStageHeight] = useState(520);
+  const [loginHeight, setLoginHeight] = useState(520);
+  const [signupHeight, setSignupHeight] = useState(520);
   const didInitAuthLayout = useRef(false);
 
   const [loginEmail, setLoginEmail] = useState('');
@@ -149,6 +153,7 @@ export default function SignPlatformScreen() {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingForgot, setIsSendingForgot] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const themeFade = useRef(new Animated.Value(1)).current;
   const themeScale = useRef(new Animated.Value(1)).current;
@@ -184,12 +189,28 @@ export default function SignPlatformScreen() {
     signupOpacity.setValue(0);
   }, [authWidth, loginOpacity, loginTranslate, signupOpacity, signupTranslate]);
 
-  function updateStageHeight(height: number) {
-    setStageHeight((prev) => (height > prev ? height : prev));
+  const stageHeight = activeView === 'login' ? loginHeight : signupHeight;
+
+  function updateStageHeight(height: number, view: AuthView) {
+    const next = Math.max(360, Math.ceil(height));
+    if (view === 'login') {
+      setLoginHeight((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+    } else {
+      setSignupHeight((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+    }
   }
+
+  useEffect(() => {
+    if (!forgotOpen) return;
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [forgotOpen]);
 
   function animateToLogin() {
     if (activeView === 'login') return;
+    setForgotOpen(false);
     setActiveView('login');
     if (authWidth <= 0) return;
 
@@ -226,6 +247,7 @@ export default function SignPlatformScreen() {
 
   function animateToSignup() {
     if (activeView === 'signup') return;
+    setForgotOpen(false);
     setActiveView('signup');
     if (authWidth <= 0) return;
 
@@ -407,13 +429,21 @@ export default function SignPlatformScreen() {
         <View style={[styles.blobTopRight, { backgroundColor: blobPrimary }]} />
         <View style={[styles.blobBottomLeft, { backgroundColor: blobSecondary }]} />
       </View>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-          automaticallyAdjustKeyboardInsets>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoid}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            automaticallyAdjustKeyboardInsets
+            contentInsetAdjustmentBehavior="always"
+          >
           <View style={styles.contentWrap}>
             <View style={styles.topTools}>
               <View style={styles.topToolsRow}>
@@ -509,7 +539,7 @@ export default function SignPlatformScreen() {
                   onLayout={(e) => setAuthWidth(e.nativeEvent.layout.width)}>
                   <Animated.View
                     pointerEvents={activeView === 'signup' ? 'auto' : 'none'}
-                    onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height)}
+                    onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height, 'signup')}
                     style={[
                       styles.authPane,
                       authWidth > 0 && { width: authWidth },
@@ -520,10 +550,10 @@ export default function SignPlatformScreen() {
                       },
                     ]}>
                     <View style={styles.formPane}>
-                      <ThemedText style={[styles.title, { color: palette.text }]}>{t('Tạo tài khoản', 'Create Account')}</ThemedText>
-                      <ThemedText style={[styles.subtitle, { color: palette.textMuted }]}>
+                      <Text style={[styles.title, { color: palette.text }]}>{t('Tạo tài khoản', 'Create Account')}</Text>
+                      <Text style={[styles.subtitle, { color: palette.textMuted }]}>
                         {t('Tham gia mạng lưới bãi đỗ xe', 'Join our parking network')}
-                      </ThemedText>
+                      </Text>
                       <View style={styles.formBlock}>
                         <FieldRow
                           icon="person-outline"
@@ -638,7 +668,7 @@ export default function SignPlatformScreen() {
                           <ActivityIndicator color="#fff" />
                         ) : (
                           <View style={styles.buttonInner}>
-                            <ThemedText style={styles.primaryButtonText}>{t('ĐĂNG KÝ', 'SIGN UP')}</ThemedText>
+                            <Text style={styles.primaryButtonText}>{t('ĐĂNG KÝ', 'SIGN UP')}</Text>
                             <Ionicons name="person-add-outline" size={16} color="#fff" />
                           </View>
                         )}
@@ -656,7 +686,7 @@ export default function SignPlatformScreen() {
 
                   <Animated.View
                     pointerEvents={activeView === 'login' ? 'auto' : 'none'}
-                    onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height)}
+                    onLayout={(e) => updateStageHeight(e.nativeEvent.layout.height, 'login')}
                     style={[
                       styles.authPane,
                       authWidth > 0 && { width: authWidth },
@@ -667,10 +697,10 @@ export default function SignPlatformScreen() {
                       },
                     ]}>
                     <View style={styles.formPane}>
-                      <ThemedText style={[styles.title, { color: palette.text }]}>{t('Chào mừng trở lại', 'Welcome Back')}</ThemedText>
-                      <ThemedText style={[styles.subtitle, { color: palette.textMuted }]}>
+                      <Text style={[styles.title, { color: palette.text }]}>{t('Chào mừng trở lại', 'Welcome Back')}</Text>
+                      <Text style={[styles.subtitle, { color: palette.textMuted }]}>
                         {t('Đăng nhập vào tài khoản của bạn', 'Sign in to your account')}
-                      </ThemedText>
+                      </Text>
                       <View style={styles.formBlock}>
                         <FieldRow
                           icon="mail-outline"
@@ -716,17 +746,17 @@ export default function SignPlatformScreen() {
                             style={[
                               styles.forgotBox,
                               {
-                                borderColor: palette.secondaryBorder,
-                                backgroundColor: palette.secondaryBg,
+                                borderColor: palette.inputBorder,
+                                backgroundColor: isDark ? palette.inputBg : palette.inputFocusBg,
                               },
                             ]}
                           >
-                            <ThemedText style={[styles.forgotHint, { color: palette.textMuted }]}>
+                            <Text style={[styles.forgotHint, { color: palette.textMuted }]}>
                               {t(
-                                'Nhập email để nhận liên kết. Đặt lại mật khẩu trên trang web (như FE).',
-                                'Enter your email for a reset link. Password reset opens on the web (same as FE).',
+                                'Nhập email để nhận liên kết. Đặt lại mật khẩu trên trang web.',
+                                'Enter your email for a reset link. Password reset opens on the web.',
                               )}
-                            </ThemedText>
+                            </Text>
                             <TextInput
                               value={forgotEmail}
                               onChangeText={setForgotEmail}
@@ -734,13 +764,16 @@ export default function SignPlatformScreen() {
                               autoCorrect={false}
                               keyboardType="email-address"
                               placeholder={t('Email tài khoản', 'Account email')}
-                              placeholderTextColor={palette.textMuted}
+                              placeholderTextColor={palette.label}
+                              onFocus={() => {
+                                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+                              }}
                               style={[
                                 styles.forgotInput,
                                 {
                                   color: palette.text,
-                                  borderColor: palette.secondaryBorder,
-                                  backgroundColor: isDark ? '#0f1011' : '#fff',
+                                  borderColor: palette.inputFocusBorder,
+                                  backgroundColor: palette.inputBg,
                                 },
                               ]}
                             />
@@ -756,15 +789,15 @@ export default function SignPlatformScreen() {
                               {isSendingForgot ? (
                                 <ActivityIndicator color="#fff" />
                               ) : (
-                                <ThemedText style={styles.forgotSubmitText}>
+                                <Text style={styles.forgotSubmitText}>
                                   {t('Gửi email đặt lại', 'Send reset email')}
-                                </ThemedText>
+                                </Text>
                               )}
                             </Pressable>
                             <Pressable onPress={() => void openWebForgotPassword()}>
-                              <ThemedText style={[styles.forgotWebLink, { color: palette.primary }]}>
+                              <Text style={[styles.forgotWebLink, { color: palette.primary }]}>
                                 {t('Mở trang quên mật khẩu trên web', 'Open forgot-password on web')}
-                              </ThemedText>
+                              </Text>
                             </Pressable>
                           </View>
                         ) : null}
@@ -810,7 +843,7 @@ export default function SignPlatformScreen() {
                           <ActivityIndicator color="#fff" />
                         ) : (
                           <View style={styles.buttonInner}>
-                            <ThemedText style={styles.primaryButtonText}>{t('ĐĂNG NHẬP', 'SIGN IN')}</ThemedText>
+                            <Text style={styles.primaryButtonText}>{t('ĐĂNG NHẬP', 'SIGN IN')}</Text>
                             <Ionicons name="arrow-forward" size={16} color="#fff" />
                           </View>
                         )}
@@ -830,6 +863,7 @@ export default function SignPlatformScreen() {
             </View>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Animated.View>
   );
@@ -884,11 +918,11 @@ function FieldRow({
               transform: [{ translateY }],
             },
           ]}>
-          <ThemedText
+          <Text
             numberOfLines={1}
             style={[styles.floatingLabelText, { color: focused ? palette.primary : palette.label }]}>
             {label}
-          </ThemedText>
+          </Text>
         </Animated.View>
         {children}
       </View>
@@ -931,12 +965,13 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   safeArea: { flex: 1 },
+  keyboardAvoid: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.five,
+    paddingBottom: Spacing.six,
   },
   contentWrap: {
     width: '100%',
@@ -968,12 +1003,13 @@ const styles = StyleSheet.create({
   },
   langOptionText: {
     fontSize: 13,
-    lineHeight: 16,
+    lineHeight: 18,
     fontWeight: '600',
     letterSpacing: 0.5,
+    includeFontPadding: false,
   },
   langOptionTextActive: {
-    fontWeight: '700',
+    fontWeight: '600',
   },
   langDivider: {
     fontSize: 13,
@@ -1036,8 +1072,8 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 26,
-    lineHeight: 30,
-    fontWeight: '700',
+    lineHeight: 34,
+    fontWeight: '600',
   },
   authStage: {
     width: '100%',
@@ -1053,18 +1089,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 46,
-    lineHeight: 50,
-    fontWeight: '700',
+    fontSize: 30,
+    lineHeight: 40,
+    fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: -0.8,
+    letterSpacing: -0.3,
     marginTop: 2,
+    includeFontPadding: false,
   },
   subtitle: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
     marginBottom: 10,
+    includeFontPadding: false,
   },
   formBlock: {
     gap: 12,
@@ -1078,8 +1116,9 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
+    lineHeight: 18,
+    fontWeight: '600',
+    includeFontPadding: false,
   },
   forgotBox: {
     borderWidth: 1,
@@ -1090,7 +1129,8 @@ const styles = StyleSheet.create({
   },
   forgotHint: {
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   forgotInput: {
     borderWidth: 1,
@@ -1098,6 +1138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
+    lineHeight: 20,
   },
   forgotSubmit: {
     borderRadius: 10,
@@ -1108,44 +1149,51 @@ const styles = StyleSheet.create({
   forgotSubmitText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    lineHeight: 18,
+    fontWeight: '600',
+    includeFontPadding: false,
   },
   forgotWebLink: {
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '600',
     textAlign: 'center',
+    includeFontPadding: false,
   },
   fieldWrap: {
     position: 'relative',
   },
   inputRow: {
-    minHeight: 52,
+    minHeight: 56,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 4,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: 'transparent',
+    overflow: 'visible',
   },
   floatingLabelWrap: {
     position: 'absolute',
     left: 32,
     right: 36,
-    top: 17,
+    top: 18,
+    zIndex: 1,
   },
   floatingLabelText: {
     fontSize: 13,
-    lineHeight: 16,
+    lineHeight: 20,
     fontFamily: Fonts.sans,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    includeFontPadding: false,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    lineHeight: 20,
-    paddingTop: 19,
-    paddingBottom: 5,
+    lineHeight: 22,
+    paddingTop: 18,
+    paddingBottom: 6,
     paddingHorizontal: 8,
   },
   eyeButton: {
@@ -1166,10 +1214,10 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  dividerWrap: {
+    lineHeight: 22,
+    fontWeight: '600',
+    includeFontPadding: false,
+  },  dividerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
