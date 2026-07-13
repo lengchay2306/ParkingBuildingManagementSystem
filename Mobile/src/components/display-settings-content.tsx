@@ -18,7 +18,7 @@ export function DisplaySettingsContent() {
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const { language, setLanguage, t } = useLanguagePreference();
-  const { themePreference, resolvedScheme, setThemePreference } = useThemePreference();
+  const { themePreference, setThemePreference } = useThemePreference();
   const themeOptions = useMemo(() => getThemeOptions(t), [t]);
   const languageOptions: { key: AppLanguage; title: string }[] = [
     { key: 'vi', title: 'Tiếng Việt' },
@@ -31,10 +31,6 @@ export function DisplaySettingsContent() {
         <ThemedText style={styles.title}>{t('Định dạng hiển thị', 'Display format')}</ThemedText>
         <ThemedText style={styles.subtitle}>
           {t('Chọn giao diện tối, sáng, hoặc theo thiết bị.', 'Choose dark, light, or system mode.')}
-        </ThemedText>
-        <ThemedText style={styles.runtimeInfo}>
-          {t('Đang chọn', 'Current')}: {themePreference.toUpperCase()} ·{' '}
-          {t('Đang hiển thị', 'Resolved')}: {resolvedScheme.toUpperCase()}
         </ThemedText>
       </View>
 
@@ -110,10 +106,6 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     subtitle: {
       ...Typography.bodySm,
       color: DesignColors.inkMuted,
-    },
-    runtimeInfo: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
     },
     card: {
       borderRadius: Radius.lg,

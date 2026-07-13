@@ -23,6 +23,26 @@ export function formatReservationDateTime(value: string | undefined) {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
+function reservationStatusLabel(
+  status: string | undefined,
+  t: (vi: string, en: string) => string,
+) {
+  const normalized = status?.toUpperCase();
+  if (normalized === 'PENDING') {
+    return t('Đang giữ chỗ', 'On hold');
+  }
+  if (normalized === 'CLAIMED') {
+    return t('Đã nhận chỗ', 'Claimed');
+  }
+  if (normalized === 'EXPIRED') {
+    return t('Hết hạn', 'Expired');
+  }
+  if (normalized === 'CANCELLED') {
+    return t('Đã hủy', 'Cancelled');
+  }
+  return status ?? '—';
+}
+
 function reservationStatusColor(status: string | undefined, DesignColors: DesignColorPalette) {
   const normalized = status?.toUpperCase();
   if (normalized === 'PENDING') {
@@ -104,7 +124,7 @@ export function ReservationCard({
         </View>
         <View style={[styles.statusPill, { borderColor: statusColor }]}>
           <ThemedText style={[styles.statusPillText, { color: statusColor }]}>
-            {reservation.status}
+            {reservationStatusLabel(reservation.status, t)}
           </ThemedText>
         </View>
       </View>

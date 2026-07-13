@@ -30,6 +30,25 @@ import { useProtectedSession } from '@/hooks/use-protected-session';
 import { getMyProfile, type UserProfile, type UserVehicle } from '@/lib/auth-api';
 import { CUSTOMER_ROUTES } from '@/roles';
 
+async function findActiveSession(
+  vehicles: UserVehicle[],
+): Promise<CustomerParkingSession | null> {
+  const results = await Promise.all(
+    vehicles.map(async (vehicle) => {
+      try {
+        const session = await getActiveUserParkingSession(vehicle._id);
+        if (session?.status?.toUpperCase() === 'ACTIVE') {
+          return session;
+        }
+      } catch {
+        // ignore per-vehicle lookup failures
+      }
+      return null;
+    }),
+  );
+  return results.find((item) => item != null) ?? null;
+}
+
 /** Trang chủ dành riêng cho khách gửi xe (Customer). */
 export default function CustomerHomeScreen() {
   const router = useRouter();
@@ -40,13 +59,23 @@ export default function CustomerHomeScreen() {
   useProtectedSession();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [defaultVehicle, setDefaultVehicle] = useState<UserVehicle | null>(null);
+  const [vehicleCount, setVehicleCount] = useState(0);
   const [activeSession, setActiveSession] = useState<CustomerParkingSession | null>(null);
   const [floors, setFloors] = useState<ParkingFloor[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const pendingReservationCount = useMemo(
+    () => reservations.filter((item) => item.status?.toUpperCase() === 'PENDING').length,
+    [reservations],
+  );
+
+  const freeSpotCount = useMemo(
+    () => floors.reduce((sum, floor) => sum + (floor.slotStats?.available ?? 0), 0),
+    [floors],
+  );
 
   const loadData = useCallback(
     async (refreshing = false) => {
@@ -61,18 +90,15 @@ export default function CustomerHomeScreen() {
         const userProfile = await getMyProfile();
         setProfile(userProfile);
 
-        const vehicles = (userProfile.vehicles ?? []).filter(
+        const activeVehicles = (userProfile.vehicles ?? []).filter(
           (vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE',
         );
-        const primaryVehicle = vehicles[0] ?? null;
-        setDefaultVehicle(primaryVehicle);
+        setVehicleCount(activeVehicles.length);
 
         const [slotFloors, reservationList, session] = await Promise.all([
           getParkingSlots(),
-          getMyReservations(),
-          primaryVehicle
-            ? getActiveUserParkingSession(primaryVehicle._id)
-            : Promise.resolve(null),
+          getMyReservations(undefined, { limit: 100 }),
+          findActiveSession(activeVehicles),
         ]);
 
         setFloors(slotFloors);
@@ -80,7 +106,9 @@ export default function CustomerHomeScreen() {
         setActiveSession(session);
       } catch (loadError) {
         const message =
-          loadError instanceof Error ? loadError.message : t('Không tải được dữ liệu', 'Could not load data');
+          loadError instanceof Error
+            ? loadError.message
+            : t('Không tải được dữ liệu', 'Could not load data');
         setError(message);
       } finally {
         setIsLoading(false);
@@ -133,7 +161,9 @@ export default function CustomerHomeScreen() {
         <StaggeredEnter index={0}>
           <CustomerHomeOverviewCard
             fullName={profile?.fullName ?? t('Khách hàng', 'Customer')}
-            defaultVehicle={defaultVehicle}
+            vehicleCount={vehicleCount}
+            pendingReservationCount={pendingReservationCount}
+            freeSpotCount={freeSpotCount}
             activeSession={activeSession}
             t={t}
             DesignColors={DesignColors}
@@ -141,17 +171,17 @@ export default function CustomerHomeScreen() {
         </StaggeredEnter>
 
         <StaggeredEnter index={1}>
-          <CustomerHomeSlotsSection
-            floors={floors}
-            isLoading={isRefreshing}
+          <CustomerHomeQrButton
+            onPress={() => router.push(CUSTOMER_ROUTES.driver as never)}
             t={t}
             DesignColors={DesignColors}
           />
         </StaggeredEnter>
 
         <StaggeredEnter index={2}>
-          <CustomerHomeQrButton
-            onPress={() => router.push(CUSTOMER_ROUTES.driver as never)}
+          <CustomerHomeSlotsSection
+            floors={floors}
+            isLoading={isRefreshing}
             t={t}
             DesignColors={DesignColors}
           />
@@ -174,14 +204,15 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     content: {
       paddingHorizontal: Spacing.md,
       paddingTop: Spacing.section,
-      paddingBottom: Spacing.section,
-      gap: Spacing.md,
+      paddingBottom: Spacing.xl,
+      gap: Spacing.lg,
       width: '100%',
       maxWidth: MaxContentWidth,
       alignSelf: 'center',
     },
     pageHeader: {
-      gap: 2,
+      gap: 4,
+      marginBottom: Spacing.xs,
     },
     eyebrow: {
       ...Typography.eyebrow,

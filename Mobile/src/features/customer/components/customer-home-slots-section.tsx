@@ -24,9 +24,9 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.sm,
     },
     floorBlock: {
-      borderRadius: Radius.md,
+      borderRadius: Radius.lg,
       borderWidth: 1,
-      borderColor: DesignColors.hairline,
+      borderColor: DesignColors.hairlineStrong,
       backgroundColor: DesignColors.surface2,
       overflow: 'hidden' as const,
     },
@@ -34,7 +34,7 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'space-between' as const,
-      padding: Spacing.sm,
+      padding: Spacing.md,
       gap: Spacing.sm,
     },
     buttonPressed: {
@@ -42,30 +42,30 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
     },
     floorHeaderText: {
       flex: 1,
-      gap: 2,
+      gap: 4,
     },
     floorName: {
-      ...Typography.bodySm,
+      ...Typography.body,
       color: DesignColors.ink,
       fontWeight: '600' as const,
     },
     floorStats: {
-      ...Typography.caption,
+      ...Typography.bodySm,
       color: DesignColors.inkSubtle,
     },
     slotGrid: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       gap: Spacing.xs,
-      paddingHorizontal: Spacing.sm,
-      paddingBottom: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      paddingBottom: Spacing.md,
     },
     slotChip: {
-      minWidth: 44,
-      borderRadius: Radius.sm,
+      minWidth: 48,
+      borderRadius: Radius.md,
       borderWidth: 1,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
       alignItems: 'center' as const,
     },
     slotAvailable: {
@@ -88,9 +88,9 @@ function createFloorPanelStyles(DesignColors: DesignColorPalette) {
     slotChipActive: {},
     slotChipDisabled: {},
     slotChipText: {
-      ...Typography.caption,
+      ...Typography.bodySm,
       color: DesignColors.ink,
-      fontWeight: '500' as const,
+      fontWeight: '600' as const,
     },
     slotChipTextActive: {},
     slotChipTextDisabled: {
@@ -104,11 +104,6 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
   const router = useRouter();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const panelStyles = useMemo(() => createFloorPanelStyles(DesignColors), [DesignColors]);
-
-  const totalAvailable = useMemo(
-    () => floors.reduce((sum, floor) => sum + (floor.slotStats?.available ?? 0), 0),
-    [floors],
-  );
 
   return (
     <View style={styles.card}>
@@ -127,20 +122,30 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
         </ScalePressable>
       </View>
 
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryChip}>
-          <ThemedText style={styles.summaryValue}>{totalAvailable}</ThemedText>
-          <ThemedText style={styles.summaryLabel}>{t('Chỗ trống', 'Free spots')}</ThemedText>
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View
+            style={[
+              styles.legendDot,
+              {
+                backgroundColor: `${DesignColors.semanticSuccess}33`,
+                borderColor: DesignColors.semanticSuccess,
+              },
+            ]}
+          />
+          <ThemedText style={styles.legendText}>{t('Trống', 'Free')}</ThemedText>
         </View>
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: `${DesignColors.semanticSuccess}33`, borderColor: DesignColors.semanticSuccess }]} />
-            <ThemedText style={styles.legendText}>{t('Trống', 'Free')}</ThemedText>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: `${DesignColors.primary}22`, borderColor: DesignColors.primary }]} />
-            <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
-          </View>
+        <View style={styles.legendItem}>
+          <View
+            style={[
+              styles.legendDot,
+              {
+                backgroundColor: `${DesignColors.primary}22`,
+                borderColor: DesignColors.primary,
+              },
+            ]}
+          />
+          <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
         </View>
       </View>
 
@@ -161,9 +166,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: DesignColors.surface1,
       borderRadius: Radius.xl,
       borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      padding: Spacing.md,
-      gap: Spacing.sm,
+      borderColor: DesignColors.hairlineStrong,
+      padding: Spacing.lg,
+      gap: Spacing.md,
     },
     header: {
       flexDirection: 'row',
@@ -173,7 +178,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     headerText: {
       flex: 1,
-      gap: 2,
+      gap: 4,
     },
     eyebrow: {
       ...Typography.eyebrow,
@@ -187,69 +192,44 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     mapLink: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      borderRadius: Radius.pill,
+      gap: 6,
+      borderRadius: Radius.md,
       borderWidth: 1,
-      borderColor: DesignColors.hairline,
+      borderColor: DesignColors.hairlineStrong,
       backgroundColor: DesignColors.surface2,
       paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
+      paddingVertical: 8,
     },
     mapLinkText: {
-      ...Typography.caption,
+      ...Typography.bodySm,
       color: DesignColors.primary,
       fontWeight: '600',
     },
-    summaryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: Spacing.sm,
-      flexWrap: 'wrap',
-    },
-    summaryChip: {
-      borderRadius: Radius.lg,
-      borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-      paddingHorizontal: Spacing.md,
-      paddingVertical: Spacing.xs,
-      alignItems: 'center',
-      minWidth: 88,
-    },
-    summaryValue: {
-      ...Typography.headline,
-      color: DesignColors.semanticSuccess,
-    },
-    summaryLabel: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
-    },
     legendRow: {
       flexDirection: 'row',
-      gap: Spacing.sm,
+      gap: Spacing.md,
       flexWrap: 'wrap',
     },
     legendItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 6,
     },
     legendDot: {
-      width: 10,
-      height: 10,
+      width: 12,
+      height: 12,
       borderRadius: 3,
       borderWidth: 1,
     },
     legendText: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
     },
     loader: {
       marginVertical: Spacing.md,
     },
     emptyText: {
-      ...Typography.bodySm,
+      ...Typography.body,
       color: DesignColors.inkMuted,
       textAlign: 'center',
       paddingVertical: Spacing.md,

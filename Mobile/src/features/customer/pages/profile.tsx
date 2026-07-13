@@ -81,15 +81,19 @@ function getInitials(fullName: string) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-function statusTone(status: string | undefined, DesignColors: DesignColorPalette) {
+function statusTone(
+  status: string | undefined,
+  DesignColors: DesignColorPalette,
+  t: (vi: string, en: string) => string,
+) {
   const normalized = status?.toUpperCase();
   if (normalized === 'ACTIVE') {
-    return { label: normalized, color: DesignColors.semanticSuccess };
+    return { label: t('Hoạt động', 'Active'), color: DesignColors.semanticSuccess };
   }
   if (normalized === 'LOCKED') {
-    return { label: normalized, color: '#ef4444' };
+    return { label: t('Đã khóa', 'Locked'), color: DesignColors.semanticDanger };
   }
-  return { label: normalized ?? '—', color: DesignColors.inkSubtle };
+  return { label: status ?? '—', color: DesignColors.inkSubtle };
 }
 
 export default function ProfileScreen() {
@@ -340,7 +344,7 @@ export default function ProfileScreen() {
   }
 
   const roleName = profile ? extractRoleNameFromProfile(profile) : null;
-  const accountStatus = statusTone(profile?.status, DesignColors);
+  const accountStatus = statusTone(profile?.status, DesignColors, t);
   const vehicles = profile?.vehicles ?? [];
   const activeVehicles = useMemo(
     () => vehicles.filter((vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE'),
@@ -503,6 +507,12 @@ export default function ProfileScreen() {
   const handleCheckoutSessionResult = useCallback(
     (result: PayOsCheckoutSessionResult) => {
       closeSubscriptionPayment();
+
+      if (result.kind === 'dismissed') {
+        router.replace(CUSTOMER_ROUTES.paymentReturn as never);
+        return;
+      }
+
       const orderCode =
         typeof result.orderCode === 'number'
           ? String(result.orderCode)
@@ -516,7 +526,6 @@ export default function ProfileScreen() {
         return;
       }
 
-      // paid or dismissed — show success page (it polls for card activation)
       router.replace(`${CUSTOMER_ROUTES.paymentReturn}${qs}` as never);
     },
     [closeSubscriptionPayment, router],
@@ -584,8 +593,8 @@ export default function ProfileScreen() {
         }
       >
         <View style={styles.header}>
-          <ThemedText style={styles.eyebrow}>{t('Tài khoản', 'Account')}</ThemedText>
-          <ThemedText style={styles.title}>{t('Hồ sơ của tôi', 'My profile')}</ThemedText>
+          <ThemedText style={styles.eyebrow}>PARKASE</ThemedText>
+          <ThemedText style={styles.title}>{t('Hồ sơ', 'Profile')}</ThemedText>
         </View>
 
         <View style={styles.heroCard}>
@@ -927,7 +936,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.onPrimary,
     },
     header: {
-      gap: Spacing.xs,
+      gap: 2,
     },
     eyebrow: {
       ...Typography.eyebrow,
@@ -935,7 +944,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkSubtle,
     },
     title: {
-      ...Typography.displayMd,
+      ...Typography.headline,
       color: DesignColors.ink,
     },
     heroCard: {
@@ -946,7 +955,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
-      padding: Spacing.lg,
+      padding: Spacing.md,
     },
     avatar: {
       width: 64,
@@ -998,7 +1007,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderWidth: 1,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
-      padding: Spacing.lg,
+      padding: Spacing.md,
       gap: Spacing.sm,
     },
     sectionHeader: {

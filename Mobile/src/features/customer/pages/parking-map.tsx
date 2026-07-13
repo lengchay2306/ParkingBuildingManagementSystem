@@ -29,6 +29,7 @@ import {
   buildExpectedArrival,
   createReservation,
   getMyReservations,
+  sortReservationsNewestFirst,
   type Reservation,
 } from '@/features/customer/api/reservations';
 import { mapApiSlotStatus } from '@/features/customer/lib/parking-map-layout';
@@ -270,7 +271,7 @@ export default function ParkingMapScreen() {
       setFloors(apiFloors);
       setReservations((prev) => {
         const nonPending = prev.filter((item) => item.status?.toUpperCase() !== 'PENDING');
-        return [...pendingList, ...nonPending];
+        return sortReservationsNewestFirst([...pendingList, ...nonPending]);
       });
     } catch {
       // Keep last good snapshot on transient network errors.
@@ -555,15 +556,16 @@ export default function ParkingMapScreen() {
 
   return (
     <ThemedView style={styles.screen}>
-        <View style={styles.header}>
-        <ThemedText style={styles.title}>{t('Bản đồ 3D bãi đỗ', '3D parking map')}</ThemedText>
+      <View style={styles.header}>
+        <ThemedText style={styles.eyebrow}>PARKASE</ThemedText>
+        <ThemedText style={styles.title}>{t('Bản đồ bãi đỗ', 'Parking map')}</ThemedText>
         <ThemedText style={styles.subtitle}>
           {t(
-            `Live · ${totals.available} trống · ${totals.reserved} đặt trước · ${totals.inUsed} đang dùng · ${totals.total} ô`,
-            `Live · ${totals.available} free · ${totals.reserved} reserved · ${totals.inUsed} in use · ${totals.total} slots`,
+            `${totals.available} trống · ${totals.reserved} đặt · ${totals.inUsed} đang dùng`,
+            `${totals.available} free · ${totals.reserved} reserved · ${totals.inUsed} in use`,
           )}
         </ThemedText>
-        </View>
+      </View>
 
         <ScrollView
           horizontal
@@ -617,11 +619,11 @@ export default function ParkingMapScreen() {
       <View style={styles.legendRow}>
         {(
           [
-            ['available', t('Trống', 'Free'), '#2f9b53'],
-            ['reserved', t('Đã đặt', 'Reserved'), '#c9921a'],
-            ['mine', t('Của tôi', 'Mine'), '#4338CA'],
-            ['in-use', t('Đang dùng', 'In use'), DesignColors.primary],
-            ['unavailable', t('Khóa', 'Blocked'), '#b35d4f'],
+            ['available', t('Trống', 'Free'), DesignColors.semanticSuccess],
+            ['reserved', t('Đã đặt', 'Reserved'), DesignColors.semanticWarning],
+            ['mine', t('Của tôi', 'Mine'), DesignColors.primary],
+            ['in-use', t('Đang dùng', 'In use'), DesignColors.inkMuted],
+            ['unavailable', t('Khóa', 'Blocked'), DesignColors.semanticDanger],
           ] as const
         ).map(([key, label, color]) => (
           <View key={key} style={styles.legendItem}>
@@ -629,7 +631,7 @@ export default function ParkingMapScreen() {
             <ThemedText style={styles.legendText}>{label}</ThemedText>
           </View>
         ))}
-          </View>
+      </View>
 
       {isLoading ? (
         <View style={styles.centerState}>
@@ -837,13 +839,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
   header: {
       gap: 2,
   },
+  eyebrow: {
+      ...Typography.eyebrow,
+      textTransform: 'uppercase',
+      color: DesignColors.inkSubtle,
+  },
   title: {
-      ...Typography.pageTitle,
+      ...Typography.headline,
     color: DesignColors.ink,
   },
   subtitle: {
       ...Typography.bodySm,
-      color: DesignColors.inkSubtle,
+      color: DesignColors.inkMuted,
     },
     floorTabsScroll: {
       flexGrow: 0,

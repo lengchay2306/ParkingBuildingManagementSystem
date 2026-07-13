@@ -34,6 +34,8 @@ export type Reservation = {
   reservedAt?: string;
   expectedArrival?: string;
   expiryAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
   status: ReservationStatus | string;
 };
 
@@ -57,6 +59,28 @@ async function parseReservationResponse<T>(response: Response): Promise<ApiEnvel
   return payload ?? {};
 }
 
+/** Newest → oldest. Uses reservedAt / createdAt / ObjectId time (Mobile-only; no BE change). */
+export function sortReservationsNewestFirst(list: Reservation[]): Reservation[] {
+  return [...list].sort((a, b) => reservationRecencyMs(b) - reservationRecencyMs(a));
+}
+
+function reservationRecencyMs(reservation: Reservation): number {
+  for (const value of [reservation.reservedAt, reservation.createdAt, reservation.updatedAt]) {
+    if (!value) {
+      continue;
+    }
+    const ms = new Date(value).getTime();
+    if (!Number.isNaN(ms)) {
+      return ms;
+    }
+  }
+  // Mongo ObjectId embeds creation time in the first 4 bytes.
+  if (reservation._id && /^[a-f\d]{24}$/i.test(reservation._id)) {
+    return Number.parseInt(reservation._id.slice(0, 8), 16) * 1000;
+  }
+  return 0;
+}
+
 export async function getMyReservations(
   status?: ReservationStatus,
   options?: { page?: number; limit?: number },
@@ -74,7 +98,7 @@ export async function getMyReservations(
   const query = params.toString();
   const response = await authenticatedFetch(`/reservations/my${query ? `?${query}` : ''}`);
   const payload = await parseReservationResponse<{ reservations?: Reservation[] }>(response);
-  return payload.data?.reservations ?? [];
+  return sortReservationsNewestFirst(payload.data?.reservations ?? []);
 }
 
 export async function createReservation(payload: CreateReservationPayload): Promise<Reservation> {
