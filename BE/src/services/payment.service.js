@@ -193,8 +193,20 @@ class PaymentService {
             return;
         }
 
-        if (existingPayment.status === 'PAID' || existingPayment.parkingSessionId) {
-            return true
+        if (existingPayment.status === 'PAID') {
+            return true;
+        }
+
+        // Checkout QR payments always have parkingSessionId. Sync PAID only —
+        // completing the parking session stays on staff /check-payment.
+        if (existingPayment.parkingSessionId) {
+            await this.#paymentRepository.updatePayment({
+                field: { _id: existingPayment._id },
+                updateData: {
+                    status: 'PAID',
+                },
+            });
+            return true;
         }
 
         await this.#paymentRepository.updatePayment({
@@ -418,6 +430,34 @@ class PaymentService {
 
         if (existingPayment.status === 'CANCELLED' || existingPayment.status === 'PAID') {
             throw new BadRequestError(`This payment has been cancelled or paid!`)
+        }
+
+        // Customer may have paid on PayOS while local status is still PENDING
+        // (checkout webhook used to skip PAID sync). Block cancel if PayOS says PAID.
+        if (existingPayment.orderCode != null) {
+            try {
+                const paymentInfo = await this.#payosGateway.paymentRequests.get(
+                    existingPayment.orderCode,
+                );
+
+                if (paymentInfo?.status === 'PAID') {
+                    await this.#paymentRepository.updatePayment({
+                        field: { _id: existingPayment._id },
+                        updateData: { status: 'PAID' },
+                    });
+                    throw new BadRequestError(
+                        `This payment has been paid and cannot be cancelled!`,
+                    );
+                }
+            } catch (error) {
+                if (error instanceof BadRequestError) {
+                    throw error;
+                }
+                console.error(
+                    `PayOS status check failed during cancel for payment ${existingPayment._id}:`,
+                    error,
+                );
+            }
         }
 
         const updatedPayment = await this.#paymentRepository.cancelPayment({

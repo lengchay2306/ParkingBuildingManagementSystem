@@ -114,7 +114,7 @@ export async function getStaffPaymentById(paymentId: string): Promise<StaffPayme
   return payment;
 }
 
-/** Cancel only when still PENDING. Throws if already PAID/CANCELLED. */
+/** Cancel only when still PENDING (and not paid on PayOS). */
 export async function cancelStaffPaymentIfAllowed(paymentId: string): Promise<StaffPayment> {
   const payment = await getStaffPaymentById(paymentId);
   const status = payment.status?.toUpperCase();
@@ -133,7 +133,18 @@ export async function cancelStaffPaymentIfAllowed(paymentId: string): Promise<St
     );
   }
 
-  return cancelStaffPayment(paymentId);
+  try {
+    return await cancelStaffPayment(paymentId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/paid|cannot be cancelled|đã.*thanh toán|cancelled or paid/i.test(message)) {
+      throw new PaymentNotCancellableError(
+        'PAID',
+        'Thanh toán đã hoàn tất — không thể hủy QR. Hãy bấm xác nhận ra cổng.',
+      );
+    }
+    throw error;
+  }
 }
 
 export async function cancelStaffPaymentSafe(paymentId: string): Promise<boolean> {

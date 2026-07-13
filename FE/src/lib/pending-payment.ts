@@ -52,7 +52,7 @@ export async function cancelPendingPayment(paymentId: string) {
   return cancelAdminPayment(paymentId);
 }
 
-/** Cancel only when still PENDING. Throws if already PAID/CANCELLED. */
+/** Cancel only when still PENDING (and not paid on PayOS). Throws if already PAID/CANCELLED. */
 export async function cancelPendingPaymentIfAllowed(paymentId: string) {
   const payment = await getAdminPaymentById(paymentId);
   const status = payment.status?.toUpperCase();
@@ -68,7 +68,18 @@ export async function cancelPendingPaymentIfAllowed(paymentId: string) {
     throw new PaymentNotCancellableError("CANCELLED", "Hóa đơn này đã được hủy trước đó.");
   }
 
-  return cancelAdminPayment(paymentId);
+  try {
+    return await cancelAdminPayment(paymentId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/paid|cannot be cancelled|đã.*thanh toán|cancelled or paid/i.test(message)) {
+      throw new PaymentNotCancellableError(
+        "PAID",
+        "Thanh toán đã hoàn tất — không thể hủy QR. Hãy bấm xác nhận ra cổng.",
+      );
+    }
+    throw error;
+  }
 }
 
 export async function cancelPendingPaymentSafe(paymentId: string) {
