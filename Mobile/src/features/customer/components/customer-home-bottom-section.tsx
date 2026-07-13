@@ -84,7 +84,12 @@ export function CustomerHomeBottomSection({ reservations, t, DesignColors }: Pro
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>{t('Lịch sử gần đây', 'Recent history')}</ThemedText>
+        <View style={styles.headerText}>
+          <ThemedText style={styles.eyebrow}>{t('Đã đặt chỗ', 'Reservations')}</ThemedText>
+          <ThemedText style={styles.sectionTitle}>
+            {t('Lịch sử gần đây', 'Recent history')}
+          </ThemedText>
+        </View>
         <ScalePressable
           onPress={() => router.push(CUSTOMER_ROUTES.reservations as never)}
           style={styles.linkButton}
@@ -129,9 +134,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     sectionHeader: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: Spacing.sm,
+    },
+    headerText: {
+      flex: 1,
+      gap: 2,
+    },
+    eyebrow: {
+      ...Typography.eyebrow,
+      color: DesignColors.primary,
+      textTransform: 'uppercase',
     },
     sectionTitle: {
       ...Typography.cardTitle,

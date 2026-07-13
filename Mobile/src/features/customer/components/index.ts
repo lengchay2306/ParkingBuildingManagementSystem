@@ -11,6 +11,7 @@ export {
   StaggeredEnter,
   CustomerHomeOverviewCard,
   CustomerHomeQrButton,
+  CustomerHomeVehiclesSection,
   CustomerHomeSlotsSection,
   CustomerHomeBottomSection,
 } from './customer-home-views';
