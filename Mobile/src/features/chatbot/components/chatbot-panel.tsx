@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   StyleSheet,
@@ -46,6 +46,7 @@ type ChatbotPanelProps = {
 };
 
 const SHEET_HEIGHT_RATIO = 0.92;
+const SHEET_TOP_GAP = 12;
 
 export function ChatbotPanel({
   visible,
@@ -72,11 +73,34 @@ export function ChatbotPanel({
   const { height: windowHeight } = useWindowDimensions();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const [panelView, setPanelView] = useState<PanelView>('chat');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     if (!visible) {
       setPanelView('chat');
+      setKeyboardHeight(0);
     }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
   }, [visible]);
 
   useEffect(() => {
@@ -92,7 +116,12 @@ export function ChatbotPanel({
     return () => subscription.remove();
   }, [visible]);
 
-  const sheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
+  // Sit the sheet above the keyboard; shrink height so the composer stays visible.
+  // Android uses softwareKeyboardLayoutMode "resize" (window already shrinks) — don't add margin again.
+  const keyboardOffset = Platform.OS === 'ios' ? Math.max(0, keyboardHeight) : 0;
+  const maxSheetHeight = Math.max(280, windowHeight - keyboardOffset - SHEET_TOP_GAP);
+  const preferredSheetHeight = windowHeight * SHEET_HEIGHT_RATIO;
+  const sheetHeight = Math.min(preferredSheetHeight, maxSheetHeight);
 
   const activeSession = sessions.find((s) => s._id === activeSessionId);
 
@@ -104,6 +133,7 @@ export function ChatbotPanel({
 
   function handleClose() {
     setPanelView('chat');
+    Keyboard.dismiss();
     onClose();
   }
 
@@ -122,17 +152,15 @@ export function ChatbotPanel({
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      pointerEvents="box-none"
-      style={styles.portal}>
+    <View pointerEvents="box-none" style={styles.portal}>
       <Pressable style={styles.backdrop} onPress={handleClose} />
       <View
         style={[
           styles.sheet,
           {
             height: sheetHeight,
-            paddingBottom: insets.bottom + Spacing.sm,
+            marginBottom: keyboardOffset,
+            paddingBottom: keyboardOffset > 0 ? Spacing.sm : insets.bottom + Spacing.sm,
           },
         ]}>
         <View style={styles.handle} />
@@ -280,7 +308,7 @@ export function ChatbotPanel({
           </>
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
