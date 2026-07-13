@@ -7,9 +7,10 @@ import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import {
+  cancelStaffPayment,
   checkStaffPayment,
-  createStaffBillQr,
-  type StaffBillQrResult,
+  createStaffBillQrForSession,
+  type StaffBillQrWithPayment,
 } from '@/features/payment/api';
 import {
   StaffSessionDetailGrid,
@@ -74,9 +75,10 @@ export default function StaffSessionDetailScreen() {
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [tick, setTick] = useState(0);
-  const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
   const [isCreatingBill, setIsCreatingBill] = useState(false);
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
+  const [isCancellingPayment, setIsCancellingPayment] = useState(false);
   const [paymentUnpaidNotice, setPaymentUnpaidNotice] = useState<string | null>(null);
 
   /** Opened from Spots stays under `/staff-slots/...` — don't dump users onto Sessions. */
@@ -256,7 +258,7 @@ export default function StaffSessionDetailScreen() {
     }
     setIsCreatingBill(true);
     try {
-      const bill = await createStaffBillQr(session.id);
+      const bill = await createStaffBillQrForSession(session.id);
       setPaymentUnpaidNotice(null);
       setPaymentBill(bill);
     } catch (error) {
@@ -270,6 +272,30 @@ export default function StaffSessionDetailScreen() {
       setIsCreatingBill(false);
     }
   }, [session, showToast, t]);
+
+  const handleCancelQrPayment = useCallback(async () => {
+    if (!paymentBill?.paymentId) {
+      setPaymentBill(null);
+      setPaymentUnpaidNotice(null);
+      return;
+    }
+    setIsCancellingPayment(true);
+    try {
+      await cancelStaffPayment(paymentBill.paymentId);
+      setPaymentBill(null);
+      setPaymentUnpaidNotice(null);
+      showToast(t('Đã hủy mã VietQR', 'VietQR cancelled'), 'success');
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : t('Không hủy được mã VietQR', 'Could not cancel VietQR'),
+        'error',
+      );
+    } finally {
+      setIsCancellingPayment(false);
+    }
+  }, [paymentBill, showToast, t]);
 
   const handleConfirmQrPayment = useCallback(async () => {
     if (!paymentBill) {
@@ -396,6 +422,7 @@ export default function StaffSessionDetailScreen() {
         bill={paymentBill}
         plate={session.plate}
         isConfirming={isConfirmingPayment}
+        isCancelling={isCancellingPayment}
         unpaidNotice={paymentUnpaidNotice}
         onDismissUnpaidNotice={() => setPaymentUnpaidNotice(null)}
         onClose={() => {
@@ -403,6 +430,7 @@ export default function StaffSessionDetailScreen() {
           setPaymentUnpaidNotice(null);
         }}
         onConfirm={() => void handleConfirmQrPayment()}
+        onCancel={() => void handleCancelQrPayment()}
         t={t}
       />
     </View>

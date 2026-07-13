@@ -31,11 +31,13 @@ type StaffPaymentQrModalProps = {
   bill: StaffBillQrResult | null;
   plate?: string;
   isConfirming?: boolean;
+  isCancelling?: boolean;
   /** Shown when staff confirms exit but payment is not detected yet. */
   unpaidNotice?: string | null;
   onDismissUnpaidNotice?: () => void;
   onClose: () => void;
   onConfirm: () => void;
+  onCancel?: () => void;
   t: (vi: string, en: string) => string;
 };
 
@@ -44,10 +46,12 @@ export function StaffPaymentQrModal({
   bill,
   plate,
   isConfirming = false,
+  isCancelling = false,
   unpaidNotice = null,
   onDismissUnpaidNotice,
   onClose,
   onConfirm,
+  onCancel,
   t,
 }: StaffPaymentQrModalProps) {
   const insets = useSafeAreaInsets();
@@ -165,11 +169,20 @@ export function StaffPaymentQrModal({
           {bill ? (
             <View style={styles.footer}>
               <StaffActionButton
-                disabled={isConfirming}
+                disabled={isConfirming || isCancelling}
                 loading={isConfirming}
                 label={t('Đã thanh toán — xác nhận ra cổng', 'Paid — confirm exit')}
                 onPress={onConfirm}
               />
+              {onCancel ? (
+                <StaffActionButton
+                  disabled={isConfirming || isCancelling}
+                  loading={isCancelling}
+                  label={t('Hủy QR và tạo lại', 'Cancel QR & recreate')}
+                  onPress={onCancel}
+                  variant="secondary"
+                />
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -300,6 +313,7 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       padding: Spacing.sm,
     },
     footer: {
+      gap: Spacing.sm,
       paddingTop: Spacing.sm,
     },
   });
