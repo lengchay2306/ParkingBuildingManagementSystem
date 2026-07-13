@@ -8,7 +8,6 @@ import { ScalePressable } from '@/components/scale-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/customer/api/parking';
-import { FloorSlotsPanel } from '@/features/customer/components/floor-slots-panel';
 import { CUSTOMER_ROUTES } from '@/roles';
 
 type Props = {
@@ -18,99 +17,30 @@ type Props = {
   DesignColors: DesignColorPalette;
 };
 
-function createFloorPanelStyles(DesignColors: DesignColorPalette) {
-  return {
-    floorList: {
-      gap: Spacing.sm,
-    },
-    floorBlock: {
-      borderRadius: Radius.lg,
-      borderWidth: 1,
-      borderColor: DesignColors.hairlineStrong,
-      backgroundColor: DesignColors.surface2,
-      overflow: 'hidden' as const,
-    },
-    floorHeader: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
-      padding: Spacing.md,
-      gap: Spacing.sm,
-    },
-    buttonPressed: {
-      opacity: 0.82,
-    },
-    floorHeaderText: {
-      flex: 1,
-      gap: 4,
-    },
-    floorName: {
-      ...Typography.body,
-      color: DesignColors.ink,
-      fontWeight: '600' as const,
-    },
-    floorStats: {
-      ...Typography.bodySm,
-      color: DesignColors.inkSubtle,
-    },
-    slotGrid: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      gap: Spacing.xs,
-      paddingHorizontal: Spacing.md,
-      paddingBottom: Spacing.md,
-    },
-    slotChip: {
-      minWidth: 48,
-      borderRadius: Radius.md,
-      borderWidth: 1,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      alignItems: 'center' as const,
-    },
-    slotAvailable: {
-      borderColor: DesignColors.semanticSuccess,
-      backgroundColor: `${DesignColors.semanticSuccess}14`,
-    },
-    slotInUse: {
-      borderColor: DesignColors.primary,
-      backgroundColor: `${DesignColors.primary}14`,
-    },
-    slotReserved: {
-      borderColor: DesignColors.semanticWarning,
-      backgroundColor: `${DesignColors.semanticWarning}18`,
-    },
-    slotUnavailable: {
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface1,
-      opacity: 0.55,
-    },
-    slotChipActive: {},
-    slotChipDisabled: {},
-    slotChipText: {
-      ...Typography.bodySm,
-      color: DesignColors.ink,
-      fontWeight: '600' as const,
-    },
-    slotChipTextActive: {},
-    slotChipTextDisabled: {
-      color: DesignColors.inkMuted,
-    },
-  };
-}
-
-/** Sơ đồ chỗ trống theo tầng — dữ liệu thời gian thực từ API parking slots. */
+/** Compact live availability by floor — mirrors FE parking overview without dense slot grids. */
 export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }: Props) {
   const router = useRouter();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
-  const panelStyles = useMemo(() => createFloorPanelStyles(DesignColors), [DesignColors]);
+
+  const totals = useMemo(() => {
+    return floors.reduce(
+      (acc, floor) => {
+        acc.available += floor.slotStats?.available ?? 0;
+        acc.reserved += floor.slotStats?.reserved ?? 0;
+        acc.inUsed += floor.slotStats?.inUsed ?? 0;
+        acc.total += floor.slotStats?.total ?? floor.slots.length;
+        return acc;
+      },
+      { available: 0, reserved: 0, inUsed: 0, total: 0 },
+    );
+  }, [floors]);
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <ThemedText style={styles.eyebrow}>{t('Thời gian thực', 'Live')}</ThemedText>
-          <ThemedText style={styles.title}>{t('Chỗ đỗ trống', 'Available spots')}</ThemedText>
+          <ThemedText style={styles.title}>{t('Tình trạng bãi', 'Lot status')}</ThemedText>
         </View>
         <ScalePressable
           onPress={() => router.push(CUSTOMER_ROUTES.parkingMap as never)}
@@ -122,40 +52,92 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
         </ScalePressable>
       </View>
 
-      <View style={styles.legendRow}>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendDot,
-              {
-                backgroundColor: `${DesignColors.semanticSuccess}33`,
-                borderColor: DesignColors.semanticSuccess,
-              },
-            ]}
-          />
-          <ThemedText style={styles.legendText}>{t('Trống', 'Free')}</ThemedText>
-        </View>
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendDot,
-              {
-                backgroundColor: `${DesignColors.primary}22`,
-                borderColor: DesignColors.primary,
-              },
-            ]}
-          />
-          <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
-        </View>
+      <View style={styles.summaryRow}>
+        <SummaryStat
+          label={t('Trống', 'Free')}
+          value={totals.available}
+          color={DesignColors.semanticSuccess}
+          styles={styles}
+        />
+        <SummaryStat
+          label={t('Đã đặt', 'Reserved')}
+          value={totals.reserved}
+          color={DesignColors.semanticWarning}
+          styles={styles}
+        />
+        <SummaryStat
+          label={t('Đang dùng', 'In use')}
+          value={totals.inUsed}
+          color={DesignColors.accentSky}
+          styles={styles}
+        />
       </View>
 
       {isLoading ? (
         <AnimatedLoader color={DesignColors.primary} size="small" style={styles.loader} />
       ) : floors.length === 0 ? (
-        <ThemedText style={styles.emptyText}>{t('Không có dữ liệu bãi đỗ', 'No parking data')}</ThemedText>
+        <ThemedText style={styles.emptyText}>
+          {t('Không có dữ liệu bãi đỗ', 'No parking data')}
+        </ThemedText>
       ) : (
-        <FloorSlotsPanel floors={floors} t={t} styles={panelStyles} DesignColors={DesignColors} />
+        <View style={styles.floorList}>
+          {floors.map((floor) => {
+            const available = floor.slotStats?.available ?? 0;
+            const total = floor.slotStats?.total ?? floor.slots.length;
+            const ratio = total > 0 ? available / total : 0;
+            return (
+              <View key={floor._id} style={styles.floorRow}>
+                <View style={styles.floorMeta}>
+                  <ThemedText style={styles.floorName} numberOfLines={1}>
+                    {floor.floorName}
+                  </ThemedText>
+                  <ThemedText style={styles.floorType}>
+                    {floor.vehicleType?.type ?? '—'}
+                  </ThemedText>
+                </View>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {
+                        width: `${Math.round(ratio * 100)}%`,
+                        backgroundColor:
+                          ratio > 0.4
+                            ? DesignColors.semanticSuccess
+                            : ratio > 0.15
+                              ? DesignColors.semanticWarning
+                              : DesignColors.semanticDanger,
+                      },
+                    ]}
+                  />
+                </View>
+                <ThemedText style={styles.floorCount}>
+                  {available}/{total}
+                </ThemedText>
+              </View>
+            );
+          })}
+        </View>
       )}
+    </View>
+  );
+}
+
+function SummaryStat({
+  label,
+  value,
+  color,
+  styles,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.summaryChip}>
+      <ThemedText style={[styles.summaryValue, { color }]}>{value}</ThemedText>
+      <ThemedText style={styles.summaryLabel}>{label}</ThemedText>
     </View>
   );
 }
@@ -205,25 +187,67 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.primary,
       fontWeight: '600',
     },
-    legendRow: {
+    summaryRow: {
       flexDirection: 'row',
-      gap: Spacing.md,
-      flexWrap: 'wrap',
+      gap: Spacing.sm,
     },
-    legendItem: {
+    summaryChip: {
+      flex: 1,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      backgroundColor: DesignColors.surface2,
+      paddingVertical: Spacing.sm,
+      alignItems: 'center',
+      gap: 2,
+    },
+    summaryValue: {
+      ...Typography.cardTitle,
+    },
+    summaryLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+    },
+    floorList: {
+      gap: Spacing.sm,
+    },
+    floorRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: Spacing.sm,
     },
-    legendDot: {
-      width: 12,
-      height: 12,
-      borderRadius: 3,
-      borderWidth: 1,
+    floorMeta: {
+      width: 88,
+      gap: 1,
     },
-    legendText: {
-      ...Typography.bodySm,
+    floorName: {
+      ...Typography.caption,
+      color: DesignColors.ink,
+      fontWeight: '600',
+    },
+    floorType: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 10,
+    },
+    barTrack: {
+      flex: 1,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: DesignColors.surface2,
+      overflow: 'hidden',
+    },
+    barFill: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    floorCount: {
+      ...Typography.mono,
+      fontSize: 11,
+      lineHeight: 14,
       color: DesignColors.inkMuted,
+      width: 44,
+      textAlign: 'right',
     },
     loader: {
       marginVertical: Spacing.md,

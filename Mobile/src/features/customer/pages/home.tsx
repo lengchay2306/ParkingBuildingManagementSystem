@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   RefreshControl,
@@ -23,35 +22,34 @@ import { CustomerHomeBottomSection } from '@/features/customer/components/custom
 import { CustomerHomeOverviewCard } from '@/features/customer/components/customer-home-overview-card';
 import { CustomerHomeQrButton } from '@/features/customer/components/customer-home-qr-button';
 import { CustomerHomeSlotsSection } from '@/features/customer/components/customer-home-slots-section';
+import { CustomerHomeVehiclesSection } from '@/features/customer/components/customer-home-vehicles-section';
 import { StaggeredEnter } from '@/features/customer/components/staggered-enter';
 import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { getMyProfile, type UserProfile, type UserVehicle } from '@/lib/auth-api';
-import { CUSTOMER_ROUTES } from '@/roles';
 
-async function findActiveSession(
+async function loadSessionsByVehicle(
   vehicles: UserVehicle[],
-): Promise<CustomerParkingSession | null> {
-  const results = await Promise.all(
+): Promise<Record<string, CustomerParkingSession | null>> {
+  const entries = await Promise.all(
     vehicles.map(async (vehicle) => {
       try {
         const session = await getActiveUserParkingSession(vehicle._id);
         if (session?.status?.toUpperCase() === 'ACTIVE') {
-          return session;
+          return [vehicle._id, session] as const;
         }
       } catch {
         // ignore per-vehicle lookup failures
       }
-      return null;
+      return [vehicle._id, null] as const;
     }),
   );
-  return results.find((item) => item != null) ?? null;
+  return Object.fromEntries(entries);
 }
 
-/** Trang chủ dành riêng cho khách gửi xe (Customer). */
+/** Customer home — aligned with FE /driver: profile, vehicles, lot status, reservations. */
 export default function CustomerHomeScreen() {
-  const router = useRouter();
   const { t } = useLanguagePreference();
   const DesignColors = useDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
@@ -59,23 +57,25 @@ export default function CustomerHomeScreen() {
   useProtectedSession();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [vehicleCount, setVehicleCount] = useState(0);
-  const [activeSession, setActiveSession] = useState<CustomerParkingSession | null>(null);
+  const [vehicles, setVehicles] = useState<UserVehicle[]>([]);
+  const [sessionsByVehicleId, setSessionsByVehicleId] = useState<
+    Record<string, CustomerParkingSession | null>
+  >({});
   const [floors, setFloors] = useState<ParkingFloor[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pendingReservationCount = useMemo(
-    () => reservations.filter((item) => item.status?.toUpperCase() === 'PENDING').length,
-    [reservations],
-  );
-
-  const freeSpotCount = useMemo(
-    () => floors.reduce((sum, floor) => sum + (floor.slotStats?.available ?? 0), 0),
-    [floors],
-  );
+  const activeSession = useMemo(() => {
+    for (const vehicle of vehicles) {
+      const session = sessionsByVehicleId[vehicle._id];
+      if (session?.status?.toUpperCase() === 'ACTIVE') {
+        return session;
+      }
+    }
+    return null;
+  }, [sessionsByVehicleId, vehicles]);
 
   const loadData = useCallback(
     async (refreshing = false) => {
@@ -93,17 +93,17 @@ export default function CustomerHomeScreen() {
         const activeVehicles = (userProfile.vehicles ?? []).filter(
           (vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE',
         );
-        setVehicleCount(activeVehicles.length);
+        setVehicles(activeVehicles);
 
-        const [slotFloors, reservationList, session] = await Promise.all([
+        const [slotFloors, reservationList, sessions] = await Promise.all([
           getParkingSlots(),
           getMyReservations(undefined, { limit: 100 }),
-          findActiveSession(activeVehicles),
+          loadSessionsByVehicle(activeVehicles),
         ]);
 
         setFloors(slotFloors);
         setReservations(reservationList);
-        setActiveSession(session);
+        setSessionsByVehicleId(sessions);
       } catch (loadError) {
         const message =
           loadError instanceof Error
@@ -160,10 +160,9 @@ export default function CustomerHomeScreen() {
 
         <StaggeredEnter index={0}>
           <CustomerHomeOverviewCard
-            fullName={profile?.fullName ?? t('Khách hàng', 'Customer')}
-            vehicleCount={vehicleCount}
-            pendingReservationCount={pendingReservationCount}
-            freeSpotCount={freeSpotCount}
+            fullName={profile?.fullName ?? t('Tài xế', 'Driver')}
+            status={profile?.status}
+            email={profile?.email}
             activeSession={activeSession}
             t={t}
             DesignColors={DesignColors}
@@ -171,14 +170,20 @@ export default function CustomerHomeScreen() {
         </StaggeredEnter>
 
         <StaggeredEnter index={1}>
-          <CustomerHomeQrButton
-            onPress={() => router.push(CUSTOMER_ROUTES.driver as never)}
+          <CustomerHomeQrButton t={t} DesignColors={DesignColors} />
+        </StaggeredEnter>
+
+        <StaggeredEnter index={2}>
+          <CustomerHomeVehiclesSection
+            vehicles={vehicles}
+            reservations={reservations}
+            sessionsByVehicleId={sessionsByVehicleId}
             t={t}
             DesignColors={DesignColors}
           />
         </StaggeredEnter>
 
-        <StaggeredEnter index={2}>
+        <StaggeredEnter index={3}>
           <CustomerHomeSlotsSection
             floors={floors}
             isLoading={isRefreshing}
@@ -187,7 +192,7 @@ export default function CustomerHomeScreen() {
           />
         </StaggeredEnter>
 
-        <StaggeredEnter index={3}>
+        <StaggeredEnter index={4}>
           <CustomerHomeBottomSection reservations={reservations} t={t} DesignColors={DesignColors} />
         </StaggeredEnter>
       </ScrollView>
@@ -226,13 +231,13 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     errorBanner: {
       borderRadius: Radius.md,
       borderWidth: 1,
-      borderColor: '#ef4444',
-      backgroundColor: '#ef444414',
+      borderColor: DesignColors.semanticDanger,
+      backgroundColor: `${DesignColors.semanticDanger}14`,
       padding: Spacing.sm,
     },
     errorText: {
       ...Typography.bodySm,
-      color: '#ef4444',
+      color: DesignColors.semanticDanger,
     },
     loadingScreen: {
       flex: 1,

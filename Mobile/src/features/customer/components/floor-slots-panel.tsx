@@ -36,7 +36,7 @@ export function resolveSlotStatusVisual(
           borderColor: colors.semanticSuccess,
           backgroundColor: `${colors.semanticSuccess}22`,
         },
-        text: { color: colors.semanticSuccess, fontWeight: '600' },
+        text: { color: colors.semanticSuccess },
       };
     case 'reserved':
       return {
@@ -45,7 +45,7 @@ export function resolveSlotStatusVisual(
           borderColor: colors.semanticWarning,
           backgroundColor: `${colors.semanticWarning}22`,
         },
-        text: { color: colors.semanticWarning, fontWeight: '600' },
+        text: { color: colors.semanticWarning },
       };
     case 'in-use':
       return {
@@ -54,7 +54,7 @@ export function resolveSlotStatusVisual(
           borderColor: colors.accentSky,
           backgroundColor: `${colors.accentSky}22`,
         },
-        text: { color: colors.accentSky, fontWeight: '600' },
+        text: { color: colors.accentSky },
       };
     default:
       return {
@@ -63,7 +63,7 @@ export function resolveSlotStatusVisual(
           borderColor: colors.semanticDanger,
           backgroundColor: `${colors.semanticDanger}18`,
         },
-        text: { color: colors.semanticDanger, fontWeight: '600' },
+        text: { color: colors.semanticDanger },
       };
   }
 }
@@ -201,6 +201,7 @@ export function FloorSlotsPanel({
                           active && styles.slotChipTextActive,
                           dimWrongType && styles.slotChipTextDisabled,
                         ]}
+                        numberOfLines={1}
                       >
                         {slot.slotNumber}
                       </ThemedText>

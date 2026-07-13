@@ -1014,23 +1014,26 @@ function createStyles(DesignColors: DesignColorPalette) {
       paddingHorizontal: Spacing.sm,
       paddingVertical: 8,
       alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'visible',
     },
     slotChipDisabled: {
       opacity: 0.4,
     },
     slotChipActive: {
-      borderColor: DesignColors.primary,
-      backgroundColor: `${DesignColors.primary}28`,
-      borderWidth: 2,
+      borderColor: DesignColors.primaryHover,
+      backgroundColor: `${DesignColors.primary}40`,
     },
     slotChipText: {
       ...Typography.mono,
       color: DesignColors.inkMuted,
       fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500',
+      includeFontPadding: false,
     },
     slotChipTextActive: {
-      color: DesignColors.primaryHover,
-      fontWeight: '700',
+      color: DesignColors.ink,
     },
     slotChipTextDisabled: {
       color: DesignColors.inkSubtle,

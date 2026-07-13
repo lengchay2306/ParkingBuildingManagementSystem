@@ -75,6 +75,7 @@ export type CustomerParkingSession = {
       };
   checkInUserId?: string | { _id?: string; fullName?: string; phone?: string };
   checkInTime?: string;
+  checkOutTime?: string | null;
   status: string;
 };
 
