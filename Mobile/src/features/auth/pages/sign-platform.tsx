@@ -192,7 +192,8 @@ export default function SignPlatformScreen() {
   const stageHeight = activeView === 'login' ? loginHeight : signupHeight;
 
   function updateStageHeight(height: number, view: AuthView) {
-    const next = Math.max(360, Math.ceil(height));
+    // Extra buffer so button/footer glyphs are not clipped by authStage overflow.
+    const next = Math.max(360, Math.ceil(height) + 12);
     if (view === 'login') {
       setLoginHeight((prev) => (Math.abs(prev - next) < 1 ? prev : next));
     } else {
@@ -430,9 +431,11 @@ export default function SignPlatformScreen() {
         <View style={[styles.blobBottomLeft, { backgroundColor: blobSecondary }]} />
       </View>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        {/* Android already uses softwareKeyboardLayoutMode "resize" — KAV height double-shifts and "flies" the UI. */}
         <KeyboardAvoidingView
           style={styles.keyboardAvoid}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          enabled={Platform.OS === 'ios'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         >
           <ScrollView
@@ -441,8 +444,8 @@ export default function SignPlatformScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets
-            contentInsetAdjustmentBehavior="always"
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            contentInsetAdjustmentBehavior="automatic"
           >
           <View style={styles.contentWrap}>
             <View style={styles.topTools}>
@@ -535,7 +538,7 @@ export default function SignPlatformScreen() {
                 </View>
 
                 <View
-                  style={[styles.authStage, { minHeight: stageHeight }]}
+                  style={[styles.authStage, { height: stageHeight }]}
                   onLayout={(e) => setAuthWidth(e.nativeEvent.layout.width)}>
                   <Animated.View
                     pointerEvents={activeView === 'signup' ? 'auto' : 'none'}
@@ -667,19 +670,18 @@ export default function SignPlatformScreen() {
                         {isSigningUp ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
-                          <View style={styles.buttonInner}>
-                            <Text style={styles.primaryButtonText}>{t('ĐĂNG KÝ', 'SIGN UP')}</Text>
-                            <Ionicons name="person-add-outline" size={16} color="#fff" />
-                          </View>
+                          <Text numberOfLines={1} style={styles.primaryButtonText}>
+                            {t('Đăng ký', 'Sign up')}
+                          </Text>
                         )}
                       </Pressable>
                       <View style={styles.footerRow}>
-                        <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
-                          {t('Đã có tài khoản?', 'Already have an account?')}
-                        </ThemedText>
-                        <Pressable onPress={animateToLogin}>
-                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>{t('Đăng nhập', 'Sign in')}</ThemedText>
-                        </Pressable>
+                        <Text style={[styles.footerText, { color: palette.textMuted }]}>
+                          {t('Đã có tài khoản? ', 'Already have an account? ')}
+                          <Text onPress={animateToLogin} style={[styles.footerLink, { color: palette.primary }]}>
+                            {t('Đăng nhập', 'Sign in')}
+                          </Text>
+                        </Text>
                       </View>
                     </View>
                   </Animated.View>
@@ -717,6 +719,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('loginEmail');
                               mascot.handleLoginEmailFocus();
+                              setTimeout(() => scrollRef.current?.scrollTo({ y: 120, animated: true }), 200);
                             }}
                             onBlur={() => {
                               mascot.handleLoginEmailBlur();
@@ -729,16 +732,43 @@ export default function SignPlatformScreen() {
                             style={[styles.input, { color: palette.text }]}
                           />
                         </FieldRow>
+                        <FieldRow
+                          icon="lock-closed-outline"
+                          label={t('MẬT KHẨU', 'PASSWORD')}
+                          value={loginPassword}
+                          focused={focusedField === 'loginPassword'}
+                          palette={palette}>
+                          <TextInput
+                            value={loginPassword}
+                            onChangeText={(text) => mascot.handlePasswordChange(text, setLoginPassword)}
+                            onFocus={() => {
+                              setFocusedField('loginPassword');
+                              mascot.handlePasswordFocus('loginPassword');
+                              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+                            }}
+                            onBlur={() => {
+                              mascot.handlePasswordBlur();
+                              setFocusedField(null);
+                            }}
+                            secureTextEntry={!showLoginPassword}
+                            placeholder=""
+                            style={[styles.input, { color: palette.text }]}
+                          />
+                          <Pressable onPress={() => setShowLoginPassword((p) => !p)} style={styles.eyeButton}>
+                            <Ionicons name={showLoginPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={palette.icon} />
+                          </Pressable>
+                        </FieldRow>
                         <View style={styles.passwordTopRow}>
                           <Pressable
                             onPress={() => {
                               setForgotEmail(loginEmail.trim());
                               setForgotOpen((open) => !open);
+                              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
                             }}
                           >
-                            <ThemedText style={[styles.forgotText, { color: palette.primary }]}>
+                            <Text style={[styles.forgotText, { color: palette.primary }]}>
                               {t('Quên mật khẩu?', 'Forgot password?')}
-                            </ThemedText>
+                            </Text>
                           </Pressable>
                         </View>
                         {forgotOpen ? (
@@ -766,7 +796,7 @@ export default function SignPlatformScreen() {
                               placeholder={t('Email tài khoản', 'Account email')}
                               placeholderTextColor={palette.label}
                               onFocus={() => {
-                                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+                                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
                               }}
                               style={[
                                 styles.forgotInput,
@@ -789,7 +819,7 @@ export default function SignPlatformScreen() {
                               {isSendingForgot ? (
                                 <ActivityIndicator color="#fff" />
                               ) : (
-                                <Text style={styles.forgotSubmitText}>
+                                <Text numberOfLines={1} style={styles.forgotSubmitText}>
                                   {t('Gửi email đặt lại', 'Send reset email')}
                                 </Text>
                               )}
@@ -801,31 +831,6 @@ export default function SignPlatformScreen() {
                             </Pressable>
                           </View>
                         ) : null}
-                        <FieldRow
-                          icon="lock-closed-outline"
-                          label={t('MẬT KHẨU', 'PASSWORD')}
-                          value={loginPassword}
-                          focused={focusedField === 'loginPassword'}
-                          palette={palette}>
-                          <TextInput
-                            value={loginPassword}
-                            onChangeText={(text) => mascot.handlePasswordChange(text, setLoginPassword)}
-                            onFocus={() => {
-                              setFocusedField('loginPassword');
-                              mascot.handlePasswordFocus('loginPassword');
-                            }}
-                            onBlur={() => {
-                              mascot.handlePasswordBlur();
-                              setFocusedField(null);
-                            }}
-                            secureTextEntry={!showLoginPassword}
-                            placeholder=""
-                            style={[styles.input, { color: palette.text }]}
-                          />
-                          <Pressable onPress={() => setShowLoginPassword((p) => !p)} style={styles.eyeButton}>
-                            <Ionicons name={showLoginPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={palette.icon} />
-                          </Pressable>
-                        </FieldRow>
                       </View>
                       <Pressable
                         disabled={isSigningIn}
@@ -842,19 +847,18 @@ export default function SignPlatformScreen() {
                         {isSigningIn ? (
                           <ActivityIndicator color="#fff" />
                         ) : (
-                          <View style={styles.buttonInner}>
-                            <Text style={styles.primaryButtonText}>{t('ĐĂNG NHẬP', 'SIGN IN')}</Text>
-                            <Ionicons name="arrow-forward" size={16} color="#fff" />
-                          </View>
+                          <Text numberOfLines={1} style={styles.primaryButtonText}>
+                            {t('Đăng nhập', 'Sign in')}
+                          </Text>
                         )}
                       </Pressable>
                       <View style={styles.footerRow}>
-                        <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
-                          {t('Chưa có tài khoản?', "Don't have an account?")}
-                        </ThemedText>
-                        <Pressable onPress={animateToSignup}>
-                          <ThemedText style={[styles.footerLink, { color: palette.primary }]}>{t('Đăng ký', 'Sign up')}</ThemedText>
-                        </Pressable>
+                        <Text style={[styles.footerText, { color: palette.textMuted }]}>
+                          {t('Chưa có tài khoản? ', "Don't have an account? ")}
+                          <Text onPress={animateToSignup} style={[styles.footerLink, { color: palette.primary }]}>
+                            {t('Đăng ký', 'Sign up')}
+                          </Text>
+                        </Text>
                       </View>
                     </View>
                   </Animated.View>
@@ -971,7 +975,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-    paddingBottom: Spacing.six,
+    paddingBottom: 120,
   },
   contentWrap: {
     width: '100%',
@@ -1089,17 +1093,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 30,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 36,
     fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
     marginTop: 2,
     includeFontPadding: false,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
     marginBottom: 10,
     includeFontPadding: false,
@@ -1200,24 +1204,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   primaryButton: {
-    minHeight: 46,
+    minHeight: 48,
     marginTop: 12,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   buttonInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
   },
   primaryButtonText: {
     color: '#fff',
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
     fontWeight: '600',
+    textAlign: 'center',
     includeFontPadding: false,
-  },  dividerWrap: {
+  },
+  dividerWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1246,25 +1254,27 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   footerRow: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 4,
     marginTop: 14,
     marginBottom: 2,
+    paddingHorizontal: 4,
   },
   footerText: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   footerLink: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 20,
     fontWeight: '700',
+    includeFontPadding: false,
   },
   pressedScale: {
     transform: [{ scale: 0.98 }],
