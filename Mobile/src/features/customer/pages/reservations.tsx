@@ -584,6 +584,22 @@ export default function ReservationsScreen() {
                 {t('Chọn chỗ đỗ', 'Select parking slot')}
               </ThemedText>
 
+              <View style={styles.slotLegendRow}>
+                {(
+                  [
+                    [DesignColors.semanticSuccess, t('Trống', 'Free')],
+                    [DesignColors.semanticWarning, t('Đã đặt', 'Reserved')],
+                    [DesignColors.accentSky, t('Đang dùng', 'In use')],
+                    [DesignColors.semanticDanger, t('Khóa', 'Blocked')],
+                  ] as const
+                ).map(([color, label]) => (
+                  <View key={label} style={styles.slotLegendItem}>
+                    <View style={[styles.slotLegendDot, { backgroundColor: color }]} />
+                    <ThemedText style={styles.slotLegendText}>{label}</ThemedText>
+                  </View>
+                ))}
+              </View>
+
               {isLoadingSlots ? (
                 <ActivityIndicator color={DesignColors.primary} style={styles.typeLoader} />
               ) : bookingFloors.length === 0 ? (
@@ -898,6 +914,27 @@ function createStyles(DesignColors: DesignColorPalette) {
     sectionGap: {
       marginTop: Spacing.sm,
     },
+    slotLegendRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+      marginBottom: 2,
+    },
+    slotLegendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    slotLegendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+    },
+    slotLegendText: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 12,
+    },
     chipRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -971,36 +1008,20 @@ function createStyles(DesignColors: DesignColorPalette) {
     slotChip: {
       minWidth: 52,
       borderRadius: Radius.sm,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface1,
       paddingHorizontal: Spacing.sm,
       paddingVertical: 8,
       alignItems: 'center',
     },
-    slotAvailable: {
-      borderColor: DesignColors.semanticSuccess,
-      backgroundColor: `${DesignColors.semanticSuccess}18`,
-    },
-    slotInUse: {
-      borderColor: DesignColors.primary,
-      backgroundColor: `${DesignColors.primary}14`,
-    },
-    slotReserved: {
-      borderColor: DesignColors.semanticWarning,
-      backgroundColor: `${DesignColors.semanticWarning}18`,
-    },
-    slotUnavailable: {
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-      opacity: 0.7,
-    },
     slotChipDisabled: {
-      opacity: 0.45,
+      opacity: 0.4,
     },
     slotChipActive: {
       borderColor: DesignColors.primary,
-      backgroundColor: DesignColors.surface3,
+      backgroundColor: `${DesignColors.primary}28`,
+      borderWidth: 2,
     },
     slotChipText: {
       ...Typography.mono,
@@ -1008,11 +1029,11 @@ function createStyles(DesignColors: DesignColorPalette) {
       fontSize: 12,
     },
     slotChipTextActive: {
-      color: DesignColors.primary,
-      fontWeight: '600',
+      color: DesignColors.primaryHover,
+      fontWeight: '700',
     },
     slotChipTextDisabled: {
-      color: DesignColors.inkMuted,
+      color: DesignColors.inkSubtle,
     },
     primaryButton: {
       borderRadius: Radius.md,
