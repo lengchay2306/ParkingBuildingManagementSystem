@@ -61,6 +61,8 @@ export async function createStaffBillQrForSession(
     }
     return {
       ...bill,
+      // Prefer amount from GET /payment (source of truth), not only bill-qr payload.
+      amount: typeof pending.amount === "number" ? pending.amount : bill.amount,
       paymentId: pending._id,
       parkingSessionId,
     };

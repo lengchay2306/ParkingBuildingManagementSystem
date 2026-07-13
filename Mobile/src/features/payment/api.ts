@@ -26,12 +26,50 @@ export type StaffBillQrResult = {
   qrCode: string;
 };
 
+export type StaffPayment = {
+  _id: string;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'CANCELLED' | string;
+  orderCode: number;
+  paymentMethod?: string;
+  parkingSessionId?: string | null;
+  createdAt?: string;
+};
+
 export function formatVnd(amount: number) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/** Prefer PENDING checkout bill, else latest payment for the session. */
+export function pickCheckoutPayment(payments: StaffPayment[]): StaffPayment | null {
+  if (payments.length === 0) {
+    return null;
+  }
+  return (
+    payments.find((payment) => payment.status?.toUpperCase() === 'PENDING') ??
+    payments.find((payment) => payment.status?.toUpperCase() === 'PAID') ??
+    payments[0] ??
+    null
+  );
+}
+
+/** GET /payment?parkingSessionId= — STAFF | MANAGER | ADMIN */
+export async function getPaymentsByParkingSessionId(
+  parkingSessionId: string,
+): Promise<StaffPayment[]> {
+  const params = new URLSearchParams({
+    parkingSessionId: parkingSessionId.trim(),
+    limit: '5',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
+  const response = await authenticatedFetch(`/payment?${params.toString()}`);
+  const payload = await parsePaymentResponse<{ payments?: StaffPayment[] }>(response);
+  return Array.isArray(payload.data?.payments) ? payload.data.payments : [];
 }
 
 /** Build a scannable image URL from PayOS/BE `qrCode` EMV string (or pass-through if already an image URL). */

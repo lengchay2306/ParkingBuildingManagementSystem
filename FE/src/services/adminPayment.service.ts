@@ -127,6 +127,19 @@ export const getAdminPayments = async ({
   };
 };
 
+/** Prefer PENDING checkout bill, else PAID, else latest. */
+export function pickCheckoutPayment(payments: AdminPayment[]): AdminPayment | null {
+  if (payments.length === 0) {
+    return null;
+  }
+  return (
+    payments.find((payment) => payment.status === "PENDING") ??
+    payments.find((payment) => payment.status === "PAID") ??
+    payments[0] ??
+    null
+  );
+}
+
 /** GET /api/v1/payment?parkingSessionId=... — STAFF | MANAGER | ADMIN */
 export const getPaymentsByParkingSessionId = async (parkingSessionId: string) => {
   const result = await getAdminPayments({

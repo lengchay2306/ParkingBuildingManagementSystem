@@ -10,7 +10,10 @@ import {
   checkStaffPayment,
   createStaffBillQr,
   formatVnd,
+  getPaymentsByParkingSessionId,
+  pickCheckoutPayment,
   type StaffBillQrResult,
+  type StaffPayment,
 } from '@/features/payment/api';
 import {
   StaffSessionDetailGrid,
@@ -77,6 +80,7 @@ export default function StaffSessionDetailScreen() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [tick, setTick] = useState(0);
   const [paymentBill, setPaymentBill] = useState<StaffBillQrResult | null>(null);
+  const [checkoutPayment, setCheckoutPayment] = useState<StaffPayment | null>(null);
   const [isCreatingBill, setIsCreatingBill] = useState(false);
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [paymentUnpaidNotice, setPaymentUnpaidNotice] = useState<string | null>(null);
@@ -128,6 +132,24 @@ export default function StaffSessionDetailScreen() {
 
   const isActive = session?.status.toUpperCase() === 'ACTIVE';
   const isMonthlySession = session?.sessionType?.toUpperCase() === 'MONTH';
+  const paymentAmount = checkoutPayment?.amount ?? paymentBill?.amount ?? null;
+
+  const loadCheckoutPayment = useCallback(async (sessionId: string) => {
+    try {
+      const payments = await getPaymentsByParkingSessionId(sessionId);
+      setCheckoutPayment(pickCheckoutPayment(payments));
+    } catch {
+      setCheckoutPayment(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!session?.id || isMonthlySession) {
+      setCheckoutPayment(null);
+      return;
+    }
+    void loadCheckoutPayment(session.id);
+  }, [isMonthlySession, loadCheckoutPayment, session?.id]);
 
   useEffect(() => {
     if (session?.customerPhone && !checkoutPhone) {
@@ -259,8 +281,15 @@ export default function StaffSessionDetailScreen() {
     setIsCreatingBill(true);
     try {
       const bill = await createStaffBillQr(session.id);
+      const payments = await getPaymentsByParkingSessionId(session.id);
+      const payment = pickCheckoutPayment(payments);
+      setCheckoutPayment(payment);
       setPaymentUnpaidNotice(null);
-      setPaymentBill(bill);
+      setPaymentBill({
+        ...bill,
+        // Prefer amount from GET /payment response.
+        amount: payment?.amount ?? bill.amount,
+      });
     } catch (error) {
       showToast(
         error instanceof Error
@@ -369,23 +398,14 @@ export default function StaffSessionDetailScreen() {
         <ThemedText style={styles.costValue}>
           {isMonthlySession
             ? t('Miễn phí (thẻ tháng)', 'Free (monthly card)')
-            : paymentBill
-              ? formatVnd(paymentBill.amount)
-              : t('Hiện sau khi tạo VietQR', 'Shown after creating VietQR')}
-        </ThemedText>
-        {paymentBill && !isMonthlySession ? (
-          <ThemedText style={styles.costMeta}>
-            {t('Thời gian gửi', 'Parking duration')}:{' '}
-            {Number.isFinite(paymentBill.totalHours)
-              ? `${paymentBill.totalHours.toFixed(1)} h`
+            : paymentAmount != null
+              ? formatVnd(paymentAmount)
               : '—'}
-          </ThemedText>
-        ) : (
-          <ThemedText style={styles.costMeta}>
-            {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
-            {formatTimeLabel(session.checkInTime ?? '')}
-          </ThemedText>
-        )}
+        </ThemedText>
+        <ThemedText style={styles.costMeta}>
+          {t('Loại phiên', 'Session type')}: {session.sessionType ?? 'DAILY'} ·{' '}
+          {formatTimeLabel(session.checkInTime ?? '')}
+        </ThemedText>
         <ThemedText style={styles.costHint}>
           {isMonthlySession
             ? t(

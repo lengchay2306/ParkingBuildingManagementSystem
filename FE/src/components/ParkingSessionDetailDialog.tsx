@@ -58,7 +58,7 @@ export function ParkingSessionDetailDialog({
   const paymentQuery = useQuery({
     queryKey: ["parking-session-payment", sessionId] as const,
     queryFn: () => getPaymentsByParkingSessionId(sessionId!),
-    enabled: open && showHistoryDetails && Boolean(sessionId),
+    enabled: open && Boolean(sessionId) && (showHistoryDetails || showCheckoutAction),
     staleTime: 60_000,
   });
 
@@ -81,6 +81,9 @@ export function ParkingSessionDetailDialog({
     paymentQuery.data?.find((payment) => payment.status === "PAID") ??
     paymentQuery.data?.[0] ??
     null;
+  const activeCheckoutPayment =
+    paymentQuery.data?.find((payment) => payment.status === "PENDING") ??
+    paidCheckoutPayment;
   const parkingDuration = formatParkingDuration(session.checkInTime, session.checkOutTime);
 
   return (
@@ -216,14 +219,18 @@ export function ParkingSessionDetailDialog({
                   value={
                     isMonthlySession
                       ? "Miễn phí (thẻ tháng)"
-                      : "Hiện sau khi tạo VietQR"
+                      : activeCheckoutPayment
+                        ? formatVnd(activeCheckoutPayment.amount)
+                        : paymentQuery.isLoading
+                          ? "Đang tải..."
+                          : "—"
                   }
                 />
               </DetailGrid>
               <p className="text-xs text-muted-foreground">
                 {isMonthlySession
                   ? "Xe có thẻ tháng — kết thúc phiên không cần quét VietQR."
-                  : "Phiên gửi ngày — tạo mã VietQR để khách thanh toán trước khi ra cổng. Số tiền thật sẽ hiện trên màn VietQR."}
+                  : "Phiên gửi ngày — tạo mã VietQR để khách thanh toán trước khi ra cổng."}
               </p>
               <Button
                 type="button"
