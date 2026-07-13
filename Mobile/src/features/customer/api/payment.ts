@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 export type PricePolicy = {
   _id: string;
@@ -10,22 +11,8 @@ export type PricePolicy = {
   monthlyRate?: number | null;
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 async function parsePaymentResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    const nested =
-      payload?.data && typeof payload.data === 'object' && 'message' in payload.data
-        ? String((payload.data as { message?: string }).message ?? '')
-        : '';
-    throw new Error(payload?.message || nested || 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 export function formatVnd(amount: number | null | undefined): string {

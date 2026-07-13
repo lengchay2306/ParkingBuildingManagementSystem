@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 import type {
   ChatMessage,
@@ -8,18 +9,15 @@ import type {
 } from '@/features/chatbot/api/types';
 import { ChatbotApiError } from '@/features/chatbot/lib/chatbot-errors';
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
-async function parseChatbotResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new ChatbotApiError(response.status, payload?.message);
+async function parseChatbotResponse<T>(response: Response, expectedStatus?: number) {
+  try {
+    return await parseApiEnvelope<T>(response, 'Chatbot request failed', expectedStatus);
+  } catch (error) {
+    throw new ChatbotApiError(
+      response.status,
+      error instanceof Error ? error.message : undefined,
+    );
   }
-  return payload ?? {};
 }
 
 export async function createChatSession(title?: string): Promise<{
@@ -32,20 +30,16 @@ export async function createChatSession(title?: string): Promise<{
     body: JSON.stringify(title?.trim() ? { title: title.trim() } : {}),
   });
 
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<{
+  const payload = await parseChatbotResponse<{
     session?: ChatSession;
     messages?: ChatMessage[];
-  }> | null;
+  }>(response, 201);
 
-  if (response.status !== 201) {
-    throw new ChatbotApiError(response.status, payload?.message);
-  }
-
-  const session = payload?.data?.session;
+  const session = payload.data?.session;
   if (!session) {
     throw new ChatbotApiError(response.status, 'Chat session response is missing data');
   }
-  return { session, messages: payload?.data?.messages ?? [] };
+  return { session, messages: payload.data?.messages ?? [] };
 }
 
 export async function listChatSessions({

@@ -42,6 +42,7 @@ import {
   type StaffCheckInRecord,
 } from '@/features/staff/lib/utils';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { resolveApiErrorMessage } from '@/lib/api-error';
 import { useThemePreference } from '@/hooks/theme-preference';
 import { staffSessionDetailPath } from '@/roles';
 
@@ -110,35 +111,62 @@ export default function StaffOperationsScreen() {
     try {
       let floorSnapshot = floors;
       if (floorSnapshot.length === 0) {
-        floorSnapshot = await loadParkingSlots().catch(() => []);
+        floorSnapshot = await loadParkingSlots();
       }
 
-      const [sessions, reservations] = await Promise.all([
-        getStaffActiveParkingSessions()
-          .then(async (items) => {
-            const monthly = items.filter((session) => session.sessionType?.toUpperCase() === 'MONTH');
-            return Promise.all(monthly.map((session) => toMonthlySessionRecord(session, floorSnapshot)));
-          })
-          .catch(() => [] as StaffCheckInRecord[]),
-        listPendingReservations().catch(() => [] as Reservation[]),
+      const [sessionsResult, reservationsResult] = await Promise.allSettled([
+        getStaffActiveParkingSessions().then(async (items) => {
+          const monthly = items.filter((session) => session.sessionType?.toUpperCase() === 'MONTH');
+          return Promise.all(monthly.map((session) => toMonthlySessionRecord(session, floorSnapshot)));
+        }),
+        listPendingReservations(),
       ]);
 
-      setActiveSessions(sessions);
-      setPendingReservations(reservations);
+      if (sessionsResult.status === 'fulfilled') {
+        setActiveSessions(sessionsResult.value);
+        setSelectedSessionId((current) =>
+          current && sessionsResult.value.some((session) => session.id === current)
+            ? current
+            : EMPTY_SELECTION,
+        );
+      } else {
+        setActiveSessions([]);
+        showToast(
+          resolveApiErrorMessage(
+            sessionsResult.reason,
+            t('Không tải được phiên thẻ tháng', 'Could not load monthly sessions'),
+          ),
+          'error',
+        );
+      }
 
-      setSelectedSessionId((current) =>
-        current && sessions.some((session) => session.id === current) ? current : EMPTY_SELECTION,
-      );
-      setSelectedReservationId((current) =>
-        current && reservations.some((reservation) => reservation._id === current)
-          ? current
-          : EMPTY_SELECTION,
+      if (reservationsResult.status === 'fulfilled') {
+        setPendingReservations(reservationsResult.value);
+        setSelectedReservationId((current) =>
+          current && reservationsResult.value.some((reservation) => reservation._id === current)
+            ? current
+            : EMPTY_SELECTION,
+        );
+      } else {
+        setPendingReservations([]);
+        showToast(
+          resolveApiErrorMessage(
+            reservationsResult.reason,
+            t('Không tải được đặt chỗ PENDING', 'Could not load PENDING reservations'),
+          ),
+          'error',
+        );
+      }
+    } catch (error) {
+      showToast(
+        resolveApiErrorMessage(error, t('Không tải được dữ liệu', 'Could not load data')),
+        'error',
       );
     } finally {
       setIsLoadingSessions(false);
       setIsLoadingReservations(false);
     }
-  }, [floors, loadParkingSlots]);
+  }, [floors, loadParkingSlots, showToast, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -191,11 +219,19 @@ export default function StaffOperationsScreen() {
         showToast(t('Không có xe ACTIVE với biển này', 'No active session for this plate'), 'error');
         return;
       }
-      await loadParkingSessions({ status: 'ACTIVE' }).catch(() => undefined);
+      await loadParkingSessions({ status: 'ACTIVE' }).catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không làm mới danh sách phiên', 'Could not refresh sessions'),
+          ),
+          'error',
+        );
+      });
       router.push(staffSessionDetailPath(session._id) as never);
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Tra cứu thất bại', 'Lookup failed'),
+        resolveApiErrorMessage(error, t('Tra cứu thất bại', 'Lookup failed')),
         'error',
       );
     } finally {

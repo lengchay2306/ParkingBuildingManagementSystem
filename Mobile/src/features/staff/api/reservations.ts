@@ -1,6 +1,7 @@
 import type { Reservation, ReservationStatus } from '@/features/customer/api/reservations';
 
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 import { getUserById, resolveOwnerUserId } from '@/features/staff/api/users';
 import {
   getReservationDriverName,
@@ -11,12 +12,6 @@ import {
 } from '@/features/staff/lib/reservation-helpers';
 
 export type { Reservation, ReservationStatus, ReservationsByPlateResult };
-
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
 
 type ReservationsListData = {
   reservations?: Reservation[];
@@ -29,11 +24,7 @@ type ReservationsListData = {
 };
 
 async function parseReservationApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 /** GET /reservations/by-plate/:licensePlate — staff lookup after plate scan. */
@@ -48,7 +39,7 @@ export async function getReservationsByLicensePlate(
   );
   const result = await parseReservationApiResponse<ReservationsByPlateResult>(response);
   if (!result.data?.vehicle) {
-    throw new Error(result.message ?? 'Reservation lookup response is missing vehicle data');
+    throw new Error(extractApiErrorMessage(result, 'Reservation lookup response is missing vehicle data'));
   }
   return {
     vehicle: result.data.vehicle,
@@ -146,7 +137,7 @@ export async function deleteManagedReservation(reservationId: string): Promise<R
   const result = await parseReservationApiResponse<{ deletedReservation?: Reservation }>(response);
   const reservation = result.data?.deletedReservation;
   if (!reservation) {
-    throw new Error(result.message ?? 'Delete response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Delete response is missing data'));
   }
   return reservation;
 }

@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 export type VehicleType = {
   _id: string;
@@ -43,18 +44,8 @@ function validatePlate(plate: string, t: (vi: string, en: string) => string): st
   return null;
 }
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 async function parseVehicleApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 export function validateVehicleRegistration(
@@ -139,7 +130,7 @@ export async function createVehicle(payload: CreateVehiclePayload): Promise<Crea
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Vehicle response is missing data'));
   }
   return vehicle;
 }
@@ -156,7 +147,7 @@ export async function updateVehicle(
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Vehicle response is missing data'));
   }
   return vehicle;
 }
@@ -168,7 +159,7 @@ export async function softDeleteVehicle(vehicleId: string): Promise<CreatedVehic
   const result = await parseVehicleApiResponse<{ vehicle?: CreatedVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Vehicle response is missing data'));
   }
   return vehicle;
 }

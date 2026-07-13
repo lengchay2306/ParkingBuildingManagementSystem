@@ -117,8 +117,14 @@ export default function StaffSlotsScreen() {
         showLoading: isInitialLoad,
         withMinimumDuration: isInitialLoad,
       });
-      void loadActiveSlotSessions();
-    }, [fetchSlots, loadActiveSlotSessions]),
+      void loadActiveSlotSessions().catch((error) => {
+        setSlotsError(
+          error instanceof Error
+            ? error.message
+            : t('Không tải được phiên đang gửi', 'Could not load active sessions'),
+        );
+      });
+    }, [fetchSlots, loadActiveSlotSessions, t]),
   );
 
   const handleRefresh = useCallback(async () => {

@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 
+import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import {
   StaffDarkCard,
@@ -16,10 +17,12 @@ import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-co
 import { useStaffScreenTitles } from '@/features/staff/lib/staff-screen-titles';
 import { createStaffStyles } from '@/features/staff/styles/common';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { resolveApiErrorMessage } from '@/lib/api-error';
 
 export default function StaffHomeScreen() {
   useStaffRoleGuard();
   const { t } = useLanguagePreference();
+  const { showToast } = useAppToast();
   const titles = useStaffScreenTitles();
   const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
@@ -27,8 +30,16 @@ export default function StaffHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void refreshWorkspace().catch(() => undefined);
-    }, [refreshWorkspace]),
+      void refreshWorkspace().catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không tải được dữ liệu bãi', 'Could not load lot data'),
+          ),
+          'error',
+        );
+      });
+    }, [refreshWorkspace, showToast, t]),
   );
 
   const occupancyPercent = useMemo(() => {

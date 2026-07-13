@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 import { getVehicleTypes, type VehicleType } from '@/features/customer/api/vehicles';
 
@@ -15,18 +16,8 @@ export type StaffVehicle = {
   status?: string;
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 async function parseVehicleApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 function normalizePlate(plate: string) {
@@ -40,7 +31,7 @@ export async function getVehicleByLicensePlate(licensePlate: string): Promise<St
   const result = await parseVehicleApiResponse<{ vehicle?: StaffVehicle }>(response);
   const vehicle = result.data?.vehicle;
   if (!vehicle) {
-    throw new Error(result.message ?? 'Vehicle response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Vehicle response is missing data'));
   }
   return vehicle;
 }

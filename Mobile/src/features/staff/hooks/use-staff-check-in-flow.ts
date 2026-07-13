@@ -27,6 +27,7 @@ import {
 } from '@/features/staff/api';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
+import { isNotFoundApiError, resolveApiErrorMessage } from '@/lib/api-error';
 import {
   findStaffRelevantReservation,
   formatReservationSlotLabel,
@@ -112,8 +113,17 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
   useEffect(() => {
     void getVehicleTypes()
       .then(setVehicleTypes)
-      .catch(() => setVehicleTypes([]));
-  }, []);
+      .catch((error) => {
+        setVehicleTypes([]);
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không tải được loại xe', 'Could not load vehicle types'),
+          ),
+          'error',
+        );
+      });
+  }, [showToast, t]);
 
   const activeSessionSlotLabel = useMemo(() => {
     if (activeSession) {
@@ -164,8 +174,13 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
       setIsSearchingVehicle(true);
       try {
         const [sessionByPlate, reservationLookup] = await Promise.all([
-          getActiveSessionByPlate(plate).catch(() => null),
-          getReservationsByLicensePlate(plate, 'PENDING').catch(() => null),
+          getActiveSessionByPlate(plate),
+          getReservationsByLicensePlate(plate, 'PENDING').catch((error) => {
+            if (isNotFoundApiError(error)) {
+              return null;
+            }
+            throw error;
+          }),
         ]);
         const relevantReservationRaw = reservationLookup
           ? findStaffRelevantReservation(reservationLookup.reservations)
@@ -237,7 +252,11 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
 
           showToast(t('Không có đặt chỗ — chọn ô trống', 'No reservation — select an available spot'), 'success');
           return true;
-        } catch {
+        } catch (lookupError) {
+          if (!isNotFoundApiError(lookupError)) {
+            throw lookupError;
+          }
+
           setCheckInMode('guest');
           setFoundVehicle(null);
           setOwnerProfile(null);
@@ -316,8 +335,24 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         customerPhone: record.customerPhone,
         customerName: record.customerName,
       });
-      void loadParkingSessions({}, refreshedFloors ?? floors).catch(() => undefined);
-      void loadActiveSlotSessions(refreshedFloors ?? floors).catch(() => undefined);
+      void loadParkingSessions({}, refreshedFloors ?? floors).catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không làm mới danh sách phiên', 'Could not refresh sessions'),
+          ),
+          'error',
+        );
+      });
+      void loadActiveSlotSessions(refreshedFloors ?? floors).catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không làm mới trạng thái ô', 'Could not refresh spot status'),
+          ),
+          'error',
+        );
+      });
 
       resetFlow();
       showToast(t('Check-in thành công', 'Check-in successful'), 'success');

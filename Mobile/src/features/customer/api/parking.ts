@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { isNotFoundApiError, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 export type ParkingSlotApiStatus = 'AVAILABLE' | 'RESERVED' | 'UNAVAILABLE' | 'CURRENTLY-IN-USED';
 
@@ -43,18 +44,8 @@ export type ParkingFloor = {
   slots: ParkingSlot[];
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 async function parseParkingResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 export type ParkingSlotFilters = {
@@ -85,10 +76,18 @@ export async function getActiveUserParkingSession(
 ): Promise<CustomerParkingSession | null> {
   try {
     const response = await authenticatedFetch(`/parking/active-user-parking-session/${vehicleId}`);
-    const payload = await parseParkingResponse<{ parkingSession?: CustomerParkingSession }>(response);
+    if (response.status === 404) {
+      return null;
+    }
+    const payload = await parseParkingResponse<{ parkingSession?: CustomerParkingSession }>(
+      response,
+    );
     return payload.data?.parkingSession ?? null;
-  } catch {
-    return null;
+  } catch (error) {
+    if (isNotFoundApiError(error)) {
+      return null;
+    }
+    throw error;
   }
 }
 

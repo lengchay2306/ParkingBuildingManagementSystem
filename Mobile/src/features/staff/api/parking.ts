@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 import {
   getActiveUserParkingSession,
@@ -92,12 +93,6 @@ export type CheckoutParkingSessionPayload = {
   phone: string;
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 type ParkingSessionsPayload = {
   parkingSessions?: {
     parkingSessions?: ParkingSession[];
@@ -106,11 +101,7 @@ type ParkingSessionsPayload = {
 };
 
 async function parseParkingApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 function isEmptySessionsError(response: Response, message: string): boolean {
@@ -146,7 +137,7 @@ export async function getParkingSessions(params: ParkingSessionsQuery = {}): Pro
   const query = buildSessionsQuery(params);
   const response = await authenticatedFetch(`/parking/parking-sessions?${query}`);
   const payload = (await response.json().catch(() => null)) as ApiEnvelope<ParkingSessionsPayload> | null;
-  const message = payload?.message ?? 'Request failed';
+  const message = extractApiErrorMessage(payload, 'Request failed');
 
   if (!response.ok) {
     if (isEmptySessionsError(response, message)) {
@@ -253,7 +244,7 @@ export async function getActiveSessionByPlate(licensePlate: string): Promise<Par
   }
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
+    throw new Error(extractApiErrorMessage(payload, 'Request failed'));
   }
 
   return payload?.data?.parkingSession ?? null;
@@ -295,7 +286,7 @@ export async function checkoutParkingSession(
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
-    throw new Error(result.message ?? 'Checkout response is missing session data');
+    throw new Error(extractApiErrorMessage(result, 'Checkout response is missing session data'));
   }
   return session;
 }
@@ -312,7 +303,7 @@ export async function createParkingSession(
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
-    throw new Error(result.message ?? 'Parking session response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Parking session response is missing data'));
   }
   return session;
 }
@@ -338,7 +329,7 @@ export async function createGuestParkingSession(
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
-    throw new Error(result.message ?? 'Parking session response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Parking session response is missing data'));
   }
   return session;
 }

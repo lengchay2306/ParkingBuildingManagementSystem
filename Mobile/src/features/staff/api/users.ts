@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope } from '@/lib/api-error';
 
 export type StaffUserSummary = {
   _id: string;
@@ -7,26 +8,17 @@ export type StaffUserSummary = {
   email?: string;
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 /** GET /users/:userId — ADMIN | MANAGER | STAFF */
 export async function getUserById(userId: string): Promise<StaffUserSummary> {
   const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}`);
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<{
-    user?: StaffUserSummary;
-  }> | null;
+  const payload = await parseApiEnvelope<{ user?: StaffUserSummary }>(
+    response,
+    'Failed to load user',
+  );
 
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Failed to load user');
-  }
-
-  const user = payload?.data?.user;
+  const user = payload.data?.user;
   if (!user?._id) {
-    throw new Error(payload?.message ?? 'User response is missing data');
+    throw new Error(extractApiErrorMessage(payload, 'User response is missing data'));
   }
 
   return user;

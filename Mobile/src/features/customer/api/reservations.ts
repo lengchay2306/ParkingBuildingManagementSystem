@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth-api';
+import { extractApiErrorMessage, parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 export type ReservationStatus = 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
 
@@ -45,22 +46,8 @@ export type CreateReservationPayload = {
   expectedArrival: string;
 };
 
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
-
 async function parseReservationResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  if (!response.ok) {
-    const nested =
-      payload?.data && typeof payload.data === 'object' && 'message' in (payload.data as object)
-        ? String((payload.data as { message?: string }).message ?? '')
-        : '';
-    throw new Error(payload?.message || nested || 'Request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response);
 }
 
 /** Newest → oldest. Uses reservedAt / createdAt / ObjectId time (Mobile-only; no BE change). */
@@ -118,7 +105,7 @@ export async function createReservation(payload: CreateReservationPayload): Prom
   const result = await parseReservationResponse<{ reservation?: Reservation }>(response);
   const reservation = result.data?.reservation;
   if (!reservation) {
-    throw new Error(result.message ?? 'Reservation response is missing data');
+    throw new Error(extractApiErrorMessage(result, 'Reservation response is missing data'));
   }
   return reservation;
 }

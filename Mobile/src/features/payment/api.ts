@@ -1,22 +1,11 @@
 import { authenticatedFetch } from '@/lib/auth-api';
-
-type ApiEnvelope<T> = {
-  status?: string;
-  message?: string;
-  data?: T;
-};
+import { parseApiEnvelope, type ApiEnvelope } from '@/lib/api-error';
 
 async function parsePaymentResponse<T>(
   response: Response,
   expectedStatus?: number,
 ): Promise<ApiEnvelope<T>> {
-  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
-  const ok =
-    expectedStatus != null ? response.status === expectedStatus : response.ok;
-  if (!ok) {
-    throw new Error(payload?.message ?? 'Payment request failed');
-  }
-  return payload ?? {};
+  return parseApiEnvelope<T>(response, 'Payment request failed', expectedStatus);
 }
 
 export type StaffBillQrResult = {

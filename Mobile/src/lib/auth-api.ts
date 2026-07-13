@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { extractApiErrorMessage } from '@/lib/api-error';
 import {
   CUSTOMER_ROUTES,
   type PostLoginRoute,
@@ -114,7 +115,7 @@ async function parseApiResponse(response: Response) {
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;
 
   if (!response.ok) {
-    throw new Error(payload?.message ?? payload?.data?.message ?? 'Request failed');
+    throw new Error(extractApiErrorMessage(payload, 'Request failed'));
   }
 
   return payload;
@@ -394,7 +395,7 @@ export async function getMyProfile(): Promise<UserProfile> {
   const payload = (await parseApiResponse(response)) as AuthResponse | null;
   const user = payload?.data?.user;
   if (!user) {
-    throw new Error(payload?.message ?? 'Profile response is missing user data');
+    throw new Error(extractApiErrorMessage(payload, 'Profile response is missing user data'));
   }
   return user;
 }
@@ -447,17 +448,9 @@ export async function forgotPassword(email: string): Promise<string> {
   });
   const payload = (await response.json().catch(() => null)) as AuthResponse | null;
   if (!response.ok) {
-    throw new Error(
-      payload?.message ??
-        payload?.data?.message ??
-        'Cannot send password reset email',
-    );
+    throw new Error(extractApiErrorMessage(payload, 'Cannot send password reset email'));
   }
-  return (
-    payload?.data?.message ??
-    payload?.message ??
-    'Password reset email sent successfully'
-  );
+  return extractApiErrorMessage(payload, 'Password reset email sent successfully');
 }
 
 /** FE web app base (no trailing slash) — forgot/reset password pages. */

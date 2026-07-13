@@ -60,6 +60,7 @@ import { useHeroTransition } from '@/features/staff/motion/hero-transition-conte
 import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { isNotFoundApiError, resolveApiErrorMessage } from '@/lib/api-error';
 import { staffSlotSessionDetailPath } from '@/roles';
 
 function resolveStatusLabel(status: ParkingSlotStatus | string, t: (vi: string, en: string) => string) {
@@ -147,9 +148,28 @@ export default function StaffSlotDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       const filters = floorId ? { floorId: String(floorId) } : {};
-      void getParkingSlots(filters).then(setFloors).catch(() => setFloors([]));
-      void loadActiveSlotSessions();
-    }, [floorId, loadActiveSlotSessions]),
+      void getParkingSlots(filters)
+        .then(setFloors)
+        .catch((error) => {
+          setFloors([]);
+          showToast(
+            resolveApiErrorMessage(
+              error,
+              t('Không tải được chỗ đỗ', 'Could not load parking spots'),
+            ),
+            'error',
+          );
+        });
+      void loadActiveSlotSessions().catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không tải được phiên đang gửi', 'Could not load active sessions'),
+          ),
+          'error',
+        );
+      });
+    }, [floorId, loadActiveSlotSessions, showToast, t]),
   );
 
   const slotContext = useMemo(() => {
@@ -190,9 +210,18 @@ export default function StaffSlotDetailScreen() {
             setPendingReservation(reservation);
           }
         })
-        .catch(() => {
+        .catch((error) => {
           if (alive) {
             setPendingReservation(null);
+            if (!isNotFoundApiError(error)) {
+              showToast(
+                resolveApiErrorMessage(
+                  error,
+                  t('Không tải được đặt chỗ', 'Could not load reservation'),
+                ),
+                'error',
+              );
+            }
           }
         })
         .finally(() => {
@@ -204,7 +233,7 @@ export default function StaffSlotDetailScreen() {
       return () => {
         alive = false;
       };
-    }, [resolvedStatus, slotId]),
+    }, [resolvedStatus, showToast, slotId, t]),
   );
 
   useLayoutEffect(() => {
@@ -367,12 +396,20 @@ export default function StaffSlotDetailScreen() {
         slotLabel: resolveSlotLabel(session.parkingSlotId, refreshedFloors) || record.slotLabel,
         slotId: String(slotId),
       });
-      void loadActiveSlotSessions(refreshedFloors).catch(() => undefined);
+      void loadActiveSlotSessions(refreshedFloors).catch((error) => {
+        showToast(
+          resolveApiErrorMessage(
+            error,
+            t('Không làm mới trạng thái ô', 'Could not refresh spot status'),
+          ),
+          'error',
+        );
+      });
       showToast(t('Check-in thành công', 'Check-in successful'), 'success');
       router.replace(staffSlotSessionDetailPath(session._id) as never);
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Check-in thất bại', 'Check-in failed'),
+        resolveApiErrorMessage(error, t('Check-in thất bại', 'Check-in failed')),
         'error',
       );
     } finally {

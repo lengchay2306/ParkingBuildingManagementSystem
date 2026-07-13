@@ -1,5 +1,6 @@
 import { getActiveSessionByPlate, type ParkingSession } from '@/features/staff/api';
 import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
+import { isNotFoundApiError } from '@/lib/api-error';
 
 export type StaffScanFlowResult =
   | { kind: 'invalid_plate' }
@@ -12,7 +13,15 @@ export async function resolveStaffScanFlow(rawPlate: string): Promise<StaffScanF
     return { kind: 'invalid_plate' };
   }
 
-  const activeSession = await getActiveSessionByPlate(plate).catch(() => null);
+  let activeSession: ParkingSession | null = null;
+  try {
+    activeSession = await getActiveSessionByPlate(plate);
+  } catch (error) {
+    if (!isNotFoundApiError(error)) {
+      throw error;
+    }
+  }
+
   if (activeSession?._id) {
     return { kind: 'checkout', sessionId: activeSession._id, plate, session: activeSession };
   }

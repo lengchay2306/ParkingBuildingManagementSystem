@@ -127,9 +127,9 @@ export function StaffWorkspaceProvider({ children }: { children: React.ReactNode
       const bySlot = indexActiveSessionsBySlotId(records);
       setActiveSessionsBySlotId(bySlot);
       return bySlot;
-    } catch {
+    } catch (error) {
       setActiveSessionsBySlotId({});
-      return {};
+      throw error;
     }
   }, []);
 

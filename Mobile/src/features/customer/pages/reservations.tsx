@@ -22,6 +22,7 @@ import { useDesignColors } from '@/hooks/use-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { getMyProfile, type UserVehicle } from '@/lib/auth-api';
+import { resolveApiErrorMessage } from '@/lib/api-error';
 import {
   getActiveUserParkingSession,
   getParkingSlots,
@@ -267,9 +268,16 @@ export default function ReservationsScreen() {
           setPricePolicies(policies);
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!cancelled) {
           setPricePolicies([]);
+          showToast(
+            resolveApiErrorMessage(
+              error,
+              t('Không tải được bảng giá', 'Could not load price policies'),
+            ),
+            'error',
+          );
         }
       })
       .finally(() => {
@@ -280,7 +288,7 @@ export default function ReservationsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [bookingOpen, selectedVehicle]);
+  }, [bookingOpen, selectedVehicle, showToast, t]);
 
   async function handleCancelReservation(reservation: Reservation) {
     if (!canCancelReservation(reservation)) {

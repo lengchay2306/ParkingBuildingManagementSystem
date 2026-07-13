@@ -42,6 +42,7 @@ import {
 import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
+import { resolveApiErrorMessage } from '@/lib/api-error';
 import { STAFF_ROUTES } from '@/roles';
 
 function resolveRouteParam(value: string | string[] | undefined): string | null {
@@ -116,17 +117,23 @@ export default function StaffSessionDetailScreen() {
 
       const remoteSession = await findStaffActiveSessionById(resolvedSessionId);
       if (!remoteSession) {
+        showToast(t('Không tìm thấy phiên', 'Session not found'), 'error');
         return;
       }
 
-      const floors = await loadParkingSlots().catch(() => []);
+      const floors = await loadParkingSlots();
       const record = mapParkingSessionToRecord(remoteSession, floors);
       recordCheckIn(record);
       setHydratedSession(record);
+    } catch (error) {
+      showToast(
+        resolveApiErrorMessage(error, t('Không tải được phiên', 'Could not load session')),
+        'error',
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [loadParkingSessions, loadParkingSlots, recordCheckIn, resolvedSessionId, session]);
+  }, [loadParkingSessions, loadParkingSlots, recordCheckIn, resolvedSessionId, session, showToast, t]);
 
   const isActive = session?.status.toUpperCase() === 'ACTIVE';
   const isMonthlySession = session?.sessionType?.toUpperCase() === 'MONTH';
