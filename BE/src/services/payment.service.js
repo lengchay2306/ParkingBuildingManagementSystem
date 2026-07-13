@@ -81,19 +81,19 @@ class PaymentService {
             throw new BadRequestError(`This orderCode is not a parking checkout payment`)
         }
 
-        if (existingPayment.status === 'PAID') {
-            return;
-        }
+        // Payment may already be PAID (webhook / cancel-time PayOS sync).
+        // Still continue so staff confirm can complete the ACTIVE session.
+        if (existingPayment.status !== 'PAID') {
+            const updatePayment = await this.#paymentRepository.updatePayment({
+                field: { _id: existingPayment._id },
+                updateData: {
+                    status: 'PAID'
+                }
+            })
 
-        const updatePayment = await this.#paymentRepository.updatePayment({
-            field: { _id: existingPayment._id },
-            updateData: {
-                status: 'PAID'
+            if (!updatePayment) {
+                throw new BadRequestError(`Cannot update this payment status to PAID`)
             }
-        })
-
-        if (!updatePayment) {
-            throw new BadRequestError(`Cannot update this payment status to PAID`)
         }
 
         const existingParkingSession = await this.#parkingRepository.findParkingSession({
