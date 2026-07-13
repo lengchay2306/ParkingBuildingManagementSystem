@@ -15,7 +15,10 @@ type StoredCookie = {
 
 type CookieManagerType = {
   setFromResponse: (url: string, cookie: string) => Promise<boolean>;
-  clearAll: () => Promise<boolean>;
+  clearAll: (useWebKit?: boolean) => Promise<boolean>;
+  clearByName?: (url: string, name: string, useWebKit?: boolean) => Promise<boolean>;
+  flush?: () => Promise<void>;
+  removeSessionCookies?: () => Promise<boolean>;
   get: (url: string) => Promise<Record<string, StoredCookie>>;
 };
 
@@ -149,17 +152,71 @@ async function sessionFetch(url: string, init: RequestInit = {}): Promise<Respon
   });
 }
 
+function collectSetCookieHeaders(response: Response): string[] {
+  const headers = response.headers as Headers & {
+    getSetCookie?: () => string[];
+    raw?: () => Record<string, string[]>;
+  };
+
+  if (typeof headers.getSetCookie === 'function') {
+    const list = headers.getSetCookie();
+    if (list?.length) {
+      return list.filter(Boolean);
+    }
+  }
+
+  const raw = typeof headers.raw === 'function' ? headers.raw() : undefined;
+  const fromRaw = raw?.['set-cookie'] ?? raw?.['Set-Cookie'];
+  if (fromRaw?.length) {
+    return fromRaw.filter(Boolean);
+  }
+
+  const single = response.headers.get('set-cookie');
+  return single ? [single] : [];
+}
+
 async function persistCookies(response: Response) {
   if (!CookieManager) {
     return;
   }
-  const setCookie = response.headers.get('set-cookie');
-  if (!setCookie) {
+  const setCookies = collectSetCookieHeaders(response);
+  if (setCookies.length === 0) {
     return;
   }
   const cookieUrl =
     response.url && !response.url.startsWith('about:') ? response.url : API_URL;
-  await CookieManager.setFromResponse(cookieUrl, setCookie);
+  for (const setCookie of setCookies) {
+    await CookieManager.setFromResponse(cookieUrl, setCookie);
+  }
+  if (typeof CookieManager.flush === 'function') {
+    await CookieManager.flush();
+  }
+}
+
+/** Drop local auth cookies so logout/login cannot reuse a previous session. */
+async function clearLocalSession() {
+  memoryPostLoginRoute = CUSTOMER_ROUTES.home;
+  if (!CookieManager) {
+    return;
+  }
+
+  try {
+    const cookieNames = ['accessToken', 'refreshToken'] as const;
+    for (const name of cookieNames) {
+      if (typeof CookieManager.clearByName === 'function') {
+        await CookieManager.clearByName(API_URL, name).catch(() => undefined);
+      }
+    }
+    await CookieManager.clearAll();
+    if (typeof CookieManager.removeSessionCookies === 'function') {
+      await CookieManager.removeSessionCookies().catch(() => undefined);
+    }
+    if (typeof CookieManager.flush === 'function') {
+      await CookieManager.flush();
+    }
+  } catch {
+    // Local clear is best-effort; network logout may still have succeeded.
+  }
 }
 
 async function requestRefreshToken(): Promise<boolean> {
@@ -239,14 +296,18 @@ export async function register(payload: RegisterPayload) {
 
 export async function login(email: string, password: string) {
   const url = resolveApiUrl('/auth/login');
+  // Avoid sending a previous account's cookies with the new login.
+  await clearLocalSession();
+
   let response: Response;
   try {
-    response = await sessionFetch(url, {
+    response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      credentials: 'include',
     });
   } catch {
     throw new Error(
@@ -359,16 +420,21 @@ export async function updateMyProfile(payload: UpdateMyProfilePayload): Promise<
 }
 
 export async function logout() {
-  const response = await authFetch('/auth/logout', {
-    method: 'DELETE',
-  });
+  try {
+    const response = await authFetch('/auth/logout', {
+      method: 'DELETE',
+    });
 
-  await parseApiResponse(response);
-
-  if (CookieManager) {
-    await CookieManager.clearAll();
+    // 401 = session already gone server-side; still clear local cookies.
+    if (!response.ok && response.status !== 401) {
+      await parseApiResponse(response);
+    }
+  } catch {
+    // Remote logout may fail (network / expired session). Local cookies must still be cleared
+    // so the next login cannot reuse the previous account.
+  } finally {
+    await clearLocalSession();
   }
-  memoryPostLoginRoute = CUSTOMER_ROUTES.home;
 }
 
 /** Session-authenticated fetch for role-specific API modules. */
