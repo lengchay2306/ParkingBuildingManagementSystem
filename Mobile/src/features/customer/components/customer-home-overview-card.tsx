@@ -1,11 +1,11 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import type { CustomerParkingSession } from '@/features/customer/api/parking';
-import type { UserVehicle } from '@/lib/auth-api';
+import { CUSTOMER_ROUTES } from '@/roles';
 
 function formatElapsed(checkInTime: string | undefined) {
   if (!checkInTime) {
@@ -30,25 +30,41 @@ function resolveSlotLabel(session: CustomerParkingSession | null) {
   return slot ?? '—';
 }
 
+function resolveSessionPlate(session: CustomerParkingSession | null) {
+  if (!session || typeof session.vehicleId !== 'object') {
+    return null;
+  }
+  return session.vehicleId.licensePlate ?? null;
+}
+
 type Props = {
   fullName: string;
-  defaultVehicle: UserVehicle | null;
+  vehicleCount: number;
+  pendingReservationCount: number;
+  freeSpotCount: number;
   activeSession: CustomerParkingSession | null;
   t: (vi: string, en: string) => string;
   DesignColors: DesignColorPalette;
 };
 
-/** Thẻ tổng quan: trạng thái xe, biển số mặc định, số dư ví. */
+/**
+ * Home status card: greeting + parked session (or outside tip) + useful counts.
+ * No plate-chip picker — that added noise without a clear job.
+ */
 export function CustomerHomeOverviewCard({
   fullName,
-  defaultVehicle,
+  vehicleCount,
+  pendingReservationCount,
+  freeSpotCount,
   activeSession,
   t,
   DesignColors,
 }: Props) {
+  const router = useRouter();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
   const isParked = activeSession?.status?.toUpperCase() === 'ACTIVE';
   const [elapsed, setElapsed] = useState(() => formatElapsed(activeSession?.checkInTime));
+  const sessionPlate = resolveSessionPlate(activeSession);
 
   useEffect(() => {
     if (!isParked) {
@@ -61,53 +77,79 @@ export function CustomerHomeOverviewCard({
     return () => clearInterval(timer);
   }, [activeSession?.checkInTime, isParked]);
 
-  const plate = defaultVehicle?.licensePlate ?? t('Chưa có xe', 'No vehicle');
-
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <ThemedText style={styles.caption}>{t('Xin chào', 'Welcome')}</ThemedText>
-          <ThemedText style={styles.name}>{fullName}</ThemedText>
-        </View>
-        <View style={styles.walletBadge}>
-          <Ionicons name="wallet-outline" size={14} color={DesignColors.primary} />
-          <ThemedText style={styles.walletText}>{t('$24.50', '$24.50')}</ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.statusRow}>
-        <View style={[styles.statusPill, isParked ? styles.statusParked : styles.statusOutside]}>
-          <View style={[styles.statusDot, isParked ? styles.dotParked : styles.dotOutside]} />
-          <ThemedText style={styles.statusText}>
-            {isParked ? t('Đang trong bãi', 'Parked') : t('Ngoài bãi', 'Outside')}
-          </ThemedText>
-        </View>
-        <View style={styles.plateBadge}>
-          <ThemedText style={styles.plateLabel}>{t('Biển số', 'Plate')}</ThemedText>
-          <ThemedText style={styles.plateValue}>{plate}</ThemedText>
-        </View>
+        <ThemedText style={styles.caption}>{t('Xin chào', 'Welcome')}</ThemedText>
+        <ThemedText style={styles.name}>{fullName}</ThemedText>
       </View>
 
       {isParked ? (
         <View style={styles.activeSession}>
           <View style={styles.activeHeader}>
-            <ThemedText style={styles.activeEyebrow}>{t('Phiên đang mở', 'Active session')}</ThemedText>
+            <View style={styles.statusPillParked}>
+              <View style={styles.dotParked} />
+              <ThemedText style={styles.statusTextParked}>
+                {t('Đang trong bãi', 'Parked')}
+              </ThemedText>
+            </View>
             <ThemedText style={styles.activeSlot}>{resolveSlotLabel(activeSession)}</ThemedText>
           </View>
+          {sessionPlate ? (
+            <ThemedText style={styles.sessionPlate}>{sessionPlate}</ThemedText>
+          ) : null}
           <ThemedText style={styles.activeTimer}>{elapsed}</ThemedText>
           <ThemedText style={styles.activeHint}>
             {t('Thời gian gửi từ lúc check-in', 'Time since check-in')}
           </ThemedText>
         </View>
       ) : (
-        <ThemedText style={styles.outsideHint}>
-          {t(
-            'Xe chưa trong bãi. Quét QR hoặc đặt chỗ trước khi đến.',
-            'Vehicle is not in the lot. Scan QR or reserve before arrival.',
-          )}
-        </ThemedText>
+        <View style={styles.outsideBlock}>
+          <View style={styles.statusPillOutside}>
+            <View style={styles.dotOutside} />
+            <ThemedText style={styles.statusTextOutside}>
+              {t('Ngoài bãi', 'Outside')}
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.outsideHint}>
+            {vehicleCount === 0
+              ? t(
+                  'Chưa có xe. Vào Hồ sơ để đăng ký biển số.',
+                  'No vehicles yet. Register a plate in Profile.',
+                )
+              : t(
+                  'Chưa có phiên gửi xe. Đặt chỗ trước hoặc xem bản đồ khi đến bãi.',
+                  'No active parking session. Reserve ahead or open the map when you arrive.',
+                )}
+          </ThemedText>
+        </View>
       )}
+
+      <View style={styles.statsRow}>
+        <Pressable
+          onPress={() => router.push(CUSTOMER_ROUTES.profile as never)}
+          style={({ pressed }) => [styles.statChip, pressed && styles.pressed]}
+        >
+          <ThemedText style={styles.statValue}>{vehicleCount}</ThemedText>
+          <ThemedText style={styles.statLabel}>{t('Xe', 'Vehicles')}</ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push(CUSTOMER_ROUTES.reservations as never)}
+          style={({ pressed }) => [styles.statChip, pressed && styles.pressed]}
+        >
+          <ThemedText style={styles.statValue}>{pendingReservationCount}</ThemedText>
+          <ThemedText style={styles.statLabel}>{t('Đang giữ chỗ', 'On hold')}</ThemedText>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push(CUSTOMER_ROUTES.parkingMap as never)}
+          style={({ pressed }) => [styles.statChip, pressed && styles.pressed]}
+        >
+          <ThemedText style={[styles.statValue, { color: DesignColors.semanticSuccess }]}>
+            {freeSpotCount}
+          </ThemedText>
+          <ThemedText style={styles.statLabel}>{t('Chỗ trống', 'Free')}</ThemedText>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -118,104 +160,23 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: DesignColors.surface1,
       borderRadius: Radius.xl,
       borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      padding: Spacing.md,
-      gap: Spacing.sm,
+      borderColor: DesignColors.hairlineStrong,
+      padding: Spacing.lg,
+      gap: Spacing.md,
     },
     headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      gap: Spacing.sm,
-    },
-    headerText: {
-      flex: 1,
-      gap: 2,
+      gap: 4,
     },
     caption: {
-      ...Typography.caption,
+      ...Typography.bodySm,
       color: DesignColors.inkSubtle,
     },
     name: {
-      ...Typography.cardTitle,
+      ...Typography.headline,
       color: DesignColors.ink,
-    },
-    walletBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      borderRadius: Radius.pill,
-      borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
-    },
-    walletText: {
-      ...Typography.caption,
-      color: DesignColors.ink,
-      fontWeight: '600',
-    },
-    statusRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: Spacing.sm,
-      flexWrap: 'wrap',
-    },
-    statusPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderRadius: Radius.pill,
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
-      borderWidth: 1,
-    },
-    statusParked: {
-      borderColor: DesignColors.semanticSuccess,
-      backgroundColor: `${DesignColors.semanticSuccess}18`,
-    },
-    statusOutside: {
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-    },
-    statusDot: {
-      width: 7,
-      height: 7,
-      borderRadius: Radius.pill,
-    },
-    dotParked: {
-      backgroundColor: DesignColors.semanticSuccess,
-    },
-    dotOutside: {
-      backgroundColor: DesignColors.inkMuted,
-    },
-    statusText: {
-      ...Typography.caption,
-      fontWeight: '600',
-      color: DesignColors.ink,
-    },
-    plateBadge: {
-      alignItems: 'flex-end',
-      gap: 2,
-    },
-    plateLabel: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
-    },
-    plateValue: {
-      ...Typography.mono,
-      color: DesignColors.ink,
-      letterSpacing: 0.4,
     },
     activeSession: {
-      borderRadius: Radius.lg,
-      borderWidth: 1,
-      borderColor: DesignColors.hairline,
-      backgroundColor: DesignColors.surface2,
-      padding: Spacing.sm,
-      gap: 4,
+      gap: 6,
     },
     activeHeader: {
       flexDirection: 'row',
@@ -223,25 +184,101 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       alignItems: 'center',
       gap: Spacing.sm,
     },
-    activeEyebrow: {
-      ...Typography.caption,
-      color: DesignColors.primary,
-      textTransform: 'uppercase',
+    statusPillParked: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: DesignColors.semanticSuccess,
+      backgroundColor: `${DesignColors.semanticSuccess}18`,
+    },
+    statusTextParked: {
+      ...Typography.bodySm,
+      fontWeight: '600',
+      color: DesignColors.ink,
+    },
+    dotParked: {
+      width: 8,
+      height: 8,
+      borderRadius: Radius.pill,
+      backgroundColor: DesignColors.semanticSuccess,
     },
     activeSlot: {
-      ...Typography.caption,
-      color: DesignColors.inkSubtle,
+      ...Typography.bodySm,
+      color: DesignColors.inkMuted,
+    },
+    sessionPlate: {
+      ...Typography.mono,
+      fontSize: 16,
+      color: DesignColors.ink,
+      letterSpacing: 0.4,
     },
     activeTimer: {
-      ...Typography.headline,
+      ...Typography.metricValue,
       color: DesignColors.ink,
     },
     activeHint: {
-      ...Typography.caption,
-      color: DesignColors.inkMuted,
+      ...Typography.bodySm,
+      color: DesignColors.inkSubtle,
+    },
+    outsideBlock: {
+      gap: Spacing.sm,
+    },
+    statusPillOutside: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+    },
+    statusTextOutside: {
+      ...Typography.bodySm,
+      fontWeight: '600',
+      color: DesignColors.ink,
+    },
+    dotOutside: {
+      width: 8,
+      height: 8,
+      borderRadius: Radius.pill,
+      backgroundColor: DesignColors.inkMuted,
     },
     outsideHint: {
-      ...Typography.bodySm,
+      ...Typography.body,
       color: DesignColors.inkMuted,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+    statChip: {
+      flex: 1,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.xs,
+      alignItems: 'center',
+      gap: 2,
+    },
+    statValue: {
+      ...Typography.cardTitle,
+      color: DesignColors.ink,
+    },
+    statLabel: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      textAlign: 'center',
+    },
+    pressed: {
+      opacity: 0.85,
     },
   });

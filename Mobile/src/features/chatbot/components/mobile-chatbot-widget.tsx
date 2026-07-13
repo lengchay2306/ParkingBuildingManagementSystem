@@ -88,6 +88,8 @@ export function MobileChatbotWidget() {
   return (
     <>
       <ChatbotFab
+        collapseLabel={t('Thu gọn trợ lý AI', 'Collapse AI assistant')}
+        expandLabel={t('Hiện trợ lý AI', 'Show AI assistant')}
         fixedBottom={staffFabBottom}
         isOpen={chatbot.isOpen}
         label={presentation.fabLabel}

@@ -84,7 +84,6 @@ export default function ReservationsScreen() {
 
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [overviewFloors, setOverviewFloors] = useState<ParkingFloor[]>([]);
   const [bookingFloors, setBookingFloors] = useState<ParkingFloor[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -141,16 +140,14 @@ export default function ReservationsScreen() {
       setError(null);
 
       try {
-        const [profile, reservationList, pendingList, allFloors] = await Promise.all([
+        const [profile, reservationList, pendingList] = await Promise.all([
           getMyProfile(),
           getMyReservations(statusFilter ?? undefined, { limit: 100 }),
           getMyReservations('PENDING', { limit: 100 }),
-          getParkingSlots(),
         ]);
         setVehicles(profile.vehicles ?? []);
         setReservations(reservationList);
         setPendingReservations(pendingList);
-        setOverviewFloors(allFloors);
       } catch (loadError) {
         const message =
           loadError instanceof Error
@@ -393,7 +390,10 @@ export default function ReservationsScreen() {
         }
       >
         <View style={styles.header}>
-          <ThemedText style={styles.title}>{t('Đặt chỗ', 'Reservations')}</ThemedText>
+          <View style={styles.headerText}>
+            <ThemedText style={styles.eyebrow}>PARKASE</ThemedText>
+            <ThemedText style={styles.title}>{t('Đặt chỗ', 'Reservations')}</ThemedText>
+          </View>
           <Pressable
             onPress={openBooking}
             style={({ pressed }) => [styles.bookButton, pressed && styles.buttonPressed]}
@@ -403,39 +403,9 @@ export default function ReservationsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('Tình trạng bãi đỗ', 'Parking status')}</ThemedText>
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.slotAvailable]} />
-              <ThemedText style={styles.legendText}>{t('Trống', 'Available')}</ThemedText>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.slotInUse]} />
-              <ThemedText style={styles.legendText}>{t('Đang dùng', 'In use')}</ThemedText>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.slotUnavailable]} />
-              <ThemedText style={styles.legendText}>{t('Không dùng', 'Unavailable')}</ThemedText>
-            </View>
-          </View>
-          {overviewFloors.length > 0 ? (
-            <FloorSlotsPanel
-              floors={overviewFloors}
-              t={t}
-              styles={styles}
-              DesignColors={DesignColors}
-            />
-          ) : (
-            <ThemedText style={styles.modalHint}>
-              {t('Không có dữ liệu bãi đỗ', 'No parking data')}
-            </ThemedText>
-          )}
-        </View>
-
         <ThemedText style={styles.sectionTitle}>{t('Đặt chỗ của tôi', 'My reservations')}</ThemedText>
 
-        {duplicatePendingCount > 0 ? (
+        {__DEV__ && duplicatePendingCount > 0 ? (
           <Pressable
             onPress={handleCleanupDuplicatePending}
             disabled={isCleaningDuplicates}
@@ -665,8 +635,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       backgroundColor: DesignColors.canvas,
     },
     scrollContent: {
-      paddingHorizontal: Spacing.lg,
-      paddingTop: Spacing.lg,
+      paddingHorizontal: Spacing.md,
+      paddingTop: Spacing.section,
       paddingBottom: Spacing.xl,
       width: '100%',
       maxWidth: MaxContentWidth,
@@ -679,16 +649,24 @@ function createStyles(DesignColors: DesignColorPalette) {
       justifyContent: 'space-between',
       gap: Spacing.sm,
     },
-    title: {
-      ...Typography.displayMd,
-      color: DesignColors.ink,
+    headerText: {
       flex: 1,
+      gap: 2,
+    },
+    eyebrow: {
+      ...Typography.eyebrow,
+      textTransform: 'uppercase',
+      color: DesignColors.inkSubtle,
+    },
+    title: {
+      ...Typography.headline,
+      color: DesignColors.ink,
     },
     bookButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      borderRadius: Radius.pill,
+      borderRadius: Radius.md,
       backgroundColor: DesignColors.primary,
       paddingHorizontal: Spacing.sm,
       paddingVertical: 8,
@@ -702,7 +680,7 @@ function createStyles(DesignColors: DesignColorPalette) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      borderRadius: Radius.lg,
+      borderRadius: Radius.md,
       backgroundColor: DesignColors.semanticDanger,
       paddingHorizontal: Spacing.md,
       paddingVertical: 10,
@@ -720,7 +698,7 @@ function createStyles(DesignColors: DesignColorPalette) {
       gap: Spacing.sm,
     },
     sectionTitle: {
-      ...Typography.cardTitle,
+      ...Typography.button,
       color: DesignColors.ink,
     },
     legendRow: {
@@ -1005,8 +983,8 @@ function createStyles(DesignColors: DesignColorPalette) {
       backgroundColor: `${DesignColors.semanticSuccess}18`,
     },
     slotInUse: {
-      borderColor: '#f59e0b',
-      backgroundColor: '#f59e0b18',
+      borderColor: DesignColors.primary,
+      backgroundColor: `${DesignColors.primary}14`,
     },
     slotReserved: {
       borderColor: DesignColors.semanticWarning,
