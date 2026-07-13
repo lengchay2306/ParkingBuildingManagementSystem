@@ -17,13 +17,14 @@ class ReservationRepository {
             .lean();
     }
 
+    // Only PENDING (not yet expired) holds a slot for booking.
+    // CLAIMED means check-in already happened — slot is then governed by
+    // ParkingSlot / ParkingSession status, not by the reservation row.
     findActiveReservationBySlot = async ({ parkingSlotId }) => {
         return Reservation.findOne({
             parkingSlotId,
-            $or: [
-                { status: 'CLAIMED' },
-                { status: 'PENDING', expiryAt: { $gt: new Date() } },
-            ],
+            status: 'PENDING',
+            expiryAt: { $gt: new Date() },
         }).lean();
     }
 
@@ -285,10 +286,8 @@ class ReservationRepository {
 
         return Reservation.find({
             parkingSlotId: { $in: parkingSlotIds },
-            $or: [
-                { status: 'CLAIMED' },
-                { status: 'PENDING', expiryAt: { $gt: now } },
-            ],
+            status: 'PENDING',
+            expiryAt: { $gt: now },
         })
             .select('parkingSlotId')
             .lean();
