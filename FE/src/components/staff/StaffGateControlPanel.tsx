@@ -52,10 +52,6 @@ import {
   type StaffBillQrWithPayment,
 } from "@/lib/pending-payment";
 import {
-  getPaymentsByParkingSessionId,
-  pickCheckoutPayment,
-} from "@/services/adminPayment.service";
-import {
   checkStaffPayment,
   formatVnd,
 } from "@/services/payment.service";
@@ -144,15 +140,6 @@ export function StaffGateControlPanel({
   const activeSession =
     lookupQuery.data?.kind === "checkout" ? lookupQuery.data.session : null;
 
-  const checkoutPaymentQuery = useQuery({
-    queryKey: ["staff-checkout-payment", activeSession?._id] as const,
-    queryFn: () => getPaymentsByParkingSessionId(activeSession!._id),
-    enabled: Boolean(gateMode === "checkout" && activeSession?._id),
-    staleTime: 15_000,
-  });
-
-  const checkoutPayment = pickCheckoutPayment(checkoutPaymentQuery.data ?? []);
-
   useEffect(() => {
     if (!walkInVehicleTypeId || gateMode !== "checkin" || reservation) {
       setWalkInSelectedSlot(null);
@@ -238,7 +225,6 @@ export function StaffGateControlPanel({
     onSuccess: (result) => {
       if (result && typeof result === "object" && "bill" in result && result.bill) {
         setPaymentBill(result.bill);
-        void checkoutPaymentQuery.refetch();
         toast.success("Đã tạo mã VietQR", {
           description: "Yêu cầu khách quét mã để thanh toán.",
         });
@@ -500,7 +486,6 @@ export function StaffGateControlPanel({
             floorName={sessionFloor?.floorName}
             vehicleTypeLabel={getSessionVehicleTypeLabel(activeSession, parkingFloors)}
             paymentBill={paymentBill}
-            paymentAmount={checkoutPayment?.amount ?? paymentBill?.amount ?? null}
             isSubmitting={checkoutMutation.isPending}
             isConfirmingPayment={checkPaymentMutation.isPending}
             onCheckout={() => checkoutMutation.mutate()}
@@ -695,8 +680,6 @@ type CheckoutResultPanelProps = {
   floorName?: string;
   vehicleTypeLabel?: string;
   paymentBill: StaffBillQrWithPayment | null;
-  /** Amount from GET /payment (preferred). */
-  paymentAmount: number | null;
   isSubmitting: boolean;
   isConfirmingPayment: boolean;
   isCancellingPayment: boolean;
@@ -712,7 +695,6 @@ function CheckoutResultPanel({
   floorName,
   vehicleTypeLabel,
   paymentBill,
-  paymentAmount,
   isSubmitting,
   isConfirmingPayment,
   isCancellingPayment,
@@ -732,11 +714,6 @@ function CheckoutResultPanel({
   const checkoutLabel = isMonthlySession
     ? "Kết thúc phiên (thẻ tháng)"
     : "Thanh toán VietQR & ra cổng";
-  const amountLabel = isMonthlySession
-    ? "Miễn phí (thẻ tháng)"
-    : paymentAmount != null
-      ? formatVnd(paymentAmount)
-      : "—";
 
   return (
     <div className="space-y-4">
@@ -767,8 +744,14 @@ function CheckoutResultPanel({
 
       <InfoRow
         label="Số tiền phải trả"
-        value={amountLabel}
-        highlight={!isMonthlySession && paymentAmount != null}
+        value={
+          isMonthlySession
+            ? "Miễn phí (thẻ tháng)"
+            : paymentBill
+              ? formatVnd(paymentBill.amount)
+              : "Hiện sau khi tạo VietQR"
+        }
+        highlight={!isMonthlySession && Boolean(paymentBill)}
       />
 
       {!paymentBill ? (
@@ -789,10 +772,7 @@ function CheckoutResultPanel({
         </Button>
       ) : (
         <StaffPaymentQrSection
-          bill={{
-            ...paymentBill,
-            amount: paymentAmount ?? paymentBill.amount,
-          }}
+          bill={paymentBill}
           licensePlate={plate}
           isConfirming={isConfirmingPayment}
           isCancelling={isCancellingPayment}
