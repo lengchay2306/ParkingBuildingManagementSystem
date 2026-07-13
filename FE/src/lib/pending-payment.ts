@@ -1,5 +1,6 @@
 import {
   cancelAdminPayment,
+  getAdminPaymentById,
   getAdminPayments,
   getPaymentsByParkingSessionId,
 } from "@/services/adminPayment.service";
@@ -11,6 +12,16 @@ export type StaffBillQrWithPayment = StaffBillQrResult & {
 };
 
 const PAYMENT_ALREADY_EXISTS_PATTERN = /already|đã.*tạo|created/i;
+
+export class PaymentNotCancellableError extends Error {
+  status: "PAID" | "CANCELLED";
+
+  constructor(status: "PAID" | "CANCELLED", message: string) {
+    super(message);
+    this.name = "PaymentNotCancellableError";
+    this.status = status;
+  }
+}
 
 export async function findPendingPaymentByParkingSessionId(parkingSessionId: string) {
   const payments = await getPaymentsByParkingSessionId(parkingSessionId);
@@ -41,9 +52,28 @@ export async function cancelPendingPayment(paymentId: string) {
   return cancelAdminPayment(paymentId);
 }
 
+/** Cancel only when still PENDING. Throws if already PAID/CANCELLED. */
+export async function cancelPendingPaymentIfAllowed(paymentId: string) {
+  const payment = await getAdminPaymentById(paymentId);
+  const status = payment.status?.toUpperCase();
+
+  if (status === "PAID") {
+    throw new PaymentNotCancellableError(
+      "PAID",
+      "Thanh toán đã hoàn tất — không thể hủy QR. Hãy bấm xác nhận ra cổng.",
+    );
+  }
+
+  if (status === "CANCELLED") {
+    throw new PaymentNotCancellableError("CANCELLED", "Hóa đơn này đã được hủy trước đó.");
+  }
+
+  return cancelAdminPayment(paymentId);
+}
+
 export async function cancelPendingPaymentSafe(paymentId: string) {
   try {
-    await cancelPendingPayment(paymentId);
+    await cancelPendingPaymentIfAllowed(paymentId);
     return true;
   } catch {
     return false;

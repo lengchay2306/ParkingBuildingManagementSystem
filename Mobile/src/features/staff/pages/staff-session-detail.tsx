@@ -7,9 +7,10 @@ import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import {
-  cancelStaffPayment,
+  cancelStaffPaymentIfAllowed,
   checkStaffPayment,
   createStaffBillQrForSession,
+  PaymentNotCancellableError,
   type StaffBillQrWithPayment,
 } from '@/features/payment/api';
 import {
@@ -281,11 +282,19 @@ export default function StaffSessionDetailScreen() {
     }
     setIsCancellingPayment(true);
     try {
-      await cancelStaffPayment(paymentBill.paymentId);
+      await cancelStaffPaymentIfAllowed(paymentBill.paymentId);
       setPaymentBill(null);
       setPaymentUnpaidNotice(null);
       showToast(t('Đã hủy mã VietQR', 'VietQR cancelled'), 'success');
     } catch (error) {
+      if (error instanceof PaymentNotCancellableError && error.status === 'PAID') {
+        showToast(
+          error.message,
+          'warning',
+          t('Không thể hủy', 'Cannot cancel'),
+        );
+        return;
+      }
       showToast(
         error instanceof Error
           ? error.message

@@ -15,8 +15,10 @@ import {
   DashboardTabs,
 } from "@/components/dashboard-ui";
 import {
+  cancelPendingPaymentIfAllowed,
   cancelPendingPaymentSafe,
   createStaffBillQrForSession,
+  PaymentNotCancellableError,
   type StaffBillQrWithPayment,
 } from "@/lib/pending-payment";
 import { requireRole } from "@/lib/auth";
@@ -174,7 +176,7 @@ function StaffPage() {
 
   const cancelPaymentBillMutation = useMutation({
     mutationFn: async (bill: StaffBillQrWithPayment) => {
-      await cancelPendingPaymentSafe(bill.paymentId);
+      await cancelPendingPaymentIfAllowed(bill.paymentId);
     },
     onSuccess: () => {
       setPaymentBill(null);
@@ -184,10 +186,14 @@ function StaffPage() {
       });
     },
     onError: (error) => {
-      setPaymentBill(null);
-      setPaymentBillPlate(undefined);
-      toast.message("Đã đóng QR", {
-        description: error instanceof Error ? error.message : "Có thể tạo mã QR mới.",
+      if (error instanceof PaymentNotCancellableError && error.status === "PAID") {
+        toast.error("Không thể hủy QR", {
+          description: error.message,
+        });
+        return;
+      }
+      toast.error("Không hủy được QR", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
       });
     },
   });

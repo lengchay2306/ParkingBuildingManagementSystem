@@ -91,9 +91,54 @@ export async function cancelStaffPayment(paymentId: string): Promise<StaffPaymen
   return updated;
 }
 
+export class PaymentNotCancellableError extends Error {
+  status: 'PAID' | 'CANCELLED';
+
+  constructor(status: 'PAID' | 'CANCELLED', message: string) {
+    super(message);
+    this.name = 'PaymentNotCancellableError';
+    this.status = status;
+  }
+}
+
+/** GET /payment/:paymentId — STAFF | MANAGER | ADMIN */
+export async function getStaffPaymentById(paymentId: string): Promise<StaffPayment> {
+  const response = await authenticatedFetch(
+    `/payment/${encodeURIComponent(paymentId.trim())}`,
+  );
+  const payload = await parsePaymentResponse<{ payment?: StaffPayment }>(response);
+  const payment = payload.data?.payment;
+  if (!payment?._id) {
+    throw new Error(payload.message ?? 'Payment not found');
+  }
+  return payment;
+}
+
+/** Cancel only when still PENDING. Throws if already PAID/CANCELLED. */
+export async function cancelStaffPaymentIfAllowed(paymentId: string): Promise<StaffPayment> {
+  const payment = await getStaffPaymentById(paymentId);
+  const status = payment.status?.toUpperCase();
+
+  if (status === 'PAID') {
+    throw new PaymentNotCancellableError(
+      'PAID',
+      'Thanh toán đã hoàn tất — không thể hủy QR. Hãy bấm xác nhận ra cổng.',
+    );
+  }
+
+  if (status === 'CANCELLED') {
+    throw new PaymentNotCancellableError(
+      'CANCELLED',
+      'Hóa đơn này đã được hủy trước đó.',
+    );
+  }
+
+  return cancelStaffPayment(paymentId);
+}
+
 export async function cancelStaffPaymentSafe(paymentId: string): Promise<boolean> {
   try {
-    await cancelStaffPayment(paymentId);
+    await cancelStaffPaymentIfAllowed(paymentId);
     return true;
   } catch {
     return false;

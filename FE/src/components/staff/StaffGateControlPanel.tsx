@@ -47,8 +47,10 @@ import {
   type ParkingSession,
 } from "@/services/parking.service";
 import {
+  cancelPendingPaymentIfAllowed,
   cancelPendingPaymentSafe,
   createStaffBillQrForSession,
+  PaymentNotCancellableError,
   type StaffBillQrWithPayment,
 } from "@/lib/pending-payment";
 import {
@@ -246,7 +248,7 @@ export function StaffGateControlPanel({
 
   const cancelPaymentBillMutation = useMutation({
     mutationFn: async (bill: StaffBillQrWithPayment) => {
-      await cancelPendingPaymentSafe(bill.paymentId);
+      await cancelPendingPaymentIfAllowed(bill.paymentId);
     },
     onSuccess: () => {
       setPaymentBill(null);
@@ -255,9 +257,14 @@ export function StaffGateControlPanel({
       });
     },
     onError: (error) => {
-      setPaymentBill(null);
-      toast.message("Đã đóng QR", {
-        description: error instanceof Error ? error.message : "Có thể tạo mã QR mới.",
+      if (error instanceof PaymentNotCancellableError && error.status === "PAID") {
+        toast.error("Không thể hủy QR", {
+          description: error.message,
+        });
+        return;
+      }
+      toast.error("Không hủy được QR", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
       });
     },
   });
