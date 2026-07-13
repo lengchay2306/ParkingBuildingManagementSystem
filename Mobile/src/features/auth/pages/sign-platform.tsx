@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -153,6 +153,7 @@ export default function SignPlatformScreen() {
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isSendingForgot, setIsSendingForgot] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
   const themeFade = useRef(new Animated.Value(1)).current;
@@ -208,6 +209,21 @@ export default function SignPlatformScreen() {
     }, 120);
     return () => clearTimeout(timer);
   }, [forgotOpen]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   function animateToLogin() {
     if (activeView === 'login') return;
@@ -416,38 +432,45 @@ export default function SignPlatformScreen() {
     }
   }
 
+  // Extra bottom space so user can drag the form above the keyboard.
+  // Android resize already shrinks the window — still add padding so fields can scroll into view.
+  const scrollBottomPad =
+    keyboardHeight > 0
+      ? Platform.OS === 'ios'
+        ? keyboardHeight + 32
+        : Math.max(160, Math.round(keyboardHeight * 0.35))
+      : 48;
+
   return (
-    <Animated.View
-      style={[
-        styles.screen,
-        {
-          backgroundColor: palette.screenBg,
-          opacity: themeFade,
-          transform: [{ scale: themeScale }],
-        },
-      ]}>
-      <View pointerEvents="none" style={styles.backgroundDecor}>
+    <View style={[styles.screen, { backgroundColor: palette.screenBg }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.backgroundDecor,
+          {
+            opacity: themeFade,
+            transform: [{ scale: themeScale }],
+          },
+        ]}>
         <View style={[styles.blobTopRight, { backgroundColor: blobPrimary }]} />
         <View style={[styles.blobBottomLeft, { backgroundColor: blobSecondary }]} />
-      </View>
+      </Animated.View>
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        {/* Android already uses softwareKeyboardLayoutMode "resize" — KAV height double-shifts and "flies" the UI. */}
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          enabled={Platform.OS === 'ios'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPad }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          showsVerticalScrollIndicator
+          bounces
+          alwaysBounceVertical
+          nestedScrollEnabled
+          scrollEventThrottle={16}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentInsetAdjustmentBehavior="automatic"
         >
-          <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-            contentInsetAdjustmentBehavior="automatic"
-          >
-          <View style={styles.contentWrap}>
+          <Animated.View style={[styles.contentWrap, { opacity: themeFade }]}>
             <View style={styles.topTools}>
               <View style={styles.topToolsRow}>
                 <View
@@ -865,11 +888,10 @@ export default function SignPlatformScreen() {
                 </View>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
-        </KeyboardAvoidingView>
       </SafeAreaView>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -969,13 +991,12 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   safeArea: { flex: 1 },
-  keyboardAvoid: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-    paddingBottom: 120,
   },
   contentWrap: {
     width: '100%',
