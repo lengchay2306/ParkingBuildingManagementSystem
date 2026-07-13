@@ -29,12 +29,15 @@ import { useSessionRole } from '@/hooks/session-role';
 import { useSignMascotInteraction } from '@/hooks/use-sign-mascot-interaction';
 import { useThemePreference } from '@/hooks/theme-preference';
 import {
+  forgotPassword,
+  getWebForgotPasswordUrl,
   login,
   register,
   resolvePostLoginRoute,
   resolveRoleAfterLogin,
   setStoredPostLoginRoute,
 } from '@/lib/auth-api';
+import * as Linking from 'expo-linking';
 
 type AuthView = 'login' | 'signup';
 type FocusField =
@@ -143,6 +146,9 @@ export default function SignPlatformScreen() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [isSendingForgot, setIsSendingForgot] = useState(false);
 
   const themeFade = useRef(new Animated.Value(1)).current;
   const themeScale = useRef(new Animated.Value(1)).current;
@@ -320,6 +326,44 @@ export default function SignPlatformScreen() {
       mascot.speakAuthError(error);
     } finally {
       setIsSigningIn(false);
+    }
+  }
+
+  async function handleForgotPasswordSubmit() {
+    const email = forgotEmail.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      showToast(t('Vui lòng nhập email hợp lệ', 'Please enter a valid email'), 'error');
+      return;
+    }
+    if (isSendingForgot) return;
+    setIsSendingForgot(true);
+    try {
+      await forgotPassword(email);
+      showToast(
+        t(
+          'Đã gửi email. Mở liên kết trên web để đặt lại mật khẩu (trong 15 phút).',
+          'Email sent. Open the web link to reset your password (within 15 minutes).',
+        ),
+        'success',
+      );
+      setForgotOpen(false);
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : t('Không gửi được email đặt lại mật khẩu', 'Could not send reset email'),
+        'error',
+      );
+    } finally {
+      setIsSendingForgot(false);
+    }
+  }
+
+  async function openWebForgotPassword() {
+    try {
+      await Linking.openURL(getWebForgotPasswordUrl());
+    } catch {
+      showToast(t('Không mở được trang web', 'Could not open web page'), 'error');
     }
   }
 
@@ -599,23 +643,6 @@ export default function SignPlatformScreen() {
                           </View>
                         )}
                       </Pressable>
-                      <Divider
-                        text={t('HOẶC ĐĂNG KÝ BẰNG', 'OR SIGN UP WITH')}
-                        dividerColor={palette.divider}
-                        textColor={palette.label}
-                      />
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.secondaryButton,
-                          { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
-                          pressed && styles.pressedScale,
-                        ]}
-                        onPress={mascot.speakGoogleUnavailable}>
-                        <Ionicons name="logo-google" size={16} color="#111827" />
-                        <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
-                          Google
-                        </ThemedText>
-                      </Pressable>
                       <View style={styles.footerRow}>
                         <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
                           {t('Đã có tài khoản?', 'Already have an account?')}
@@ -673,12 +700,74 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <View style={styles.passwordTopRow}>
-                          <Pressable onPress={mascot.speakForgotPasswordUnavailable}>
+                          <Pressable
+                            onPress={() => {
+                              setForgotEmail(loginEmail.trim());
+                              setForgotOpen((open) => !open);
+                            }}
+                          >
                             <ThemedText style={[styles.forgotText, { color: palette.primary }]}>
                               {t('Quên mật khẩu?', 'Forgot password?')}
                             </ThemedText>
                           </Pressable>
                         </View>
+                        {forgotOpen ? (
+                          <View
+                            style={[
+                              styles.forgotBox,
+                              {
+                                borderColor: palette.secondaryBorder,
+                                backgroundColor: palette.secondaryBg,
+                              },
+                            ]}
+                          >
+                            <ThemedText style={[styles.forgotHint, { color: palette.textMuted }]}>
+                              {t(
+                                'Nhập email để nhận liên kết. Đặt lại mật khẩu trên trang web (như FE).',
+                                'Enter your email for a reset link. Password reset opens on the web (same as FE).',
+                              )}
+                            </ThemedText>
+                            <TextInput
+                              value={forgotEmail}
+                              onChangeText={setForgotEmail}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              keyboardType="email-address"
+                              placeholder={t('Email tài khoản', 'Account email')}
+                              placeholderTextColor={palette.textMuted}
+                              style={[
+                                styles.forgotInput,
+                                {
+                                  color: palette.text,
+                                  borderColor: palette.secondaryBorder,
+                                  backgroundColor: isDark ? '#0f1011' : '#fff',
+                                },
+                              ]}
+                            />
+                            <Pressable
+                              disabled={isSendingForgot}
+                              onPress={() => void handleForgotPasswordSubmit()}
+                              style={({ pressed }) => [
+                                styles.forgotSubmit,
+                                { backgroundColor: palette.primary, opacity: isSendingForgot ? 0.6 : 1 },
+                                pressed && styles.pressedScale,
+                              ]}
+                            >
+                              {isSendingForgot ? (
+                                <ActivityIndicator color="#fff" />
+                              ) : (
+                                <ThemedText style={styles.forgotSubmitText}>
+                                  {t('Gửi email đặt lại', 'Send reset email')}
+                                </ThemedText>
+                              )}
+                            </Pressable>
+                            <Pressable onPress={() => void openWebForgotPassword()}>
+                              <ThemedText style={[styles.forgotWebLink, { color: palette.primary }]}>
+                                {t('Mở trang quên mật khẩu trên web', 'Open forgot-password on web')}
+                              </ThemedText>
+                            </Pressable>
+                          </View>
+                        ) : null}
                         <FieldRow
                           icon="lock-closed-outline"
                           label={t('MẬT KHẨU', 'PASSWORD')}
@@ -725,23 +814,6 @@ export default function SignPlatformScreen() {
                             <Ionicons name="arrow-forward" size={16} color="#fff" />
                           </View>
                         )}
-                      </Pressable>
-                      <Divider
-                        text={t('HOẶC TIẾP TỤC BẰNG', 'OR CONTINUE WITH')}
-                        dividerColor={palette.divider}
-                        textColor={palette.label}
-                      />
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.secondaryButton,
-                          { backgroundColor: palette.secondaryBg, borderColor: palette.secondaryBorder },
-                          pressed && styles.pressedScale,
-                        ]}
-                        onPress={mascot.speakGoogleUnavailable}>
-                        <Ionicons name="logo-google" size={16} color="#111827" />
-                        <ThemedText style={[styles.secondaryButtonText, { color: isDark ? '#111827' : palette.text }]}>
-                          Google
-                        </ThemedText>
                       </Pressable>
                       <View style={styles.footerRow}>
                         <ThemedText style={[styles.footerText, { color: palette.textMuted }]}>
@@ -1008,6 +1080,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
+  },
+  forgotBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 10,
+    marginBottom: 4,
+  },
+  forgotHint: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  forgotInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  forgotSubmit: {
+    borderRadius: 10,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forgotSubmitText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  forgotWebLink: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   fieldWrap: {
     position: 'relative',

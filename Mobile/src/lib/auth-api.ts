@@ -437,6 +437,46 @@ export async function logout() {
   }
 }
 
+/** POST /auth/forgot-password — public (email opens FE web reset link). */
+export async function forgotPassword(email: string): Promise<string> {
+  const response = await fetch(resolveApiUrl('/auth/forgot-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email: email.trim().toLowerCase() }),
+  });
+  const payload = (await response.json().catch(() => null)) as AuthResponse | null;
+  if (!response.ok) {
+    throw new Error(
+      payload?.message ??
+        payload?.data?.message ??
+        'Cannot send password reset email',
+    );
+  }
+  return (
+    payload?.data?.message ??
+    payload?.message ??
+    'Password reset email sent successfully'
+  );
+}
+
+/** FE web app base (no trailing slash) — forgot/reset password pages. */
+export function getWebAppBaseUrl(): string {
+  const raw = process.env.EXPO_PUBLIC_WEB_APP_URL?.trim();
+  if (!raw) {
+    return 'https://parking-building-management-system-phi.vercel.app';
+  }
+  return raw.replace(/\/+$/, '');
+}
+
+export function getWebForgotPasswordUrl(): string {
+  return `${getWebAppBaseUrl()}/forgot-password`;
+}
+
+export function getWebResetPasswordUrl(): string {
+  return `${getWebAppBaseUrl()}/reset-password`;
+}
+
 /** Session-authenticated fetch for role-specific API modules. */
 export function authenticatedFetch(path: string, init: RequestInit = {}) {
   return authFetch(path, init);
