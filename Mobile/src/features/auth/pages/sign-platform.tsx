@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
   Keyboard,
   Platform,
@@ -155,6 +156,10 @@ export default function SignPlatformScreen() {
   const [isSendingForgot, setIsSendingForgot] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const scrollYRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+  const wasKeyboardOpenRef = useRef(false);
+  const fieldRefs = useRef<Record<string, View | null>>({});
 
   const themeFade = useRef(new Animated.Value(1)).current;
   const themeScale = useRef(new Animated.Value(1)).current;
@@ -214,9 +219,12 @@ export default function SignPlatformScreen() {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const onShow = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
+      const next = event.endCoordinates.height;
+      keyboardHeightRef.current = next;
+      setKeyboardHeight(next);
     });
     const onHide = Keyboard.addListener(hideEvent, () => {
+      keyboardHeightRef.current = 0;
       setKeyboardHeight(0);
     });
     return () => {
@@ -224,6 +232,53 @@ export default function SignPlatformScreen() {
       onHide.remove();
     };
   }, []);
+
+  function ensureFieldVisible(fieldKey: string) {
+    const run = () => {
+      const node = fieldRefs.current[fieldKey];
+      if (!node || !scrollRef.current) {
+        return;
+      }
+      node.measureInWindow((_x, y, _w, h) => {
+        const windowH = Dimensions.get('window').height;
+        const kb = keyboardHeightRef.current;
+        // Keep focused field in the upper visible band above the keyboard.
+        const safeTop = 56;
+        // Android resize already shrinks the window; iOS needs keyboard subtracted.
+        const safeBottom =
+          Platform.OS === 'ios' ? windowH - Math.max(kb, 0) - 20 : windowH - 20;
+        const fieldTop = y;
+        const fieldBottom = y + h;
+        let delta = 0;
+        if (fieldBottom > safeBottom) {
+          delta = fieldBottom - safeBottom + 24;
+        } else if (fieldTop < safeTop) {
+          delta = fieldTop - safeTop;
+        }
+        if (Math.abs(delta) > 2) {
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, scrollYRef.current + delta),
+            animated: true,
+          });
+        }
+      });
+    };
+    // Run twice: once quickly, once after keyboard animation settles.
+    setTimeout(run, 50);
+    setTimeout(run, 320);
+  }
+
+  useEffect(() => {
+    const open = keyboardHeight > 0;
+    if (open && !wasKeyboardOpenRef.current) {
+      // Collapse mascot frees space — start from top so fields sit above keyboard.
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }
+    wasKeyboardOpenRef.current = open;
+    if (open && focusedField) {
+      ensureFieldVisible(focusedField);
+    }
+  }, [keyboardHeight, focusedField]);
 
   function animateToLogin() {
     if (activeView === 'login') return;
@@ -433,13 +488,13 @@ export default function SignPlatformScreen() {
   }
 
   // Extra bottom space so user can drag the form above the keyboard.
-  // Android resize already shrinks the window — still add padding so fields can scroll into view.
-  const scrollBottomPad =
-    keyboardHeight > 0
-      ? Platform.OS === 'ios'
-        ? keyboardHeight + 32
-        : Math.max(160, Math.round(keyboardHeight * 0.35))
-      : 48;
+  // Android already resizes the window; keep moderate pad. iOS needs full keyboard pad.
+  const isKeyboardOpen = keyboardHeight > 0;
+  const scrollBottomPad = isKeyboardOpen
+    ? Platform.OS === 'ios'
+      ? keyboardHeight + 48
+      : Math.max(180, Math.round(keyboardHeight * 0.45))
+    : 48;
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.screenBg }]}>
@@ -467,64 +522,69 @@ export default function SignPlatformScreen() {
           alwaysBounceVertical
           nestedScrollEnabled
           scrollEventThrottle={16}
+          onScroll={(event) => {
+            scrollYRef.current = event.nativeEvent.contentOffset.y;
+          }}
           automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           contentInsetAdjustmentBehavior="automatic"
         >
           <Animated.View style={[styles.contentWrap, { opacity: themeFade }]}>
-            <View style={styles.topTools}>
-              <View style={styles.topToolsRow}>
-                <View
-                  style={[
-                    styles.langToggle,
-                    {
-                      borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
-                      backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
-                    },
-                  ]}>
+            {!isKeyboardOpen ? (
+              <View style={styles.topTools}>
+                <View style={styles.topToolsRow}>
+                  <View
+                    style={[
+                      styles.langToggle,
+                      {
+                        borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
+                        backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
+                      },
+                    ]}>
+                    <Pressable
+                      onPress={() => setLanguage('en')}
+                      style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: language === 'en' }}>
+                      <ThemedText
+                        style={[
+                          styles.langOptionText,
+                          { color: language === 'en' ? palette.primary : palette.textMuted },
+                          language === 'en' && styles.langOptionTextActive,
+                        ]}>
+                        EN
+                      </ThemedText>
+                    </Pressable>
+                    <ThemedText style={[styles.langDivider, { color: palette.divider }]}>|</ThemedText>
+                    <Pressable
+                      onPress={() => setLanguage('vi')}
+                      style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: language === 'vi' }}>
+                      <ThemedText
+                        style={[
+                          styles.langOptionText,
+                          { color: language === 'vi' ? palette.primary : palette.textMuted },
+                          language === 'vi' && styles.langOptionTextActive,
+                        ]}>
+                        VN
+                      </ThemedText>
+                    </Pressable>
+                  </View>
                   <Pressable
-                    onPress={() => setLanguage('en')}
-                    style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: language === 'en' }}>
-                    <ThemedText
-                      style={[
-                        styles.langOptionText,
-                        { color: language === 'en' ? palette.primary : palette.textMuted },
-                        language === 'en' && styles.langOptionTextActive,
-                      ]}>
-                      EN
-                    </ThemedText>
-                  </Pressable>
-                  <ThemedText style={[styles.langDivider, { color: palette.divider }]}>|</ThemedText>
-                  <Pressable
-                    onPress={() => setLanguage('vi')}
-                    style={({ pressed }) => [styles.langOption, pressed && styles.pressedScale]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: language === 'vi' }}>
-                    <ThemedText
-                      style={[
-                        styles.langOptionText,
-                        { color: language === 'vi' ? palette.primary : palette.textMuted },
-                        language === 'vi' && styles.langOptionTextActive,
-                      ]}>
-                      VN
-                    </ThemedText>
+                    onPress={() => setThemePreference(isDark ? 'light' : 'dark')}
+                    style={({ pressed }) => [
+                      styles.themeButton,
+                      {
+                        borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
+                        backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
+                      },
+                      pressed && styles.pressedScale,
+                    ]}>
+                    <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={palette.themeIcon} />
                   </Pressable>
                 </View>
-                <Pressable
-                  onPress={() => setThemePreference(isDark ? 'light' : 'dark')}
-                  style={({ pressed }) => [
-                    styles.themeButton,
-                    {
-                      borderColor: isDark ? '#2a2a2a' : palette.secondaryBorder,
-                      backgroundColor: isDark ? '#1a1a1a' : '#f8f8f8',
-                    },
-                    pressed && styles.pressedScale,
-                  ]}>
-                  <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={palette.themeIcon} />
-                </Pressable>
               </View>
-            </View>
+            ) : null}
 
             <View style={styles.main}>
               <View
@@ -538,27 +598,33 @@ export default function SignPlatformScreen() {
                     elevation: isDark ? 0 : 6,
                   },
                 ]}>
-                <View style={styles.branding}>
-                  <View style={styles.mascotCluster}>
-                    <MascotSpeechBubble speech={mascot.mascotSpeech} />
-                    <View
-                      style={[
-                        styles.logoCircle,
-                        {
-                          borderColor: SIGN_MASCOT_FRAME.border,
-                          backgroundColor: SIGN_MASCOT_FRAME.background,
-                        },
-                      ]}>
-                      <SignMascotDisplay
-                        pose={mascotPose}
-                        lookX={mascot.lookX}
-                        lookY={mascot.lookY}
-                        eyeCover={mascot.eyeCover}
-                      />
-                    </View>
+                {isKeyboardOpen ? (
+                  <View style={styles.brandingCompact}>
+                    <ThemedText style={[styles.brandTextCompact, { color: palette.primary }]}>PARKOS</ThemedText>
                   </View>
-                  <ThemedText style={[styles.brandText, { color: palette.primary }]}>PARKOS</ThemedText>
-                </View>
+                ) : (
+                  <View style={styles.branding}>
+                    <View style={styles.mascotCluster}>
+                      <MascotSpeechBubble speech={mascot.mascotSpeech} />
+                      <View
+                        style={[
+                          styles.logoCircle,
+                          {
+                            borderColor: SIGN_MASCOT_FRAME.border,
+                            backgroundColor: SIGN_MASCOT_FRAME.background,
+                          },
+                        ]}>
+                        <SignMascotDisplay
+                          pose={mascotPose}
+                          lookX={mascot.lookX}
+                          lookY={mascot.lookY}
+                          eyeCover={mascot.eyeCover}
+                        />
+                      </View>
+                    </View>
+                    <ThemedText style={[styles.brandText, { color: palette.primary }]}>PARKOS</ThemedText>
+                  </View>
+                )}
 
                 <View
                   style={[styles.authStage, { height: stageHeight }]}
@@ -576,12 +642,18 @@ export default function SignPlatformScreen() {
                       },
                     ]}>
                     <View style={styles.formPane}>
-                      <Text style={[styles.title, { color: palette.text }]}>{t('Tạo tài khoản', 'Create Account')}</Text>
-                      <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-                        {t('Tham gia mạng lưới bãi đỗ xe', 'Join our parking network')}
+                      <Text style={[styles.title, isKeyboardOpen && styles.titleCompact, { color: palette.text }]}>
+                        {t('Tạo tài khoản', 'Create Account')}
                       </Text>
+                      {!isKeyboardOpen ? (
+                        <Text style={[styles.subtitle, { color: palette.textMuted }]}>
+                          {t('Tham gia mạng lưới bãi đỗ xe', 'Join our parking network')}
+                        </Text>
+                      ) : null}
                       <View style={styles.formBlock}>
                         <FieldRow
+                          fieldKey="signupFullName"
+                          fieldRefs={fieldRefs}
                           icon="person-outline"
                           label={t('HỌ TÊN', 'FULL NAME')}
                           value={signupFullName}
@@ -593,6 +665,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('signupFullName');
                               mascot.handleSignupNameFocus();
+                              ensureFieldVisible('signupFullName');
                             }}
                             onBlur={() => setFocusedField(null)}
                             autoCapitalize="words"
@@ -601,6 +674,8 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <FieldRow
+                          fieldKey="signupEmail"
+                          fieldRefs={fieldRefs}
                           icon="mail-outline"
                           label={t('EMAIL', 'EMAIL')}
                           value={signupEmail}
@@ -615,6 +690,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('signupEmail');
                               mascot.handleSignupEmailFocus();
+                              ensureFieldVisible('signupEmail');
                             }}
                             onBlur={() => {
                               mascot.handleSignupEmailBlur();
@@ -628,6 +704,8 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <FieldRow
+                          fieldKey="signupPhone"
+                          fieldRefs={fieldRefs}
                           icon="call-outline"
                           label={t('SỐ ĐIỆN THOẠI', 'PHONE')}
                           value={signupPhone}
@@ -641,6 +719,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('signupPhone');
                               mascot.handleSignupPhoneFocus();
+                              ensureFieldVisible('signupPhone');
                             }}
                             onBlur={() => {
                               mascot.handleSignupPhoneBlur();
@@ -653,6 +732,8 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <FieldRow
+                          fieldKey="signupPassword"
+                          fieldRefs={fieldRefs}
                           icon="lock-closed-outline"
                           label={t('MẬT KHẨU', 'PASSWORD')}
                           value={signupPassword}
@@ -664,6 +745,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('signupPassword');
                               mascot.handlePasswordFocus('signupPassword');
+                              ensureFieldVisible('signupPassword');
                             }}
                             onBlur={() => {
                               mascot.handlePasswordBlur();
@@ -722,12 +804,18 @@ export default function SignPlatformScreen() {
                       },
                     ]}>
                     <View style={styles.formPane}>
-                      <Text style={[styles.title, { color: palette.text }]}>{t('Chào mừng trở lại', 'Welcome Back')}</Text>
-                      <Text style={[styles.subtitle, { color: palette.textMuted }]}>
-                        {t('Đăng nhập vào tài khoản của bạn', 'Sign in to your account')}
+                      <Text style={[styles.title, isKeyboardOpen && styles.titleCompact, { color: palette.text }]}>
+                        {t('Chào mừng trở lại', 'Welcome Back')}
                       </Text>
+                      {!isKeyboardOpen ? (
+                        <Text style={[styles.subtitle, { color: palette.textMuted }]}>
+                          {t('Đăng nhập vào tài khoản của bạn', 'Sign in to your account')}
+                        </Text>
+                      ) : null}
                       <View style={styles.formBlock}>
                         <FieldRow
+                          fieldKey="loginEmail"
+                          fieldRefs={fieldRefs}
                           icon="mail-outline"
                           label={t('EMAIL', 'EMAIL')}
                           value={loginEmail}
@@ -742,7 +830,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('loginEmail');
                               mascot.handleLoginEmailFocus();
-                              setTimeout(() => scrollRef.current?.scrollTo({ y: 120, animated: true }), 200);
+                              ensureFieldVisible('loginEmail');
                             }}
                             onBlur={() => {
                               mascot.handleLoginEmailBlur();
@@ -756,6 +844,8 @@ export default function SignPlatformScreen() {
                           />
                         </FieldRow>
                         <FieldRow
+                          fieldKey="loginPassword"
+                          fieldRefs={fieldRefs}
                           icon="lock-closed-outline"
                           label={t('MẬT KHẨU', 'PASSWORD')}
                           value={loginPassword}
@@ -767,7 +857,7 @@ export default function SignPlatformScreen() {
                             onFocus={() => {
                               setFocusedField('loginPassword');
                               mascot.handlePasswordFocus('loginPassword');
-                              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+                              ensureFieldVisible('loginPassword');
                             }}
                             onBlur={() => {
                               mascot.handlePasswordBlur();
@@ -896,6 +986,8 @@ export default function SignPlatformScreen() {
 }
 
 function FieldRow({
+  fieldKey,
+  fieldRefs,
   icon,
   label,
   value,
@@ -903,6 +995,8 @@ function FieldRow({
   palette,
   children,
 }: {
+  fieldKey: string;
+  fieldRefs: React.MutableRefObject<Record<string, View | null>>;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
@@ -927,7 +1021,12 @@ function FieldRow({
   });
 
   return (
-    <View style={styles.fieldWrap}>
+    <View
+      ref={(node) => {
+        fieldRefs.current[fieldKey] = node;
+      }}
+      collapsable={false}
+      style={styles.fieldWrap}>
       <View
         style={[
           styles.inputRow,
@@ -1069,6 +1168,21 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
+  },
+  brandingCompact: {
+    alignItems: 'center',
+    marginBottom: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  brandTextCompact: {
+    fontFamily: Fonts.rounded,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  titleCompact: {
+    fontSize: 22,
+    marginBottom: Spacing.two,
   },
   branding: {
     alignItems: 'center',
