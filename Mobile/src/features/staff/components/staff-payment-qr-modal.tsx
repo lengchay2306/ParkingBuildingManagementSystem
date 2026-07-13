@@ -131,24 +131,21 @@ export function StaffPaymentQrModal({
               </View>
             ) : (
               <>
-                <View style={styles.amountHero}>
-                  <ThemedText style={styles.amountLabel}>
-                    {t('Số tiền phải trả', 'Amount due')}
-                  </ThemedText>
-                  <ThemedText style={styles.amountValue}>{formatVnd(bill.amount)}</ThemedText>
-                </View>
                 <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <ThemedText style={styles.metaLabel}>{t('Số tiền', 'Amount')}</ThemedText>
+                    <ThemedText style={styles.metaValue}>{formatVnd(bill.amount)}</ThemedText>
+                  </View>
                   <View style={styles.metaItem}>
                     <ThemedText style={styles.metaLabel}>{t('Thời gian', 'Duration')}</ThemedText>
                     <ThemedText style={styles.metaValue}>
                       {Number.isFinite(bill.totalHours) ? `${bill.totalHours.toFixed(1)} h` : '—'}
                     </ThemedText>
                   </View>
-                  <View style={styles.metaItem}>
-                    <ThemedText style={styles.metaLabel}>{t('Mã đơn', 'Order')}</ThemedText>
-                    <ThemedText style={styles.metaValue}>{bill.orderCode}</ThemedText>
-                  </View>
                 </View>
+                <ThemedText style={styles.orderCode}>
+                  {t('Mã đơn', 'Order')}: {bill.orderCode}
+                </ThemedText>
 
                 <View style={styles.qrArea}>
                   <View style={styles.qrWrap}>
@@ -263,28 +260,6 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       justifyContent: 'center',
       flexGrow: 1,
     },
-    amountHero: {
-      borderRadius: Radius.md,
-      borderWidth: 1,
-      borderColor: DesignColors.primary,
-      backgroundColor: DesignColors.surface2,
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.md,
-      alignItems: 'center',
-      gap: 4,
-    },
-    amountLabel: {
-      ...Typography.caption,
-      color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    amountValue: {
-      ...Typography.metricValue,
-      color: DesignColors.primary,
-      fontSize: 32,
-      fontWeight: '700',
-    },
     metaRow: {
       flexDirection: 'row',
       gap: Spacing.sm,
@@ -307,6 +282,11 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       color: DesignColors.ink,
       marginTop: 4,
       fontWeight: '600',
+    },
+    orderCode: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontFamily: 'monospace',
     },
     qrArea: {
       flexGrow: 1,

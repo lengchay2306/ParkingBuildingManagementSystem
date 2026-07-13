@@ -32,6 +32,19 @@ export function formatDurationFrom(iso?: string): string {
   return `${mins}m`;
 }
 
+export function estimateSessionCost(iso?: string, hourlyRate = 25000): string {
+  if (!iso) {
+    return '—';
+  }
+  const start = new Date(iso).getTime();
+  if (Number.isNaN(start)) {
+    return '—';
+  }
+  const hours = Math.max(1, Math.ceil((Date.now() - start) / 3600000));
+  const total = hours * hourlyRate;
+  return `${total.toLocaleString('vi-VN')}₫`;
+}
+
 export function formatTimeLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {

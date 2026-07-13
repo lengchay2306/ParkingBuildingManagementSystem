@@ -53,7 +53,6 @@ import {
 } from "@/lib/pending-payment";
 import {
   checkStaffPayment,
-  formatVnd,
 } from "@/services/payment.service";
 import {
   buildReservationCheckInPayload,
@@ -741,18 +740,6 @@ function CheckoutResultPanel({
           ? " · Thẻ tháng — kết thúc phiên không cần VietQR"
           : " · Gửi ngày — tạo mã VietQR trước khi ra cổng"}
       </p>
-
-      <InfoRow
-        label="Số tiền phải trả"
-        value={
-          isMonthlySession
-            ? "Miễn phí (thẻ tháng)"
-            : paymentBill
-              ? formatVnd(paymentBill.amount)
-              : "Hiện sau khi tạo VietQR"
-        }
-        highlight={!isMonthlySession && Boolean(paymentBill)}
-      />
 
       {!paymentBill ? (
         <Button
