@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { DotLottie } from '@lottiefiles/dotlottie-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -10,6 +11,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDesignColors } from '@/hooks/use-design-colors';
+
+const AI_LOTTIE = require('@/components/gif/AI.lottie');
 
 const FAB_SIZE = 56;
 const PEEK_WIDTH = 28;
@@ -101,7 +104,12 @@ export function ChatbotFab({
           onPress={onPress}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         >
-          <Ionicons name="sparkles" size={26} color={DesignColors.onPrimary} />
+          <DotLottie
+            autoplay
+            loop
+            source={AI_LOTTIE}
+            style={styles.fabLottie}
+          />
         </Pressable>
         <Pressable
           accessibilityLabel={collapseLabel}
@@ -123,7 +131,12 @@ export function ChatbotFab({
           onPress={() => void setCollapsedPersist(false)}
           style={({ pressed }) => [styles.peek, pressed && styles.fabPressed]}
         >
-          <Ionicons name="sparkles" size={16} color={DesignColors.onPrimary} />
+          <DotLottie
+            autoplay
+            loop
+            source={AI_LOTTIE}
+            style={styles.peekLottie}
+          />
         </Pressable>
       </Animated.View>
     </View>
@@ -155,6 +168,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: DesignColors.primary,
+      overflow: 'hidden',
+    },
+    fabLottie: {
+      width: 40,
+      height: 40,
     },
     collapseBtn: {
       position: 'absolute',
@@ -184,6 +202,11 @@ function createStyles(DesignColors: ReturnType<typeof useDesignColors>) {
       justifyContent: 'center',
       backgroundColor: DesignColors.primary,
       paddingLeft: 2,
+      overflow: 'hidden',
+    },
+    peekLottie: {
+      width: 22,
+      height: 22,
     },
     fabPressed: {
       opacity: 0.88,
