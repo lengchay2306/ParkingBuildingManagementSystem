@@ -66,8 +66,8 @@ function Index() {
               Tòa nhà đỗ xe thế hệ mới
             </h2>
             <p className="mt-4 max-w-xl text-[15px] text-muted-foreground">
-              Parking Building System là giải pháp quản lý đỗ xe toàn diện với 1.000+ chỗ trên 10
-              tầng. Tích hợp camera AI, cảm biến IoT và ứng dụng di động giúp tài xế tìm chỗ trống
+              Parking Building System là giải pháp quản lý đỗ xe toàn diện.
+              Tích hợp camera AI, cảm biến IoT và ứng dụng di động giúp tài xế tìm chỗ trống
               trong vài giây.
             </p>
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -114,7 +114,7 @@ function Index() {
             </p>
             <p className="flex items-center gap-2">
               <Mail className="size-4 text-primary" />
-              huyronaldovapcom@gmail.com
+              huyronaldovapco@gmail.com
             </p>
           </div>
         </div>
