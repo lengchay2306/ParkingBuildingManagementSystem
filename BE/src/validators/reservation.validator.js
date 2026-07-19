@@ -2,13 +2,30 @@ import Joi from 'joi'
 
 const objectId = Joi.string().regex(/^[0-9a-fA-F]{24}$/, 'ObjectId')
 
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+/** expectedArrival must be in the future and within the next 2 hours. */
+const expectedArrivalWithinTwoHours = Joi.date()
+    .iso()
+    .greater('now')
+    .required()
+    .custom((value, helpers) => {
+        const maxArrival = new Date(Date.now() + TWO_HOURS_MS);
+        if (value.getTime() > maxArrival.getTime()) {
+            return helpers.message('expectedArrival must be within 2 hours from now');
+        }
+        return value;
+    })
+    .messages({
+        'date.greater': 'expectedArrival must be a future date',
+    });
+
 const createReservationSchema = Joi.object({
     vehicleId: objectId.required()
         .messages({ 'string.pattern.name': 'vehicleId must be a valid ObjectId' }),
     parkingSlotId: objectId.required()
         .messages({ 'string.pattern.name': 'parkingSlotId must be a valid ObjectId' }),
-    expectedArrival: Joi.date().iso().greater('now').required()
-        .messages({ 'date.greater': 'expectedArrival must be a future date' }),
+    expectedArrival: expectedArrivalWithinTwoHours,
 })
 
 const cancelReservationSchema = Joi.object({
@@ -43,8 +60,7 @@ const getReservationsByVehiclePlateQuerySchema = Joi.object({
 const recommendSlotsSchema = Joi.object({
     vehicleId: objectId.required()
         .messages({ 'string.pattern.name': 'vehicleId must be a valid ObjectId' }),
-    expectedArrival: Joi.date().iso().greater('now').required()
-        .messages({ 'date.greater': 'expectedArrival must be a future date' }),
+    expectedArrival: expectedArrivalWithinTwoHours,
     limit: Joi.number().integer().min(1).max(10).default(3),
 });
 

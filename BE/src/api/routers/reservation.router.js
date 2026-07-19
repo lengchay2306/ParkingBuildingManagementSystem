@@ -23,7 +23,7 @@ const router = express.Router();
  * /api/v1/reservations:
  *   post:
  *     summary: Create a parking reservation
- *     description: Customer reserves a parking slot. driverId is taken from the authenticated user.
+ *     description: Customer reserves a parking slot. driverId is taken from the authenticated user. expectedArrival must be in the future and within the next 2 hours.
  *     tags: [Reservation]
  *     security:
  *       - bearerAuth: []
@@ -49,7 +49,7 @@ const router = express.Router();
  *               expectedArrival:
  *                 type: string
  *                 format: date-time
- *                 description: Expected arrival time (ISO 8601, must be in the future)
+ *                 description: Expected arrival time (ISO 8601, future, within 2 hours from now)
  *                 example: "2026-05-27T10:00:00.000Z"
  *     responses:
  *       201:
@@ -69,7 +69,7 @@ const router = express.Router();
  *                   expiryAt: "2026-05-27T10:15:00.000Z"
  *                   status: PENDING
  *       400:
- *         description: Slot not available, vehicle type mismatch, or vehicle not yours
+ *         description: Slot not available, vehicle type mismatch, vehicle not yours, or expectedArrival outside the next 2 hours
  *       401:
  *         description: Unauthorized
  *       404:
@@ -95,6 +95,7 @@ router.post(
  *       Suggests the best available parking slots for a vehicle and expected arrival time.
  *       Uses rule-based scoring (proximity to entrance, floor availability, driver history, peak-hour traffic).
  *       Does not create a reservation — use POST /reservations to book a recommended slot.
+ *       expectedArrival must be in the future and within the next 2 hours.
  *       Only accessible by CUSTOMER.
  *     tags: [Reservation]
  *     security:
@@ -116,7 +117,7 @@ router.post(
  *               expectedArrival:
  *                 type: string
  *                 format: date-time
- *                 description: Expected arrival time (ISO 8601, must be in the future)
+ *                 description: Expected arrival time (ISO 8601, future, within 2 hours from now)
  *                 example: "2026-06-18T14:00:00.000Z"
  *               limit:
  *                 type: integer

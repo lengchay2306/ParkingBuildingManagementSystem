@@ -19,6 +19,18 @@ class ReservationService {
     }) => {
         await this.#expireOverdueReservations();
 
+        const now = Date.now();
+        const arrivalMs = expectedArrival.getTime();
+        const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
+
+        if (arrivalMs <= now) {
+            throw new BadRequestError("expectedArrival must be a future date");
+        }
+
+        if (arrivalMs > twoHoursFromNow) {
+            throw new BadRequestError("expectedArrival must be within 2 hours from now");
+        }
+
         const vehicle = await this.#reservationRepository.findVehicleById({ vehicleId });
         if (!vehicle) {
             throw new NotFoundError("Vehicle not found");
