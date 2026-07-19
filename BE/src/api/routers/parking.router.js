@@ -5,6 +5,7 @@ import {
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
     guestParkingSessionSchema,
+    walkInParkingSessionSchema,
     getActiveSessionByLicensePlateParamsSchema,
 } from '../../validators/parking.validator.js'
 
@@ -384,9 +385,9 @@ router.get(
  *     summary: Create a new parking session (reservation check-in)
  *     description: |
  *       Staff, manager, or admin checks in a registered customer who has an active PENDING reservation.
- *       The parking slot is resolved automatically from the reservation — staff does not pass parkingSlotId.
- *       Validates customer phone, vehicle ownership, reservation expiry, slot RESERVED status, and vehicle type match.
+ *       Body only needs `reservationId` — slot/vehicle/phone are taken from the reservation.
  *       On success the linked reservation is marked CLAIMED.
+ *       `sessionType` is MONTH if the vehicle has an active monthly card; otherwise DAILY.
  *     tags: [Parking]
  *     security:
  *       - bearerAuth: []
@@ -397,17 +398,12 @@ router.get(
  *           schema:
  *             type: object
  *             required:
- *               - phone
- *               - licensePlate
+ *               - reservationId
  *             properties:
- *               phone:
+ *               reservationId:
  *                 type: string
- *                 description: Customer phone number (Vietnam format)
- *                 example: "0901234567"
- *               licensePlate:
- *                 type: string
- *                 description: Vehicle license plate (format 51A-123.45)
- *                 example: "51A-123.45"
+ *                 description: PENDING reservation ObjectId
+ *                 example: "665f1b2c3d4e5f6a7b8c9d0e"
  *     responses:
  *       201:
  *         description: Parking session created successfully
@@ -467,8 +463,10 @@ router.post(
  *       - No registered `vehicleId` or `checkInUserId` is required; `phone` is optional.
  *
  *       **Difference from** `POST /api/v1/parking/create-parking-session`
- *       - Regular check-in requires customer `phone` + a registered vehicle.
- *       - Guest check-in only needs the plate and a compatible available slot.
+ *       - Reservation check-in requires `reservationId` (PENDING reservation).
+ *       - Guest check-in is only for **unregistered** plates (no Vehicle in DB).
+ *       - Registered customers without a reservation must use
+ *         `POST /api/v1/parking/create-parking-session/walk-in` instead.
  *     tags: [Parking]
  *     security:
  *       - bearerAuth: []
@@ -571,6 +569,73 @@ router.post(
         const parkingController = req.container.resolve('parkingController');
 
         await parkingController.createNewParkingSessionForGuest(req, res, next);
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/parking/create-parking-session/walk-in:
+ *   post:
+ *     summary: Check in a registered customer without reservation
+ *     description: |
+ *       Staff checks in a **registered** vehicle that has **no PENDING reservation**.
+ *       Use this for monthly-card or daily registered customers who arrive without booking.
+ *
+ *       **When to use which endpoint**
+ *       - Has PENDING reservation → `POST /create-parking-session` with `reservationId`
+ *       - Registered, no reservation → **this endpoint**
+ *       - Unregistered guest → `POST /create-parking-session/guest`
+ *
+ *       **Rules**
+ *       - Customer `phone` must match an existing user who owns the vehicle.
+ *       - Slot must be `AVAILABLE` and match the vehicle's type/floor.
+ *       - Vehicle must not already have an ACTIVE session.
+ *       - If a PENDING reservation exists, reject — use reservation check-in instead.
+ *       - `sessionType` is `MONTH` when monthly card is ACTIVE and not expired; otherwise `DAILY`.
+ *       - Session is created with `isGuest: false` and linked `vehicleId` + `checkInUserId`.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phone
+ *               - licensePlate
+ *               - parkingSlotId
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *               licensePlate:
+ *                 type: string
+ *                 example: "51A-123.45"
+ *               parkingSlotId:
+ *                 type: string
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
+ *     responses:
+ *       201:
+ *         description: Registered walk-in parking session created
+ *       400:
+ *         description: |
+ *           Validation or business rule failure (user/vehicle mismatch, active session,
+ *           slot unavailable, type mismatch, or pending reservation exists)
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.post(
+    "/create-parking-session/walk-in",
+    authentication,
+    authorizationByRole(['MANAGER', 'ADMIN', 'STAFF']),
+    validateData(walkInParkingSessionSchema),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController');
+        await parkingController.createNewParkingSessionForRegisteredWalkIn(req, res, next);
     }
 )
 

@@ -251,6 +251,17 @@ class ParkingService {
         vehicleTypeId,
     }) => {
         const normalizedLicensePlate = licensePlate.trim().toUpperCase()
+
+        const registeredVehicle = await this.#vehicleRepository.getVehicleByLicensePlate({
+            licensePlate: normalizedLicensePlate,
+        });
+
+        if (registeredVehicle) {
+            throw new BadRequestError(
+                `This license plate is registered. Use walk-in check-in (POST /parking/create-parking-session/walk-in) instead of guest.`,
+            );
+        }
+
         const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
             //because when input user vehicleId, it will include all old parking sessions
             //so i call findAllParkingSessionByField function
@@ -304,6 +315,120 @@ class ParkingService {
             parkingSlotId: {
                 ...newParkingSession.parkingSlotId,
                 status: 'CURRENTLY-IN-USED'
+            },
+            checkInUserId: newParkingSession.checkInUserId
+                ? { ...newParkingSession.checkInUserId, password: undefined }
+                : null,
+            checkInStaffId: newParkingSession.checkInStaffId
+                ? { ...newParkingSession.checkInStaffId, password: undefined }
+                : null,
+        };
+    }
+
+    /**
+     * Registered walk-in (no reservation): customer vehicle enters without prior booking.
+     * Sets MONTH vs DAILY from active monthly card; isGuest = false.
+     */
+    createNewParkingSessionForRegisteredWalkIn = async ({
+        phone,
+        licensePlate,
+        staffId,
+        parkingSlotId,
+    }) => {
+        await this.#reservationRepository.expireOverdueReservations();
+
+        const existingUser = await this.#userRepository.findUser({ phone });
+        if (!existingUser) {
+            throw new BadRequestError(`Wrong phone number or this user doesn't exist!`);
+        }
+
+        const normalizedLicensePlate = licensePlate.trim().toUpperCase();
+        const usersVehicles = await this.#vehicleRepository.getVehicleByLicensePlate({
+            licensePlate: normalizedLicensePlate,
+        });
+
+        if (!usersVehicles) {
+            throw new BadRequestError(`This vehicle doesn't register yet! Use guest check-in for walk-in guests.`);
+        }
+
+        if (usersVehicles.status && usersVehicles.status !== 'ACTIVE') {
+            throw new BadRequestError(`This vehicle is not active!`);
+        }
+
+        if (String(usersVehicles.userId) !== String(existingUser._id)) {
+            throw new BadRequestError(`This vehicle doesn't belong to this customer!`);
+        }
+
+        const pendingReservation = await this.#reservationRepository.findPendingReservationByVehicleAndDriver({
+            vehicleId: usersVehicles._id,
+            driverId: existingUser._id,
+        });
+
+        if (pendingReservation) {
+            throw new BadRequestError(
+                `This vehicle has an active PENDING reservation. Use reservation check-in with reservationId: ${pendingReservation._id}`,
+            );
+        }
+
+        const isAlreadyInParkingSession = await this.#parkingRepository.findAllParkingSessionByField({
+            status: 'ACTIVE',
+            $or: [
+                { vehicleId: usersVehicles._id },
+                { licensePlate: normalizedLicensePlate },
+            ],
+        });
+
+        if (isAlreadyInParkingSession.length > 0) {
+            throw new BadRequestError(`This vehicle already in parking building!`);
+        }
+
+        const existingParkingSlot = await this.#parkingRepository.findParkingSlot({
+            _id: parkingSlotId,
+        });
+
+        if (!existingParkingSlot || existingParkingSlot.status !== 'AVAILABLE') {
+            throw new BadRequestError(`This parking slot is not available!`);
+        }
+
+        const vehicleTypeIdFromVehicles = usersVehicles.vehicleTypeId?._id
+            || usersVehicles.vehicleTypeId;
+        const vehicleTypeIdFromSlot = existingParkingSlot.floorId?.vehicleTypeId?._id
+            || existingParkingSlot.floorId?.vehicleTypeId;
+
+        if (String(vehicleTypeIdFromVehicles) !== String(vehicleTypeIdFromSlot)) {
+            throw new BadRequestError(`This slot is not fit with this type of vehicle`);
+        }
+
+        const hasActiveMonthlyCard = this.#hasActiveMonthlyCard(usersVehicles);
+
+        const newParkingSession = await this.#parkingRepository.createNewParkingSession({
+            vehicleId: usersVehicles._id,
+            licensePlate: normalizedLicensePlate,
+            parkingSlotId: existingParkingSlot._id,
+            sessionType: hasActiveMonthlyCard ? 'MONTH' : 'DAILY',
+            checkInUserId: existingUser._id,
+            checkInStaffId: staffId,
+            checkInTime: Date.now(),
+            status: 'ACTIVE',
+            isGuest: false,
+        });
+
+        if (!newParkingSession) {
+            throw new BadRequestError(`Cannot create new parking session!`);
+        }
+
+        await this.#parkingRepository.updateParkingSlot({
+            field: { _id: existingParkingSlot._id },
+            updateData: {
+                status: 'CURRENTLY-IN-USED',
+            },
+        });
+
+        return {
+            ...newParkingSession,
+            parkingSlotId: {
+                ...newParkingSession.parkingSlotId,
+                status: 'CURRENTLY-IN-USED',
             },
             checkInUserId: newParkingSession.checkInUserId
                 ? { ...newParkingSession.checkInUserId, password: undefined }

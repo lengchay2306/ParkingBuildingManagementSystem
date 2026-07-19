@@ -97,7 +97,10 @@ class ParkingRepository {
     //PARKING SLOT----
     findParkingSlot = async (filter) => {
         const existingParkingSlot = await ParkingSlot.findOne(filter)
-                                                    .populate('floorId')
+                                                    .populate({
+                                                        path: 'floorId',
+                                                        populate: { path: 'vehicleTypeId' },
+                                                    })
                                                     .lean();
 
         if (!existingParkingSlot) {
