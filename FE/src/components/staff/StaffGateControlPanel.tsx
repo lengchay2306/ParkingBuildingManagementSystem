@@ -36,6 +36,7 @@ import {
   checkoutParkingSession,
   createGuestParkingSession,
   createParkingSession,
+  createRegisteredWalkInParkingSession,
   findFirstAvailableSlotForVehicleType,
   getActiveSessionByPlate,
   getCheckoutPhoneForSession,
@@ -60,12 +61,23 @@ import {
   buildReservationCheckInPayload,
   getCreateSessionDisabledReasonFromReservation,
   getReservationDriverName,
-  getReservationsByPlate,
+  getReservationsByPlateSafe,
   type Reservation,
 } from "@/services/reservation.service";
-import { getVehicleTypes, type VehicleType } from "@/services/vehicle.service";
+import {
+  getVehicleByLicensePlateSafe,
+  getVehicleTypes,
+  resolveVehicleTypeId,
+  resolveVehicleTypeLabel,
+  type Vehicle,
+  type VehicleType,
+} from "@/services/vehicle.service";
 
 export type StaffGateMode = "checkin" | "checkout";
+
+export type StaffCheckInKind = "reservation" | "registered-walk-in" | "guest";
+
+const REGISTERED_WALK_IN_PHONE_PATTERN = /^(03|05|07|08|09)\d{8}$/;
 
 type StaffGateControlPanelProps = {
   parkingFloors: ParkingFloor[];
@@ -92,6 +104,7 @@ export function StaffGateControlPanel({
   const [manualInput, setManualInput] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [walkInVehicleTypeId, setWalkInVehicleTypeId] = useState("");
+  const [registeredWalkInPhone, setRegisteredWalkInPhone] = useState("");
   const [walkInSelectedSlot, setWalkInSelectedSlot] = useState<WalkInSlotSelection | null>(null);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
@@ -126,29 +139,72 @@ export function StaffGateControlPanel({
         return { kind: "checkout" as const, session, reservation: null };
       }
 
-      const { reservations } = await getReservationsByPlate(plate);
-      const pendingReservation =
-        reservations.find((item) => item.status === "PENDING") ??
-        reservations.find((item) => item.status === "CLAIMED") ??
-        null;
+      const [registeredVehicle, reservationLookup] = await Promise.all([
+        getVehicleByLicensePlateSafe(plate),
+        getReservationsByPlateSafe(plate),
+      ]);
 
-      return { kind: "checkin" as const, session: null, reservation: pendingReservation };
+      const pendingReservation =
+        reservationLookup.reservations.find((item) => item.status === "PENDING") ?? null;
+
+      const vehicle = registeredVehicle ?? reservationLookup.vehicle;
+
+      let checkInKind: StaffCheckInKind;
+      if (pendingReservation) {
+        checkInKind = "reservation";
+      } else if (vehicle) {
+        checkInKind = "registered-walk-in";
+      } else {
+        checkInKind = "guest";
+      }
+
+      return {
+        kind: "checkin" as const,
+        session: null,
+        reservation: pendingReservation,
+        registeredVehicle: registeredVehicle ?? (vehicle as Vehicle | null),
+        checkInKind,
+      };
     },
     enabled: Boolean(gateMode && scannedPlate.trim()),
   });
 
   const reservation = lookupQuery.data?.kind === "checkin" ? lookupQuery.data.reservation : null;
+  const checkInKind =
+    lookupQuery.data?.kind === "checkin" ? lookupQuery.data.checkInKind : null;
+  const registeredVehicle =
+    lookupQuery.data?.kind === "checkin" ? lookupQuery.data.registeredVehicle : null;
+  const registeredVehicleTypeId = resolveVehicleTypeId(registeredVehicle);
   const activeSession =
     lookupQuery.data?.kind === "checkout" ? lookupQuery.data.session : null;
 
   useEffect(() => {
-    if (!walkInVehicleTypeId || gateMode !== "checkin" || reservation) {
+    setRegisteredWalkInPhone("");
+  }, [scannedPlate]);
+
+  useEffect(() => {
+    if (gateMode !== "checkin" || checkInKind === "reservation") {
       setWalkInSelectedSlot(null);
       return;
     }
 
-    setWalkInSelectedSlot(findFirstAvailableSlotForVehicleType(parkingFloors, walkInVehicleTypeId));
-  }, [walkInVehicleTypeId, gateMode, reservation, parkingFloors]);
+    const vehicleTypeId =
+      checkInKind === "registered-walk-in" ? registeredVehicleTypeId : walkInVehicleTypeId;
+
+    if (!vehicleTypeId) {
+      setWalkInSelectedSlot(null);
+      return;
+    }
+
+    setWalkInSelectedSlot(findFirstAvailableSlotForVehicleType(parkingFloors, vehicleTypeId));
+  }, [
+    checkInKind,
+    gateMode,
+    registeredVehicleTypeId,
+    reservation,
+    walkInVehicleTypeId,
+    parkingFloors,
+  ]);
 
   const walkInSlotPreview = walkInSelectedSlot;
 
@@ -159,6 +215,10 @@ export function StaffGateControlPanel({
         throw new Error("Chưa có biển số.");
       }
 
+      if (!checkInKind) {
+        throw new Error("Chưa xác định loại check-in.");
+      }
+
       const blockReason = getLicensePlateBlockReason(plate, allReservations, allParkingSessions, {
         allowPendingReservationId: reservation?._id,
       });
@@ -166,7 +226,10 @@ export function StaffGateControlPanel({
         throw new Error(blockReason);
       }
 
-      if (reservation) {
+      if (checkInKind === "reservation") {
+        if (!reservation) {
+          throw new Error("Không tìm thấy đặt chỗ PENDING.");
+        }
         const disabledReason = getCreateSessionDisabledReasonFromReservation(reservation);
         if (disabledReason) {
           throw new Error(disabledReason);
@@ -174,12 +237,24 @@ export function StaffGateControlPanel({
         return createParkingSession(buildReservationCheckInPayload(reservation));
       }
 
-      if (!walkInVehicleTypeId) {
-        throw new Error("Chọn loại xe.");
-      }
-
       if (!walkInSelectedSlot) {
         throw new Error("Không còn chỗ trống cho loại xe này.");
+      }
+
+      if (checkInKind === "registered-walk-in") {
+        const phone = registeredWalkInPhone.trim();
+        if (!REGISTERED_WALK_IN_PHONE_PATTERN.test(phone)) {
+          throw new Error("Nhập SĐT chủ xe hợp lệ (10 số, đầu 03/05/07/08/09).");
+        }
+        return createRegisteredWalkInParkingSession({
+          phone,
+          licensePlate: plate,
+          parkingSlotId: walkInSelectedSlot.slot._id,
+        });
+      }
+
+      if (!walkInVehicleTypeId) {
+        throw new Error("Chọn loại xe.");
       }
 
       return createGuestParkingSession({
@@ -354,11 +429,31 @@ export function StaffGateControlPanel({
     setScannedPlate(normalized);
   };
 
-  const checkInDisabledReason = reservation
-    ? getCreateSessionDisabledReasonFromReservation(reservation)
-    : !walkInSlotPreview
-      ? "Không còn chỗ trống cho loại xe đã chọn."
-      : undefined;
+  const checkInDisabledReason = (() => {
+    if (checkInKind === "reservation" && reservation) {
+      return getCreateSessionDisabledReasonFromReservation(reservation);
+    }
+    if (checkInKind === "registered-walk-in") {
+      if (!registeredVehicleTypeId) {
+        return "Không xác định được loại xe đã đăng ký.";
+      }
+      if (!walkInSlotPreview) {
+        return "Không còn chỗ trống cho loại xe này.";
+      }
+      const phone = registeredWalkInPhone.trim();
+      if (!phone) {
+        return "Nhập SĐT chủ xe để xác minh.";
+      }
+      if (!REGISTERED_WALK_IN_PHONE_PATTERN.test(phone)) {
+        return "SĐT không đúng định dạng (03/05/07/08/09 + 8 số).";
+      }
+      return undefined;
+    }
+    if (checkInKind === "guest" && !walkInSlotPreview) {
+      return "Không còn chỗ trống cho loại xe đã chọn.";
+    }
+    return undefined;
+  })();
 
   const sessionSlotId = activeSession ? getParkingSessionSlotId(activeSession) : null;
   const sessionFloor = sessionSlotId
@@ -484,7 +579,11 @@ export function StaffGateControlPanel({
         ) : gateMode === "checkin" ? (
           <CheckInResultPanel
             plate={scannedPlate}
+            checkInKind={checkInKind ?? "guest"}
             reservation={reservation}
+            registeredVehicle={registeredVehicle}
+            registeredWalkInPhone={registeredWalkInPhone}
+            onRegisteredWalkInPhoneChange={setRegisteredWalkInPhone}
             vehicleTypes={vehicleTypes}
             walkInVehicleTypeId={walkInVehicleTypeId}
             onWalkInVehicleTypeChange={handleWalkInVehicleTypeChange}
@@ -531,7 +630,11 @@ export function StaffGateControlPanel({
         open={slotPickerOpen}
         onOpenChange={setSlotPickerOpen}
         parkingFloors={parkingFloors}
-        vehicleTypeId={walkInVehicleTypeId}
+        vehicleTypeId={
+          checkInKind === "registered-walk-in" && registeredVehicleTypeId
+            ? registeredVehicleTypeId
+            : walkInVehicleTypeId
+        }
         selectedSlotId={walkInSelectedSlot?.slot._id}
         onSelect={setWalkInSelectedSlot}
       />
@@ -541,7 +644,11 @@ export function StaffGateControlPanel({
 
 type CheckInResultPanelProps = {
   plate: string;
+  checkInKind: StaffCheckInKind;
   reservation: Reservation | null;
+  registeredVehicle: Vehicle | null;
+  registeredWalkInPhone: string;
+  onRegisteredWalkInPhoneChange: (value: string) => void;
   vehicleTypes: VehicleType[];
   walkInVehicleTypeId: string;
   onWalkInVehicleTypeChange: (value: string) => void;
@@ -554,7 +661,11 @@ type CheckInResultPanelProps = {
 
 function CheckInResultPanel({
   plate,
+  checkInKind,
   reservation,
+  registeredVehicle,
+  registeredWalkInPhone,
+  onRegisteredWalkInPhoneChange,
   vehicleTypes,
   walkInVehicleTypeId,
   onWalkInVehicleTypeChange,
@@ -564,10 +675,12 @@ function CheckInResultPanel({
   onCheckIn,
   onOpenSlotPicker,
 }: CheckInResultPanelProps) {
-  if (reservation) {
+  if (checkInKind === "reservation" && reservation) {
     const driverName = getReservationDriverName(reservation) ?? "—";
     const phone =
-      typeof reservation.driverId === "object" ? (reservation.driverId.phone ?? "—") : "—";
+      reservation.driverId && typeof reservation.driverId === "object"
+        ? (reservation.driverId.phone ?? "—")
+        : "—";
     const slotNumber =
       typeof reservation.parkingSlotId === "object"
         ? (reservation.parkingSlotId.slotNumber ?? "—")
@@ -577,7 +690,7 @@ function CheckInResultPanel({
         ? (reservation.parkingSlotId.floorId?.floorName ?? "—")
         : "—";
     const vehicleType =
-      typeof reservation.vehicleId === "object"
+      reservation.vehicleId && typeof reservation.vehicleId === "object"
         ? (reservation.vehicleId.vehicleTypeId?.type ?? "—")
         : "—";
 
@@ -600,6 +713,90 @@ function CheckInResultPanel({
         <p className="text-xs text-muted-foreground">
           Trạng thái đặt chỗ: <strong>{reservation.status}</strong>
         </p>
+
+        {checkInDisabledReason ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {checkInDisabledReason}
+          </p>
+        ) : null}
+
+        <Button
+          type="button"
+          className="h-12 w-full rounded-xl text-sm font-semibold"
+          disabled={Boolean(checkInDisabledReason) || isSubmitting}
+          onClick={onCheckIn}
+        >
+          {isSubmitting ? (
+            <>
+              <LoaderCircle className="size-4 animate-spin" />
+              Đang check-in...
+            </>
+          ) : (
+            "Check-in"
+          )}
+        </Button>
+      </div>
+    );
+  }
+
+  if (checkInKind === "registered-walk-in") {
+    const vehicleTypeLabel = resolveVehicleTypeLabel(registeredVehicle) ?? "—";
+    const monthlyCard =
+      registeredVehicle?.monthlyCardId && typeof registeredVehicle.monthlyCardId === "object"
+        ? registeredVehicle.monthlyCardId
+        : null;
+    const monthlyLabel = monthlyCard?.status === "ACTIVE" ? "Thẻ tháng ACTIVE" : "Theo ngày";
+
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary">
+          Xe có chủ · chưa đặt chỗ
+        </div>
+
+        <InfoRow icon={CarFront} label="Biển số" value={plate} highlight />
+        <InfoRow icon={CarFront} label="Loại xe" value={vehicleTypeLabel} />
+        <InfoRow icon={User} label="Gói đỗ" value={monthlyLabel} />
+
+        <div className="space-y-2">
+          <Label htmlFor="registered-walkin-phone">SĐT chủ xe (xác minh)</Label>
+          <Input
+            id="registered-walkin-phone"
+            value={registeredWalkInPhone}
+            onChange={(event) => onRegisteredWalkInPhoneChange(event.target.value.replace(/\D/g, ""))}
+            placeholder="0901234567"
+            inputMode="numeric"
+            maxLength={10}
+            className="h-11 rounded-xl font-mono"
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            SĐT phải khớp tài khoản sở hữu xe trong hệ thống.
+          </p>
+        </div>
+
+        {walkInSlotPreview ? (
+          <button
+            type="button"
+            onClick={onOpenSlotPicker}
+            className="flex w-full items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-left transition hover:border-primary/50 hover:bg-primary/10"
+          >
+            <div className="ui-field-icon size-9 shrink-0">
+              <MapPin className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Chỗ tự gán · bấm để chọn
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                {walkInSlotPreview.slot.slotNumber} · {walkInSlotPreview.floor.floorName}
+              </p>
+            </div>
+          </button>
+        ) : (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Không còn chỗ trống cho loại xe này.
+          </p>
+        )}
 
         {checkInDisabledReason ? (
           <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -677,7 +874,7 @@ function CheckInResultPanel({
       <Button
         type="button"
         className="h-12 w-full rounded-xl text-sm font-semibold"
-        disabled={!walkInSlotPreview || isSubmitting}
+        disabled={Boolean(checkInDisabledReason) || isSubmitting}
         onClick={onCheckIn}
       >
         {isSubmitting ? (

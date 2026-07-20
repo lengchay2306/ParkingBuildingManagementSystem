@@ -106,7 +106,7 @@ export const getVehicleReserveBlockReason = (
 
   for (const reservation of reservations) {
     const reservationVehicleId =
-      typeof reservation.vehicleId === "object"
+      reservation.vehicleId && typeof reservation.vehicleId === "object"
         ? reservation.vehicleId._id
         : reservation.vehicleId;
     if (reservationVehicleId !== vehicleId) {

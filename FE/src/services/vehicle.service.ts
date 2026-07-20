@@ -151,6 +151,41 @@ export const getVehicleByLicensePlate = async (licensePlate: string) => {
   return vehicle;
 };
 
+/** Staff gate lookup — 404 means plate is not registered (guest path). */
+export const getVehicleByLicensePlateSafe = async (
+  licensePlate: string,
+): Promise<Vehicle | null> => {
+  try {
+    return await getVehicleByLicensePlate(licensePlate);
+  } catch (error) {
+    if (error instanceof VehicleApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const resolveVehicleTypeId = (
+  vehicle: Pick<Vehicle, "vehicleTypeId"> | null | undefined,
+): string | null => {
+  if (!vehicle?.vehicleTypeId) {
+    return null;
+  }
+  if (typeof vehicle.vehicleTypeId === "string") {
+    return vehicle.vehicleTypeId;
+  }
+  return vehicle.vehicleTypeId._id ?? null;
+};
+
+export const resolveVehicleTypeLabel = (
+  vehicle: Pick<Vehicle, "vehicleTypeId"> | null | undefined,
+): string | undefined => {
+  if (!vehicle?.vehicleTypeId || typeof vehicle.vehicleTypeId === "string") {
+    return undefined;
+  }
+  return vehicle.vehicleTypeId.type;
+};
+
 export const createVehicle = async (request: CreateVehicleRequest) => {
   const response = await authFetch(`${API_BASE}/api/v1/vehicles`, {
     method: "POST",
