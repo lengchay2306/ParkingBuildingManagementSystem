@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
@@ -36,7 +36,6 @@ export function StaffCheckInConfirmStep({
   vehicle,
   ownerProfile,
   phone,
-  onPhoneChange,
   activeSessionSlotLabel,
   onViewActiveSession,
   onBack,
@@ -56,7 +55,6 @@ export function StaffCheckInConfirmStep({
     ? t('Vé tháng', 'Monthly pass')
     : t('Vé ngày', 'Daily pass');
   const vehicleType = resolveVehicleTypeLabel(vehicle.vehicleTypeId);
-  const showPhoneInput = !hasActiveConflict && !ownerProfile?.phone;
   const reservationDriverName = pendingReservation ? getReservationDriverName(pendingReservation) : undefined;
   const reservationSlotLabel = pendingReservation ? formatReservationSlotLabel(pendingReservation) : null;
   const lockSlotSelection = !!pendingReservation && !hasActiveConflict;
@@ -127,25 +125,10 @@ export function StaffCheckInConfirmStep({
           </ThemedText>
         </View>
 
-        {showPhoneInput ? (
-          <View style={styles.phoneField}>
-            <ThemedText style={styles.phoneLabel}>{t('Số điện thoại khách', 'Customer phone')}</ThemedText>
-            <TextInput
-              editable={!isDisabled}
-              keyboardType="phone-pad"
-              onChangeText={onPhoneChange}
-              placeholder={t('SĐT KHÁCH (10 SỐ)', 'CUSTOMER PHONE (10 DIGITS)')}
-              placeholderTextColor={DesignColors.placeholder}
-              style={styles.phoneInput}
-              value={phone}
-            />
-          </View>
-        ) : (
-          <View style={styles.ownerRow}>
-            <Ionicons color={DesignColors.inkMuted} name="call-outline" size={18} />
-            <ThemedText style={styles.ownerPhone}>{phone || ownerProfile?.phone || '—'}</ThemedText>
-          </View>
-        )}
+        <View style={styles.ownerRow}>
+          <Ionicons color={DesignColors.inkMuted} name="call-outline" size={18} />
+          <ThemedText style={styles.ownerPhone}>{phone || ownerProfile?.phone || '—'}</ThemedText>
+        </View>
       </View>
 
       {!hasActiveConflict ? (
@@ -328,27 +311,6 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       fontSize: 16,
       letterSpacing: 0.3,
       flex: 1,
-    },
-    phoneField: {
-      gap: 6,
-      marginTop: 4,
-    },
-    phoneLabel: {
-      ...Typography.caption,
-      color: DesignColors.inkMuted,
-      textTransform: 'uppercase',
-      fontSize: 10,
-      fontWeight: '600',
-    },
-    phoneInput: {
-      ...Typography.body,
-      color: DesignColors.ink,
-      backgroundColor: DesignColors.surface3,
-      borderRadius: Radius.lg,
-      borderWidth: 1,
-      borderColor: DesignColors.hairlineStrong,
-      paddingHorizontal: Spacing.md,
-      height: 48,
     },
   });
 }

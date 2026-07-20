@@ -444,8 +444,8 @@ export default function ReservationsScreen() {
     if (!isExpectedArrivalValid(arrivalDate, arrivalTime)) {
       showToast(
         t(
-          'Thời gian dự kiến đến phải hợp lệ và ở tương lai',
-          'Expected arrival must be valid and in the future',
+          'Giờ đến phải trong tương lai và không quá 2 giờ kể từ bây giờ',
+          'Arrival must be in the future and within the next 2 hours',
         ),
         'error',
       );
@@ -700,8 +700,8 @@ export default function ReservationsScreen() {
                       parseExpectedArrival(arrivalDate, arrivalTime)!.toISOString(),
                     )}`
                   : t(
-                      'Nhập ngày/giờ tương lai (YYYY-MM-DD · HH:mm)',
-                      'Enter a future date/time (YYYY-MM-DD · HH:mm)',
+                      'Giờ đến phải trong tương lai và trong vòng 2 giờ (YYYY-MM-DD · HH:mm)',
+                      'Arrival must be future and within 2 hours (YYYY-MM-DD · HH:mm)',
                     )}
               </ThemedText>
 

@@ -81,11 +81,21 @@ export type CreateParkingSessionPayload = {
   reservationId: string;
 };
 
+export type CreateWalkInParkingSessionPayload = {
+  licensePlate: string;
+  parkingSlotId: string;
+};
+
 export type CreateGuestParkingSessionPayload = {
   licensePlate: string;
   parkingSlotId: string;
   vehicleTypeId: string;
-  phone?: string;
+  phone: string;
+};
+
+export type CorrectParkingSessionSlotPayload = {
+  parkingSessionId: string;
+  parkingSlotId: string;
 };
 
 export type CheckoutParkingSessionPayload = {
@@ -308,28 +318,64 @@ export async function createParkingSession(
   return session;
 }
 
-/** POST /parking/create-parking-session/guest — Walk-in / guest check-in. */
-export async function createGuestParkingSession(
-  payload: CreateGuestParkingSessionPayload,
+/** POST /parking/create-parking-session/walk-in — Registered customer, no reservation. */
+export async function createWalkInParkingSession(
+  payload: CreateWalkInParkingSessionPayload,
 ): Promise<ParkingSession> {
-  const body: Record<string, string> = {
-    licensePlate: normalizePlate(payload.licensePlate),
-    parkingSlotId: payload.parkingSlotId,
-    vehicleTypeId: payload.vehicleTypeId,
-  };
-  if (payload.phone?.trim()) {
-    body.phone = payload.phone.trim();
-  }
-
-  const response = await authenticatedFetch('/parking/create-parking-session/guest', {
+  const response = await authenticatedFetch('/parking/create-parking-session/walk-in', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      licensePlate: normalizePlate(payload.licensePlate),
+      parkingSlotId: payload.parkingSlotId,
+    }),
   });
   const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
   const session = result.data?.parkingSession;
   if (!session) {
     throw new Error(extractApiErrorMessage(result, 'Parking session response is missing data'));
+  }
+  return session;
+}
+
+/** POST /parking/create-parking-session/guest — Unregistered walk-in (phone required). */
+export async function createGuestParkingSession(
+  payload: CreateGuestParkingSessionPayload,
+): Promise<ParkingSession> {
+  const response = await authenticatedFetch('/parking/create-parking-session/guest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      licensePlate: normalizePlate(payload.licensePlate),
+      parkingSlotId: payload.parkingSlotId,
+      vehicleTypeId: payload.vehicleTypeId,
+      phone: payload.phone.trim(),
+    }),
+  });
+  const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
+  const session = result.data?.parkingSession;
+  if (!session) {
+    throw new Error(extractApiErrorMessage(result, 'Parking session response is missing data'));
+  }
+  return session;
+}
+
+/** PATCH /parking-sessions/:id/slot — Correct parked slot on ACTIVE session. */
+export async function correctParkingSessionSlot(
+  payload: CorrectParkingSessionSlotPayload,
+): Promise<ParkingSession> {
+  const response = await authenticatedFetch(
+    `/parking-sessions/${encodeURIComponent(payload.parkingSessionId.trim())}/slot`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parkingSlotId: payload.parkingSlotId }),
+    },
+  );
+  const result = await parseParkingApiResponse<{ parkingSession?: ParkingSession }>(response);
+  const session = result.data?.parkingSession;
+  if (!session) {
+    throw new Error(extractApiErrorMessage(result, 'Correct slot response is missing session data'));
   }
   return session;
 }
