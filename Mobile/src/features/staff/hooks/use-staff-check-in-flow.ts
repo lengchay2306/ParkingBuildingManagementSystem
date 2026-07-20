@@ -13,6 +13,7 @@ import {
   getUserById,
   getVehicleByLicensePlate,
   getVehicleTypes,
+  isSlotCompatibleWithVehicleType,
   resolveOwnerUserId,
   resolveVehicleOwnerPhone,
   resolveVehicleOwnerProfile,
@@ -404,6 +405,21 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         return;
       }
 
+      const vehicleTypeId = resolveVehicleTypeIdFromSessionOrVehicle(foundVehicle.vehicleTypeId);
+      if (
+        !vehicleTypeId ||
+        !isSlotCompatibleWithVehicleType(floors, selectedSlotId, vehicleTypeId)
+      ) {
+        showToast(
+          t(
+            'Ô gửi phải cùng loại xe với tầng tương ứng',
+            'Spot must match the vehicle type of its floor',
+          ),
+          'error',
+        );
+        return;
+      }
+
       setIsCheckingIn(true);
       try {
         const existingSession = await getActiveUserParkingSession(foundVehicle._id);
@@ -445,6 +461,16 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
       showToast(t('Chọn loại xe', 'Select vehicle type'), 'error');
       return;
     }
+    if (!isSlotCompatibleWithVehicleType(floors, selectedSlotId, selectedVehicleTypeId)) {
+      showToast(
+        t(
+          'Ô gửi phải cùng loại xe với tầng tương ứng',
+          'Spot must match the vehicle type of its floor',
+        ),
+        'error',
+      );
+      return;
+    }
 
     const guestLicensePlate = formatLicensePlateForApi(guestPlate || plateQuery);
     if (!guestLicensePlate) {
@@ -478,6 +504,7 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
     checkInMode,
     checkInPhone,
     finalizeCheckIn,
+    floors,
     foundVehicle,
     guestPlate,
     pendingReservation,

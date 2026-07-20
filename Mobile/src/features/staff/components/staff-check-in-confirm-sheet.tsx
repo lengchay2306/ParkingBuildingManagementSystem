@@ -92,7 +92,10 @@ export function StaffCheckInConfirmSheet({ visible, flow, onClose, t }: StaffChe
               }}
               onPhoneChange={setCheckInPhone}
               onSelectSlot={setSelectedSlotId}
-              onSelectVehicleType={setSelectedVehicleTypeId}
+              onSelectVehicleType={(id) => {
+                setSelectedVehicleTypeId(id);
+                setSelectedSlotId(null);
+              }}
               onViewActiveSession={hasActiveConflict ? handleViewActiveSession : undefined}
               pendingReservation={pendingReservation}
               phone={checkInPhone}

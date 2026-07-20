@@ -12,6 +12,8 @@ export {
   getParkingSessions,
   getParkingSlots,
   getStaffActiveParkingSessions,
+  isSlotCompatibleWithVehicleType,
+  resolveFloorVehicleTypeId,
   resolveVehicleTypeIdFromSessionOrVehicle,
   type CheckoutParkingSessionPayload,
   type CorrectParkingSessionSlotPayload,

@@ -30,7 +30,7 @@ type StaffCheckInGuestConfirmStepProps = {
   selectedVehicleTypeId: string | null;
   onSelectVehicleType: (id: string) => void;
   selectedSlotId: string | null;
-  onSelectSlot: (slotId: string) => void;
+  onSelectSlot: (slotId: string | null) => void;
   pendingReservation?: Reservation | null;
   isLoadingSlots: boolean;
   isDisabled?: boolean;
@@ -196,6 +196,7 @@ export function StaffCheckInGuestConfirmStep({
           onSelectSlot={onSelectSlot}
           selectedSlotId={selectedSlotId}
           t={t}
+          vehicleTypeId={selectedVehicleTypeId}
         />
       ) : null}
     </View>

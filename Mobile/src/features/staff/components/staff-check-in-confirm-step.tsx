@@ -7,7 +7,7 @@ import { Radius, Spacing, Typography } from '@/constants/design';
 import { StaffBackButton } from '@/features/staff/components/staff-back-button';
 import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
 import type { ParkingFloor, Reservation, StaffVehicle, VehicleOwnerProfile } from '@/features/staff/api';
-import { resolveVehicleTypeLabel } from '@/features/staff/api';
+import { resolveVehicleTypeIdFromSessionOrVehicle, resolveVehicleTypeLabel } from '@/features/staff/api';
 import {
   formatReservationSlotLabel,
   getReservationDriverName,
@@ -24,7 +24,7 @@ type StaffCheckInConfirmStepProps = {
   onBack: () => void;
   floors: ParkingFloor[];
   selectedSlotId: string | null;
-  onSelectSlot: (slotId: string) => void;
+  onSelectSlot: (slotId: string | null) => void;
   pendingReservation?: Reservation | null;
   isLoadingSlots: boolean;
   isDisabled?: boolean;
@@ -58,6 +58,7 @@ export function StaffCheckInConfirmStep({
   const reservationDriverName = pendingReservation ? getReservationDriverName(pendingReservation) : undefined;
   const reservationSlotLabel = pendingReservation ? formatReservationSlotLabel(pendingReservation) : null;
   const lockSlotSelection = !!pendingReservation && !hasActiveConflict;
+  const vehicleTypeId = resolveVehicleTypeIdFromSessionOrVehicle(vehicle.vehicleTypeId);
 
   return (
     <View style={styles.root}>
@@ -139,6 +140,7 @@ export function StaffCheckInConfirmStep({
           onSelectSlot={onSelectSlot}
           selectedSlotId={selectedSlotId}
           t={t}
+          vehicleTypeId={vehicleTypeId}
         />
       ) : null}
     </View>

@@ -25,7 +25,7 @@ import {
   createHiddenStaffTabBarStyle,
   createStaffTabBarStyle,
 } from '@/features/staff/components/staff-tab-bar';
-import { findStaffActiveSessionById, correctParkingSessionSlot } from '@/features/staff/api';
+import { findStaffActiveSessionById, correctParkingSessionSlot, resolveFloorVehicleTypeId } from '@/features/staff/api';
 import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
@@ -143,6 +143,18 @@ export default function StaffSessionDetailScreen() {
 
   const isActive = session?.status.toUpperCase() === 'ACTIVE';
   const isMonthlySession = session?.sessionType?.toUpperCase() === 'MONTH';
+
+  const sessionVehicleTypeId = useMemo(() => {
+    if (!session?.slotId) {
+      return null;
+    }
+    for (const floor of floors) {
+      if (floor.slots.some((slot) => slot._id === session.slotId)) {
+        return resolveFloorVehicleTypeId(floor);
+      }
+    }
+    return null;
+  }, [floors, session?.slotId]);
 
   useEffect(() => {
     if (session?.customerPhone && !checkoutPhone) {
@@ -501,6 +513,7 @@ export default function StaffSessionDetailScreen() {
                   onSelectSlot={setSelectedCorrectSlotId}
                   selectedSlotId={selectedCorrectSlotId}
                   t={t}
+                  vehicleTypeId={sessionVehicleTypeId}
                 />
                 <View style={styles.correctSlotActions}>
                   <StaffActionButton

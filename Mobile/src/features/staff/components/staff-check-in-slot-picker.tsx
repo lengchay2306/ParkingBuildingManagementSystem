@@ -9,6 +9,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/staff/api';
+import { resolveFloorVehicleTypeId } from '@/features/staff/api';
 import { StaffLoadingLottie } from '@/features/staff/components/staff-loading-lottie';
 import { resolveFloorPresentation, sortFloorsLikeParkingMap } from '@/lib/parking-floor-config';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
@@ -19,9 +20,11 @@ const SECTION_PADDING = 12;
 type StaffCheckInSlotPickerProps = {
   floors: ParkingFloor[];
   selectedSlotId: string | null;
-  onSelectSlot: (slotId: string) => void;
+  onSelectSlot: (slotId: string | null) => void;
   /** When set, only this slot is shown (reserved for a PENDING reservation). */
   lockedSlotId?: string | null;
+  /** When set, only floors matching this vehicle type are selectable. */
+  vehicleTypeId?: string | null;
   isLoading: boolean;
   t: (vi: string, en: string) => string;
 };
@@ -31,13 +34,25 @@ export function StaffCheckInSlotPicker({
   selectedSlotId,
   onSelectSlot,
   lockedSlotId,
+  vehicleTypeId,
   isLoading,
   t,
 }: StaffCheckInSlotPickerProps) {
   const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
-  const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
+  const orderedFloors = useMemo(() => {
+    const sorted = sortFloorsLikeParkingMap(floors);
+    // Locked reservation slot: search all floors.
+    if (lockedSlotId) {
+      return sorted;
+    }
+    // Check-in / correct-slot: only matching vehicle type floors.
+    if (!vehicleTypeId) {
+      return [];
+    }
+    return sorted.filter((floor) => resolveFloorVehicleTypeId(floor) === vehicleTypeId);
+  }, [floors, lockedSlotId, vehicleTypeId]);
 
   const floorsWithAvailability = useMemo(() => {
     if (lockedSlotId) {
@@ -73,6 +88,18 @@ export function StaffCheckInSlotPicker({
     });
   }, [floorsWithAvailability]);
 
+  useEffect(() => {
+    if (!selectedSlotId || lockedSlotId) {
+      return;
+    }
+    const stillValid = floorsWithAvailability.some((entry) =>
+      entry.availableSlots.some((slot) => slot._id === selectedSlotId),
+    );
+    if (!stillValid) {
+      onSelectSlot(null);
+    }
+  }, [floorsWithAvailability, lockedSlotId, onSelectSlot, selectedSlotId]);
+
   const activeEntry = useMemo(
     () => floorsWithAvailability.find((entry) => entry.floor._id === activeFloorId) ?? null,
     [activeFloorId, floorsWithAvailability],
@@ -86,13 +113,36 @@ export function StaffCheckInSlotPicker({
     );
   }
 
+  if (vehicleTypeId && orderedFloors.length === 0) {
+    return (
+      <View style={styles.section}>
+        <ThemedText style={styles.empty}>
+          {t(
+            'Không có tầng phù hợp loại xe này',
+            'No floors match this vehicle type',
+          )}
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (!lockedSlotId && !vehicleTypeId) {
+    return (
+      <View style={styles.section}>
+        <ThemedText style={styles.empty}>
+          {t('Chọn loại xe trước khi chọn ô', 'Select vehicle type before choosing a spot')}
+        </ThemedText>
+      </View>
+    );
+  }
+
   if (floorsWithAvailability.length === 0) {
     return (
       <View style={styles.section}>
         <ThemedText style={styles.empty}>
           {lockedSlotId
             ? t('Không tìm thấy ô đã đặt', 'Reserved spot not found on map')
-            : t('Không có ô trống', 'No available spots')}
+            : t('Không có ô trống cho loại xe này', 'No available spots for this vehicle type')}
         </ThemedText>
       </View>
     );

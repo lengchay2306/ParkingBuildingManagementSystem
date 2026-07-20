@@ -260,14 +260,27 @@ export async function getActiveSessionByPlate(licensePlate: string): Promise<Par
   return payload?.data?.parkingSession ?? null;
 }
 
+/** Resolve floor's vehicle type ObjectId from remapped or raw API shapes. */
+export function resolveFloorVehicleTypeId(floor: ParkingFloor): string | null {
+  if (floor.vehicleType?._id) {
+    return floor.vehicleType._id;
+  }
+  if (typeof floor.vehicleTypeId === 'string' && floor.vehicleTypeId) {
+    return floor.vehicleTypeId;
+  }
+  if (floor.vehicleTypeId && typeof floor.vehicleTypeId === 'object') {
+    return floor.vehicleTypeId._id ?? null;
+  }
+  return null;
+}
+
 /** First AVAILABLE slot on a floor matching vehicle type (walk-in check-in). */
 export function findFirstAvailableSlotForVehicleType(
   floors: ParkingFloor[],
   vehicleTypeId: string,
 ): { slot: ParkingSlot; floor: ParkingFloor } | null {
   for (const floor of floors) {
-    const floorTypeId =
-      typeof floor.vehicleType === 'object' ? floor.vehicleType?._id : floor.vehicleType;
+    const floorTypeId = resolveFloorVehicleTypeId(floor);
     if (!floorTypeId || floorTypeId !== vehicleTypeId) {
       continue;
     }
@@ -279,6 +292,22 @@ export function findFirstAvailableSlotForVehicleType(
   }
 
   return null;
+}
+
+export function isSlotCompatibleWithVehicleType(
+  floors: ParkingFloor[],
+  parkingSlotId: string,
+  vehicleTypeId: string,
+): boolean {
+  for (const floor of floors) {
+    const slot = floor.slots.find((item) => item._id === parkingSlotId);
+    if (!slot) {
+      continue;
+    }
+    const floorTypeId = resolveFloorVehicleTypeId(floor);
+    return !!floorTypeId && floorTypeId === vehicleTypeId;
+  }
+  return false;
 }
 
 /** PATCH /parking/checkout-parking-session/:id — Monthly card checkout only. */
