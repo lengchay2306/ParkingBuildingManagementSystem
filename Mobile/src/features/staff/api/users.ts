@@ -8,7 +8,7 @@ export type StaffUserSummary = {
   email?: string;
 };
 
-/** GET /users/:userId — ADMIN | MANAGER | STAFF */
+/** GET /users/:userId — STAFF (BE also allows ADMIN | MANAGER) */
 export async function getUserById(userId: string): Promise<StaffUserSummary> {
   const response = await authenticatedFetch(`/users/${encodeURIComponent(userId)}`);
   const payload = await parseApiEnvelope<{ user?: StaffUserSummary }>(

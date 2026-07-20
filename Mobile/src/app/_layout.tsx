@@ -156,10 +156,6 @@ function RootNavigator() {
               name="(auth)/sign-platform"
               options={{ href: null, tabBarStyle: { display: 'none' } }}
             />
-            <Tabs.Screen
-              name="(admin)/dashboard"
-              options={{ href: null, tabBarStyle: { display: 'none' } }}
-            />
 
             <Tabs.Screen
               name="(customer)/home"
@@ -197,8 +193,6 @@ function RootNavigator() {
             />
             <Tabs.Screen name="cancel" options={{ href: null, tabBarStyle: { display: 'none' } }} />
             <Tabs.Screen name="return" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-            <Tabs.Screen name="(manager)/manager" options={{ href: null }} />
-            <Tabs.Screen name="(admin)/admin" options={{ href: null }} />
 
             <Tabs.Screen
               name="(staff)/staff-home"

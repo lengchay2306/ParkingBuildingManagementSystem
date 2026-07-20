@@ -51,7 +51,7 @@ export function pickCheckoutPayment(payments: StaffPayment[]): StaffPayment | nu
   );
 }
 
-/** GET /payment?parkingSessionId= — STAFF | MANAGER | ADMIN */
+/** GET /payment?parkingSessionId= — STAFF */
 export async function getPaymentsByParkingSessionId(
   parkingSessionId: string,
 ): Promise<StaffPayment[]> {
@@ -66,7 +66,7 @@ export async function getPaymentsByParkingSessionId(
   return Array.isArray(payload.data?.payments) ? payload.data.payments : [];
 }
 
-/** PUT /payment/cancel/:paymentId — STAFF | MANAGER | ADMIN (PENDING only) */
+/** PUT /payment/cancel/:paymentId — STAFF (PENDING only) */
 export async function cancelStaffPayment(paymentId: string): Promise<StaffPayment> {
   const response = await authenticatedFetch(
     `/payment/cancel/${encodeURIComponent(paymentId.trim())}`,
@@ -90,7 +90,7 @@ export class PaymentNotCancellableError extends Error {
   }
 }
 
-/** GET /payment/:paymentId — STAFF | MANAGER | ADMIN */
+/** GET /payment/:paymentId — STAFF */
 export async function getStaffPaymentById(paymentId: string): Promise<StaffPayment> {
   const response = await authenticatedFetch(
     `/payment/${encodeURIComponent(paymentId.trim())}`,
@@ -175,7 +175,7 @@ export async function createSubscriptionCheckoutLink(
   return { checkoutUrl };
 }
 
-/** POST /payment/staff/bill-qr — STAFF | MANAGER | ADMIN */
+/** POST /payment/staff/bill-qr — STAFF */
 export async function createStaffBillQr(parkingSessionId: string): Promise<StaffBillQrResult> {
   const response = await authenticatedFetch('/payment/staff/bill-qr', {
     method: 'POST',
@@ -244,7 +244,7 @@ export async function createStaffBillQrForSession(
   }
 }
 
-/** POST /payment/check-payment — STAFF | MANAGER | ADMIN */
+/** POST /payment/check-payment — STAFF */
 export async function checkStaffPayment(orderCode: number): Promise<string> {
   const response = await authenticatedFetch('/payment/check-payment', {
     method: 'POST',
