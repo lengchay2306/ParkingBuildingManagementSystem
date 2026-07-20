@@ -1,7 +1,10 @@
 import type { ParkingFloor } from '@/features/staff/api';
 import type { StaffFilterOption } from '@/features/staff/components/premium/staff-filter-pills';
 import type { SpotStatusFilter, VehicleTypeFilter } from '@/features/staff/lib/parking-slot-filters';
-import { resolveParkingVehicleTypeLabel } from '@/lib/parking-floor-config';
+import {
+  resolveParkingVehicleTypeLabel,
+  sortSlotsByNumber,
+} from '@/lib/parking-floor-config';
 
 export type StaffSpotCounts = {
   total: number;
@@ -115,8 +118,10 @@ export function filterParkingFloors(
     .filter((floor) => vehicleType === 'ALL' || floor.vehicleType?._id === vehicleType)
     .map((floor) => ({
       ...floor,
-      slots: floor.slots.filter(
-        (slot) => slotMatchesStatus(status, slot) && slotMatchesSearch(searchQuery, slot),
+      slots: sortSlotsByNumber(
+        floor.slots.filter(
+          (slot) => slotMatchesStatus(status, slot) && slotMatchesSearch(searchQuery, slot),
+        ),
       ),
     }))
     .filter((floor) => floor.slots.length > 0);

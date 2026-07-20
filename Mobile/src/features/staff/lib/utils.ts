@@ -13,6 +13,7 @@ export type StaffCheckInRecord = {
   sessionType?: string;
   customerPhone?: string;
   customerName?: string;
+  isGuest?: boolean;
 };
 
 export function formatDurationFrom(iso?: string): string {
@@ -60,6 +61,55 @@ export function resolveSlotLabel(
   return slotId.slice(-6);
 }
 
+function resolvePopulatedUser(
+  value: ParkingSession['checkInUserId'],
+): { fullName?: string; phone?: string } | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  return value;
+}
+
+function resolveVehicleTypeFromSession(
+  session: ParkingSession,
+  floors: ParkingFloor[],
+): string | undefined {
+  if (typeof session.vehicleId === 'object' && session.vehicleId?.vehicleTypeId) {
+    const vehicleTypeId = session.vehicleId.vehicleTypeId;
+    if (typeof vehicleTypeId === 'object' && vehicleTypeId.type) {
+      return vehicleTypeId.type;
+    }
+  }
+
+  const slotId =
+    typeof session.parkingSlotId === 'object'
+      ? session.parkingSlotId._id
+      : session.parkingSlotId;
+
+  if (slotId) {
+    for (const floor of floors) {
+      if (floor.slots.some((slot) => slot._id === slotId)) {
+        return floor.vehicleType?.type
+          ?? (typeof floor.vehicleTypeId === 'object' ? floor.vehicleTypeId.type : undefined);
+      }
+    }
+  }
+
+  if (typeof session.parkingSlotId === 'object') {
+    const floor = session.parkingSlotId.floorId;
+    if (typeof floor === 'object' && floor) {
+      if (typeof floor.vehicleTypeId === 'object' && floor.vehicleTypeId?.type) {
+        return floor.vehicleTypeId.type;
+      }
+    }
+    if (session.parkingSlotId.slotNumber && floors.length === 0) {
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
+
 export function computeSlotStats(floors: ParkingFloor[]) {
   return floors.reduce(
     (acc, floor) => {
@@ -89,19 +139,12 @@ export function mapParkingSessionToRecord(
       ? session.vehicleId.licensePlate
       : session.licensePlate ?? '—';
 
-  const customerPhone =
-    typeof session.checkInUserId === 'object'
-      ? session.checkInUserId?.phone
-      : session.phone ?? undefined;
-  const customerName =
-    typeof session.checkInUserId === 'object' ? session.checkInUserId?.fullName : undefined;
+  const checkInUser = resolvePopulatedUser(session.checkInUserId);
+  const isGuest = Boolean(session.isGuest) || (!session.vehicleId && !checkInUser);
 
-  const vehicleType =
-    typeof session.vehicleId === 'object' &&
-    session.vehicleId?.vehicleTypeId &&
-    typeof session.vehicleId.vehicleTypeId === 'object'
-      ? session.vehicleId.vehicleTypeId.type
-      : undefined;
+  const customerPhone =
+    checkInUser?.phone?.trim() || session.phone?.trim() || undefined;
+  const customerName = checkInUser?.fullName?.trim() || undefined;
 
   return {
     id: session._id,
@@ -115,10 +158,11 @@ export function mapParkingSessionToRecord(
     timeLabel: formatTimeLabel(session.checkInTime),
     checkInTime: session.checkInTime,
     checkOutTime: session.checkOutTime,
-    vehicleType,
+    vehicleType: resolveVehicleTypeFromSession(session, floors),
     sessionType: session.sessionType,
     customerPhone,
     customerName,
+    isGuest,
   };
 }
 
@@ -134,4 +178,25 @@ export function indexActiveSessionsBySlotId(
     bySlot[session.slotId] = session;
   }
   return bySlot;
+}
+
+/** Display helpers for session detail cards. */
+export function resolveSessionCustomerLabel(
+  session: Pick<StaffCheckInRecord, 'customerName' | 'isGuest'>,
+  t: (vi: string, en: string) => string,
+): string {
+  if (session.customerName?.trim()) {
+    return session.customerName.trim();
+  }
+  if (session.isGuest) {
+    return t('Khách vãng lai', 'Walk-in guest');
+  }
+  return t('Chưa rõ', 'Unknown');
+}
+
+export function resolveSessionVehicleTypeLabel(
+  session: Pick<StaffCheckInRecord, 'vehicleType'>,
+  t: (vi: string, en: string) => string,
+): string {
+  return session.vehicleType?.trim() || t('Chưa rõ', 'Unknown');
 }

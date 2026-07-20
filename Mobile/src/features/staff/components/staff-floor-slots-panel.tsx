@@ -29,6 +29,7 @@ import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-co
 import {
   resolveFloorPresentation,
   sortFloorsLikeParkingMap,
+  sortSlotsByNumber,
 } from '@/lib/parking-floor-config';
 
 type StaffFloorSlotsPanelProps = {
@@ -122,6 +123,11 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot, emptyHint }: Staff
   const activeFloor = useMemo(
     () => orderedFloors.find((floor) => floor._id === activeFloorId) ?? orderedFloors[0] ?? null,
     [activeFloorId, orderedFloors],
+  );
+
+  const activeFloorSlots = useMemo(
+    () => (activeFloor ? sortSlotsByNumber(activeFloor.slots) : []),
+    [activeFloor],
   );
 
   const activePresentation = useMemo(
@@ -220,13 +226,13 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot, emptyHint }: Staff
               <LegendDot color={DesignColors.inkSubtle} label={t('Khóa', 'Locked')} styles={styles} />
             </View>
 
-            {activeFloor.slots.length === 0 ? (
+            {activeFloorSlots.length === 0 ? (
               <ThemedText style={styles.hint}>
                 {emptyHint ?? t('Không có ô trên tầng này.', 'No spots on this floor.')}
               </ThemedText>
             ) : (
               <View style={styles.slotGrid}>
-                {activeFloor.slots.map((slot, index) => (
+                {activeFloorSlots.map((slot, index) => (
                   <SlotCell
                     key={slot._id}
                     floorId={activeFloor._id}

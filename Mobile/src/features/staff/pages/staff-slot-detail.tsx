@@ -54,6 +54,7 @@ import {
   formatDurationFrom,
   formatTimeLabel,
   mapParkingSessionToRecord,
+  resolveSessionCustomerLabel,
   resolveSlotLabel,
 } from '@/features/staff/lib/utils';
 import { useHeroTransition } from '@/features/staff/motion/hero-transition-context';
@@ -323,7 +324,7 @@ export default function StaffSlotDetailScreen() {
         id: 'customer',
         icon: 'person-outline',
         label: t('Khách hàng', 'Customer'),
-        value: activeSession.customerName ?? t('Chưa rõ', 'Unknown'),
+        value: resolveSessionCustomerLabel(activeSession, t),
       },
       {
         id: 'phone',

@@ -168,6 +168,15 @@ export function sortFloorsLikeParkingMap<T extends { floorName: string }>(floors
   });
 }
 
+/** Natural numeric order for slot labels (1, 2, 10 — not 1, 10, 2). */
+export function compareSlotNumbers(left: string, right: string): number {
+  return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+export function sortSlotsByNumber<T extends { slotNumber: string }>(slots: T[]): T[] {
+  return [...slots].sort((left, right) => compareSlotNumbers(left.slotNumber, right.slotNumber));
+}
+
 function resolveApiVehicleLabel(
   vehicleType: string | undefined,
   t: (vi: string, en: string) => string,

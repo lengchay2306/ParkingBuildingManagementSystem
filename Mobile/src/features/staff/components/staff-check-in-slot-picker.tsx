@@ -11,7 +11,11 @@ import { Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/staff/api';
 import { resolveFloorVehicleTypeId } from '@/features/staff/api';
 import { StaffLoadingLottie } from '@/features/staff/components/staff-loading-lottie';
-import { resolveFloorPresentation, sortFloorsLikeParkingMap } from '@/lib/parking-floor-config';
+import {
+  resolveFloorPresentation,
+  sortFloorsLikeParkingMap,
+  sortSlotsByNumber,
+} from '@/lib/parking-floor-config';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 
 const GRID_COLUMNS = 4;
@@ -68,7 +72,9 @@ export function StaffCheckInSlotPicker({
     return orderedFloors
       .map((floor) => ({
         floor,
-        availableSlots: floor.slots.filter((slot) => slot.status === 'AVAILABLE'),
+        availableSlots: sortSlotsByNumber(
+          floor.slots.filter((slot) => slot.status === 'AVAILABLE'),
+        ),
       }))
       .filter((entry) => entry.availableSlots.length > 0);
   }, [lockedSlotId, orderedFloors]);

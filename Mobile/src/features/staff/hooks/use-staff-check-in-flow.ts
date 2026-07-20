@@ -18,7 +18,6 @@ import {
   resolveVehicleOwnerPhone,
   resolveVehicleOwnerProfile,
   resolveVehicleTypeIdFromSessionOrVehicle,
-  resolveVehicleTypeLabel,
   enrichReservationOwner,
   type ParkingSession,
   type Reservation,
@@ -37,7 +36,6 @@ import {
   getReservationSlotId,
 } from '@/features/staff/lib/reservation-helpers';
 import {
-  formatTimeLabel,
   mapParkingSessionToRecord,
   resolveSlotLabel,
 } from '@/features/staff/lib/utils';
@@ -323,19 +321,10 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
       const slotLabel = resolveSlotLabel(session.parkingSlotId, refreshedFloors ?? floors);
       const record = mapParkingSessionToRecord(session, refreshedFloors ?? floors);
       recordCheckIn({
-        id: session._id,
+        ...record,
         plate: record.plate !== '—' ? record.plate : plate,
         slotLabel,
         slotId: selectedSlotId ?? record.slotId,
-        status: session.status,
-        timeLabel: formatTimeLabel(session.checkInTime),
-        checkInTime: session.checkInTime,
-        vehicleType: resolveVehicleTypeLabel(
-          typeof session.vehicleId === 'object' ? session.vehicleId?.vehicleTypeId : undefined,
-        ),
-        sessionType: session.sessionType,
-        customerPhone: record.customerPhone,
-        customerName: record.customerName,
       });
       void loadParkingSessions({}, refreshedFloors ?? floors).catch((error) => {
         showToast(

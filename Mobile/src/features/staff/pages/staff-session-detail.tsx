@@ -38,6 +38,8 @@ import {
 import {
   formatDurationFrom,
   mapParkingSessionToRecord,
+  resolveSessionCustomerLabel,
+  resolveSessionVehicleTypeLabel,
   type StaffCheckInRecord,
 } from '@/features/staff/lib/utils';
 import { createStaffStyles } from '@/features/staff/styles/common';
@@ -186,7 +188,7 @@ export default function StaffSessionDetailScreen() {
         id: 'customer',
         icon: 'person-outline' as const,
         label: t('Khách hàng', 'Customer'),
-        value: session.customerName ?? t('Chưa rõ', 'Unknown'),
+        value: resolveSessionCustomerLabel(session, t),
       },
       {
         id: 'phone',
@@ -204,7 +206,7 @@ export default function StaffSessionDetailScreen() {
         id: 'vehicle',
         icon: 'car-outline' as const,
         label: t('Loại xe', 'Vehicle'),
-        value: session.vehicleType ?? t('Chưa rõ', 'Unknown'),
+        value: resolveSessionVehicleTypeLabel(session, t),
       },
       {
         id: 'entry',

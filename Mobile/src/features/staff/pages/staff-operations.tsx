@@ -352,7 +352,10 @@ export default function StaffOperationsScreen() {
             <View style={styles.ownerInfoRow}>
               <Ionicons color={DesignColors.inkMuted} name="person-outline" size={16} />
               <ThemedText style={styles.ownerInfoValue}>
-                {selectedSession.customerName?.trim() || t('Chưa có tên', 'Name unavailable')}
+                {selectedSession.customerName?.trim()
+                  || (selectedSession.isGuest
+                    ? t('Khách vãng lai', 'Walk-in guest')
+                    : t('Chưa có tên', 'Name unavailable'))}
               </ThemedText>
             </View>
             <View style={styles.ownerInfoRow}>

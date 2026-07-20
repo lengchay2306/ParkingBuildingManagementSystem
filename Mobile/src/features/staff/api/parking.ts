@@ -42,7 +42,13 @@ type PopulatedSlot = {
   _id: string;
   slotNumber?: string;
   status?: string;
-  floorId?: string | { _id: string; floorName?: string };
+  floorId?:
+    | string
+    | {
+        _id: string;
+        floorName?: string;
+        vehicleTypeId?: string | { _id?: string; type?: string };
+      };
 };
 
 export type ParkingSession = {
