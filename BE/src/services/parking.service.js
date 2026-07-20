@@ -251,6 +251,7 @@ class ParkingService {
         vehicleTypeId,
     }) => {
         const normalizedLicensePlate = licensePlate.trim().toUpperCase()
+        const normalizedPhone = phone.trim()
 
         const registeredVehicle = await this.#vehicleRepository.getVehicleByLicensePlate({
             licensePlate: normalizedLicensePlate,
@@ -297,6 +298,7 @@ class ParkingService {
             checkInTime: Date.now(),
             status: "ACTIVE",
             licensePlate: normalizedLicensePlate,
+            phone: normalizedPhone,
             isGuest: true
         })
 
@@ -326,21 +328,16 @@ class ParkingService {
     }
 
     /**
-     * Registered walk-in (no reservation): customer vehicle enters without prior booking.
+     * Registered walk-in (no reservation): resolve owner from vehicle registration.
      * Sets MONTH vs DAILY from active monthly card; isGuest = false.
+     * Phone is not required in the request — taken from the registered user.
      */
     createNewParkingSessionForRegisteredWalkIn = async ({
-        phone,
         licensePlate,
         staffId,
         parkingSlotId,
     }) => {
         await this.#reservationRepository.expireOverdueReservations();
-
-        const existingUser = await this.#userRepository.findUser({ phone });
-        if (!existingUser) {
-            throw new BadRequestError(`Wrong phone number or this user doesn't exist!`);
-        }
 
         const normalizedLicensePlate = licensePlate.trim().toUpperCase();
         const usersVehicles = await this.#vehicleRepository.getVehicleByLicensePlate({
@@ -355,8 +352,11 @@ class ParkingService {
             throw new BadRequestError(`This vehicle is not active!`);
         }
 
-        if (String(usersVehicles.userId) !== String(existingUser._id)) {
-            throw new BadRequestError(`This vehicle doesn't belong to this customer!`);
+        const ownerId = usersVehicles.userId?._id ?? usersVehicles.userId;
+        const existingUser = await this.#userRepository.findByUserId({ userId: ownerId });
+
+        if (!existingUser) {
+            throw new BadRequestError(`Owner of this vehicle does not exist!`);
         }
 
         const pendingReservation = await this.#reservationRepository.findPendingReservationByVehicleAndDriver({

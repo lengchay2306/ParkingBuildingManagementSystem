@@ -453,14 +453,15 @@ router.post(
  *       **Typical staff flow**
  *       1. Call `GET /api/v1/parking/slots` and pick an **AVAILABLE** slot on the correct floor/vehicle type.
  *       2. Scan or enter the license plate at the front desk.
- *       3. POST to this endpoint with `licensePlate`, `parkingSlotId`, and `vehicleTypeId` (from the slot's floor).
- *       4. Slot status becomes `CURRENTLY-IN-USED`; session is created with `isGuest: true`.
+ *       3. POST to this endpoint with `licensePlate`, `parkingSlotId`, `vehicleTypeId`, and **required** `phone`.
+ *       4. Slot status becomes `CURRENTLY-IN-USED`; session is created with `isGuest: true` and guest `phone` saved.
  *
  *       **Rules**
  *       - Slot must be `AVAILABLE` (not reserved, in-use, or unavailable).
  *       - `vehicleTypeId` must match the vehicle type of the slot's floor.
  *       - The same `licensePlate` cannot already have an **ACTIVE** session in the building.
- *       - No registered `vehicleId` or `checkInUserId` is required; `phone` is optional.
+ *       - Guest `phone` is **required** (contact for checkout / payment).
+ *       - No registered `vehicleId` or `checkInUserId` is set.
  *
  *       **Difference from** `POST /api/v1/parking/create-parking-session`
  *       - Reservation check-in requires `reservationId` (PENDING reservation).
@@ -480,6 +481,7 @@ router.post(
  *               - licensePlate
  *               - parkingSlotId
  *               - vehicleTypeId
+ *               - phone
  *             properties:
  *               licensePlate:
  *                 type: string
@@ -495,7 +497,7 @@ router.post(
  *                 example: "665b1b2c3d4e5f6a7b8c9d0e"
  *               phone:
  *                 type: string
- *                 description: Optional guest phone (Vietnam format). Not required for walk-in.
+ *                 description: Guest phone (Vietnam format). Required for walk-in guests.
  *                 example: "0901234567"
  *           examples:
  *             walkInBike:
@@ -504,8 +506,9 @@ router.post(
  *                 licensePlate: "51A-123.45"
  *                 parkingSlotId: "665a1b2c3d4e5f6a7b8c9d0f"
  *                 vehicleTypeId: "665b1b2c3d4e5f6a7b8c9d0e"
+ *                 phone: "0901234567"
  *             walkInWithPhone:
- *               summary: Walk-in guest with optional phone
+ *               summary: Walk-in guest with phone
  *               value:
  *                 licensePlate: "30H-999.88"
  *                 parkingSlotId: "665a1b2c3d4e5f6a7b8c9d0f"
@@ -536,7 +539,7 @@ router.post(
  *                   isGuest: true
  *                   vehicleId: null
  *                   checkInUserId: null
- *                   phone: null
+ *                   phone: "0901234567"
  *                   parkingSlotId:
  *                     _id: "665a..."
  *                     slotNumber: "T03"
@@ -587,7 +590,7 @@ router.post(
  *       - Unregistered guest → `POST /create-parking-session/guest`
  *
  *       **Rules**
- *       - Customer `phone` must match an existing user who owns the vehicle.
+ *       - Owner is resolved automatically from the registered vehicle (no phone in body).
  *       - Slot must be `AVAILABLE` and match the vehicle's type/floor.
  *       - Vehicle must not already have an ACTIVE session.
  *       - If a PENDING reservation exists, reject — use reservation check-in instead.
@@ -603,13 +606,9 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - phone
  *               - licensePlate
  *               - parkingSlotId
  *             properties:
- *               phone:
- *                 type: string
- *                 example: "0901234567"
  *               licensePlate:
  *                 type: string
  *                 example: "51A-123.45"

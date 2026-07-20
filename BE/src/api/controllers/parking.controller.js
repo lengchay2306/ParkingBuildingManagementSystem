@@ -94,7 +94,6 @@ class ParkingController {
     createNewParkingSessionForRegisteredWalkIn = async (req, res, next) => {
         try {
             const {
-                phone,
                 licensePlate,
                 parkingSlotId,
             } = req.body;
@@ -102,7 +101,6 @@ class ParkingController {
             const { userId } = req.user;
 
             const newParkingSession = await this.#parkingService.createNewParkingSessionForRegisteredWalkIn({
-                phone,
                 licensePlate,
                 staffId: userId,
                 parkingSlotId,

@@ -33,8 +33,10 @@ const parkingSessionSchema = Joi.object({
 const guestParkingSessionSchema = Joi.object({
     phone: Joi.string()
                 .pattern(/^(03|05|07|08|09)\d{8}$/)
+                .required()
                 .messages({
                     'string.pattern.base': 'Wrong phone format',
+                    'any.required': 'Phone is required for guest check-in',
                 }),
     licensePlate: Joi.string().required(),
     parkingSlotId: Joi.string()
@@ -44,14 +46,8 @@ const guestParkingSessionSchema = Joi.object({
                     .custom(validateMongoObjectId),
 });
 
-/** Registered customer walk-in (no reservation) — monthly or daily by card. */
+/** Registered customer walk-in (no reservation) — owner resolved from license plate. */
 const walkInParkingSessionSchema = Joi.object({
-    phone: Joi.string()
-                .pattern(/^(03|05|07|08|09)\d{8}$/)
-                .required()
-                .messages({
-                    'string.pattern.base': 'Wrong phone format',
-                }),
     licensePlate: Joi.string()
                 .pattern(/^[0-9]{2}[A-Z]-[0-9]{3}\.[0-9]{2}$/)
                 .required()
