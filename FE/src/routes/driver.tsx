@@ -26,6 +26,7 @@ import {
   type PendingSubscriptionCheckout,
 } from "@/lib/pending-payment";
 import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
+import { LICENSE_PLATE_PATTERN } from "@/lib/license-plate-ocr";
 import {
   enrichReservationForDetail,
   findSessionForReservation,
@@ -260,7 +261,12 @@ function DriverPage() {
       await invalidateDriverLiveData();
     },
     onError: (error) => {
-      setVehicleFormError(getErrorMessage(error, "Không thể đăng ký xe."));
+      const raw = getErrorMessage(error, "Không thể đăng ký xe.");
+      setVehicleFormError(
+        /license plate must follow format/i.test(raw)
+          ? "Biển số phải đúng dạng 51A-123.45"
+          : raw,
+      );
     },
   });
   const updateVehicleMutation = useMutation({
@@ -283,7 +289,12 @@ function DriverPage() {
       await invalidateDriverLiveData();
     },
     onError: (error) => {
-      setEditVehicleError(getErrorMessage(error, "Không thể cập nhật xe."));
+      const raw = getErrorMessage(error, "Không thể cập nhật xe.");
+      setEditVehicleError(
+        /license plate must follow format/i.test(raw)
+          ? "Biển số phải đúng dạng 51A-123.45"
+          : raw,
+      );
     },
   });
   const deleteVehicleMutation = useMutation({
@@ -547,8 +558,12 @@ function DriverPage() {
     setVehicleFormError(null);
 
     const normalizedPlate = licensePlate.trim().replace(/\s+/g, " ").toUpperCase();
-    if (normalizedPlate.length < 4) {
-      setVehicleFormError("Nhập biển số hợp lệ.");
+    if (!normalizedPlate) {
+      setVehicleFormError("Vui lòng nhập biển số.");
+      return;
+    }
+    if (!LICENSE_PLATE_PATTERN.test(normalizedPlate)) {
+      setVehicleFormError("Biển số phải đúng dạng 51A-123.45");
       return;
     }
     if (!vehicleTypeId || vehicleTypes.length === 0) {
@@ -607,8 +622,12 @@ function DriverPage() {
     setEditVehicleError(null);
 
     const normalizedPlate = editVehicleLicensePlate.trim().replace(/\s+/g, " ").toUpperCase();
-    if (normalizedPlate.length < 4) {
-      setEditVehicleError("Nhập biển số hợp lệ.");
+    if (!normalizedPlate) {
+      setEditVehicleError("Vui lòng nhập biển số.");
+      return;
+    }
+    if (!LICENSE_PLATE_PATTERN.test(normalizedPlate)) {
+      setEditVehicleError("Biển số phải đúng dạng 51A-123.45");
       return;
     }
     if (!editVehicleTypeId) {
@@ -1203,7 +1222,7 @@ function DriverPage() {
                       autoCapitalize="characters"
                       autoComplete="off"
                       inputMode="text"
-                      placeholder="51A-12345"
+                      placeholder="51A-123.45"
                       className="h-11 rounded-xl font-mono tracking-wide"
                     />
                   </div>

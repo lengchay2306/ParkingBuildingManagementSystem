@@ -141,7 +141,7 @@ export function DriverVehiclesReservationsPanel({
                         autoCapitalize="characters"
                         autoComplete="off"
                         inputMode="text"
-                        placeholder="51A-12345"
+                        placeholder="51A-123.45"
                         className="h-11 rounded-xl font-mono tracking-wide"
                       />
                     </div>

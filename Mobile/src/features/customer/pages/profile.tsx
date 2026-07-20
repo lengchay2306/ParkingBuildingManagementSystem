@@ -31,6 +31,7 @@ import {
   type UserProfile,
   type UserVehicle,
 } from '@/lib/auth-api';
+import { resolveApiErrorMessage } from '@/lib/api-error';
 import { formatDbStatus } from '@/lib/db-status';
 import {
   buildProfileUpdatePayload,
@@ -56,6 +57,28 @@ import {
 import type { PayOsCheckoutSessionResult } from '@/features/payment/payos-checkout-session';
 import { subscribePayOsDeepLink } from '@/features/payment/payos-return-bridge';
 import { AUTH_ROUTES, CUSTOMER_ROUTES, resolveRoleLabel } from '@/roles';
+
+function resolveVehicleApiError(
+  error: unknown,
+  t: (vi: string, en: string) => string,
+): string {
+  const message = resolveApiErrorMessage(
+    error,
+    t('Không thể lưu xe', 'Could not save vehicle'),
+  );
+  const lower = message.toLowerCase();
+  if (lower.includes('license plate must follow format')) {
+    return t('Biển số đúng dạng 51A-123.45', 'Plate format: 51A-123.45');
+  }
+  if (
+    lower.includes('already exists') ||
+    lower.includes('đã tồn tại') ||
+    lower.includes('duplicate')
+  ) {
+    return t('Biển số đã được đăng ký', 'License plate already registered');
+  }
+  return message;
+}
 
 function vehicleHasMonthlyCard(vehicle: UserVehicle | undefined) {
   if (!vehicle?.monthlyCardId) {
@@ -119,6 +142,7 @@ export default function ProfileScreen() {
   const [licensePlate, setLicensePlate] = useState('');
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState<string | null>(null);
   const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
+  const [vehicleFormError, setVehicleFormError] = useState<string | null>(null);
   const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
   const [buyingVehicleId, setBuyingVehicleId] = useState<string | null>(null);
   const [subscriptionBill, setSubscriptionBill] = useState<SubscriptionCheckoutResult | null>(null);
@@ -186,12 +210,14 @@ export default function ProfileScreen() {
     setVehicleModalMode(null);
     setEditingVehicle(null);
     setLicensePlate('');
+    setVehicleFormError(null);
   }
 
   function startRegisteringVehicle() {
     setEditingVehicle(null);
     setVehicleModalMode('create');
     setLicensePlate('');
+    setVehicleFormError(null);
     if (vehicleTypes.length > 0) {
       setSelectedVehicleTypeId(vehicleTypes[0]._id);
     }
@@ -201,6 +227,7 @@ export default function ProfileScreen() {
     setEditingVehicle(vehicle);
     setVehicleModalMode('edit');
     setLicensePlate(vehicle.licensePlate);
+    setVehicleFormError(null);
     setSelectedVehicleTypeId(resolveVehicleTypeId(vehicle.vehicleTypeId));
     if (vehicleTypes.length === 0) {
       loadVehicleTypes();
@@ -211,11 +238,13 @@ export default function ProfileScreen() {
     if (vehicleModalMode === 'create') {
       const validationError = validateVehicleRegistration(licensePlate, selectedVehicleTypeId, t);
       if (validationError) {
+        setVehicleFormError(validationError);
         showToast(validationError, 'error');
         return;
       }
 
       setIsSubmittingVehicle(true);
+      setVehicleFormError(null);
       try {
         await createVehicle({
           licensePlate,
@@ -226,12 +255,9 @@ export default function ProfileScreen() {
         closeVehicleModal();
         showToast(t('Đã đăng ký xe', 'Vehicle registered'), 'success');
       } catch (submitError) {
-        showToast(
-          submitError instanceof Error
-            ? submitError.message
-            : t('Không thể đăng ký xe', 'Could not register vehicle'),
-          'error',
-        );
+        const message = resolveVehicleApiError(submitError, t);
+        setVehicleFormError(message);
+        showToast(message, 'error');
       } finally {
         setIsSubmittingVehicle(false);
       }
@@ -255,11 +281,13 @@ export default function ProfileScreen() {
       t,
     );
     if (validationError) {
+      setVehicleFormError(validationError);
       showToast(validationError, 'error');
       return;
     }
 
     setIsSubmittingVehicle(true);
+    setVehicleFormError(null);
     try {
       await updateVehicle(editingVehicle._id, payload);
       const refreshed = await getMyProfile();
@@ -267,12 +295,9 @@ export default function ProfileScreen() {
       closeVehicleModal();
       showToast(t('Đã cập nhật xe', 'Vehicle updated'), 'success');
     } catch (submitError) {
-      showToast(
-        submitError instanceof Error
-          ? submitError.message
-          : t('Không thể cập nhật xe', 'Could not update vehicle'),
-        'error',
-      );
+      const message = resolveVehicleApiError(submitError, t);
+      setVehicleFormError(message);
+      showToast(message, 'error');
     } finally {
       setIsSubmittingVehicle(false);
     }
@@ -800,21 +825,29 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <ThemedText style={styles.modalHint}>
-              {t('Biển số đúng dạng 51A-123.45', 'Plate format: 51A-123.45')}
-            </ThemedText>
-
             <View style={styles.field}>
               <ThemedText style={styles.fieldLabel}>{t('Biển số', 'License plate')}</ThemedText>
               <TextInput
                 value={licensePlate}
-                onChangeText={setLicensePlate}
+                onChangeText={(value) => {
+                  setLicensePlate(value);
+                  if (vehicleFormError) {
+                    setVehicleFormError(null);
+                  }
+                }}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 placeholder="51A-123.45"
                 placeholderTextColor={DesignColors.inkSubtle}
-                style={styles.input}
+                style={[styles.input, vehicleFormError ? styles.inputError : null]}
               />
+              {vehicleFormError ? (
+                <ThemedText style={styles.fieldError}>{vehicleFormError}</ThemedText>
+              ) : (
+                <ThemedText style={styles.modalHint}>
+                  {t('Ví dụ đúng: 51A-123.45', 'Example: 51A-123.45')}
+                </ThemedText>
+              )}
             </View>
 
             <View style={styles.field}>
@@ -1073,6 +1106,16 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     modalHint: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
+      marginTop: 4,
+    },
+    fieldError: {
+      ...Typography.caption,
+      color: DesignColors.semanticDanger,
+      marginTop: 4,
+      fontWeight: '600',
+    },
+    inputError: {
+      borderColor: DesignColors.semanticDanger,
     },
     typeLoader: {
       alignSelf: 'flex-start',
