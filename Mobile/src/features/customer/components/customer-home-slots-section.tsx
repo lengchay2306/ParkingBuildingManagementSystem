@@ -136,7 +136,10 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
                     pressed && styles.pressed,
                   ]}
                 >
-                  <ThemedText style={active ? styles.floorTabTextActive : styles.floorTabText}>
+                  <ThemedText
+                    numberOfLines={1}
+                    style={active ? styles.floorTabTextActive : styles.floorTabText}
+                  >
                     {presentation.tabLabel}
                   </ThemedText>
                   <ThemedText style={active ? styles.floorTabBadgeActive : styles.floorTabBadge}>
@@ -325,6 +328,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: DesignColors.surface2,
       paddingHorizontal: Spacing.sm,
       paddingVertical: 8,
+      maxWidth: 240,
     },
     floorTabActive: {
       borderColor: DesignColors.primary,
@@ -334,11 +338,13 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       ...Typography.caption,
       color: DesignColors.inkMuted,
       fontWeight: '600',
+      flexShrink: 1,
     },
     floorTabTextActive: {
       ...Typography.caption,
       color: DesignColors.primary,
       fontWeight: '700',
+      flexShrink: 1,
     },
     floorTabBadge: {
       ...Typography.caption,

@@ -5,13 +5,17 @@ import {
   ActivityIndicator,
   AppState,
   type AppStateStatus,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppToast } from '@/components/app-toast';
 import { ThemedText } from '@/components/themed-text';
@@ -45,7 +49,6 @@ import { useThemePreference } from '@/hooks/theme-preference';
 import { getMyProfile, type UserVehicle } from '@/lib/auth-api';
 import { formatDbStatus } from '@/lib/db-status';
 import {
-  resolveFloorPresentation,
   resolveParkingVehicleTypeLabel,
   sortFloorsLikeParkingMap,
 } from '@/lib/parking-floor-config';
@@ -140,6 +143,7 @@ export default function ParkingMapScreen() {
   const { t } = useLanguagePreference();
   const { resolvedScheme } = useThemePreference();
   const DesignColors = useDesignColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
   const [floors, setFloors] = useState<ParkingFloor[]>([]);
@@ -159,8 +163,24 @@ export default function ParkingMapScreen() {
   const [arrivalDate, setArrivalDate] = useState(getDefaultExpectedArrivalDate);
   const [arrivalTime, setArrivalTime] = useState(getDefaultExpectedArrivalTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   useProtectedSession();
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardInset(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
 
@@ -372,6 +392,8 @@ export default function ParkingMapScreen() {
   }
 
   function closeSlotSheet() {
+    Keyboard.dismiss();
+    setKeyboardInset(0);
     setSelectedSlot(null);
     setSelectedFloor(null);
     setBookOpen(false);
@@ -596,7 +618,6 @@ export default function ParkingMapScreen() {
             </ThemedText>
           </Pressable>
         {orderedFloors.map((floor) => {
-          const presentation = resolveFloorPresentation(floor, t);
           const active = activeFloorId === floor._id;
           return (
             <Pressable
@@ -607,8 +628,11 @@ export default function ParkingMapScreen() {
               }}
               style={[styles.floorTab, active && styles.floorTabActive]}
             >
-              <ThemedText style={[styles.floorTabText, active && styles.floorTabTextActive]}>
-                {presentation.tabLabel}
+              <ThemedText
+                numberOfLines={1}
+                style={[styles.floorTabText, active && styles.floorTabTextActive]}
+              >
+                {floor.floorName}
               </ThemedText>
             </Pressable>
           );
@@ -616,9 +640,15 @@ export default function ParkingMapScreen() {
         </ScrollView>
 
       {focusedFloor ? (
-        <ThemedText style={styles.floorMeta}>
-          {resolveFloorPresentation(focusedFloor, t).metaTitle}
-            </ThemedText>
+        <ThemedText style={styles.floorMeta} numberOfLines={2}>
+          {focusedFloor.floorName}
+          {' · '}
+          {focusedFloor.slotStats?.available ??
+            focusedFloor.slots.filter((slot) => slot.status === 'AVAILABLE').length}
+          /
+          {focusedFloor.slotStats?.total ?? focusedFloor.slots.length}{' '}
+          {t('ô', 'slots')}
+        </ThemedText>
       ) : (
         <ThemedText style={styles.floorMeta}>
           {t('Vuốt để xoay · chụm để zoom · chạm ô để xem', 'Drag to orbit · pinch zoom · tap a slot')}
@@ -683,17 +713,31 @@ export default function ParkingMapScreen() {
       )}
 
       <Modal visible={!!selectedSlot} transparent animationType="slide" onRequestClose={closeSlotSheet}>
-        <View style={styles.sheetRoot}>
+        <KeyboardAvoidingView
+          style={styles.sheetRoot}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        >
           <Pressable style={styles.sheetBackdrop} onPress={closeSlotSheet} />
-          <View style={styles.sheet}>
+          <View
+            style={[
+              styles.sheet,
+              {
+                marginBottom: Platform.OS === 'android' ? keyboardInset : 0,
+                paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
+              },
+            ]}
+          >
             {selectedSlot && selectedFloor ? (
-              <>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                contentContainerStyle={styles.sheetScrollContent}
+              >
                 <View style={styles.sheetHandle} />
                 <ThemedText style={styles.sheetTitle}>{selectedSlot.slotNumber}</ThemedText>
-                <ThemedText style={styles.sheetMeta}>
-                  {selectedFloor.floorName} ·{' '}
-                  {resolveParkingVehicleTypeLabel(selectedFloor.vehicleType?.type, t)}
-                </ThemedText>
+                <ThemedText style={styles.sheetMeta}>{selectedFloor.floorName}</ThemedText>
                 <View style={styles.statusPill}>
                   <ThemedText style={styles.statusPillText}>
                     {statusLabel(selectedSlot.status)}
@@ -704,13 +748,13 @@ export default function ParkingMapScreen() {
                   <View style={styles.sheetActions}>
                     <Pressable onPress={closeSlotSheet} style={styles.secondaryButton}>
                       <ThemedText style={styles.secondaryButtonText}>{t('Đóng', 'Close')}</ThemedText>
-            </Pressable>
+                    </Pressable>
                     {canBook ? (
                       <Pressable onPress={openBookFlow} style={styles.primaryButton}>
                         <ThemedText style={styles.primaryButtonText}>
                           {t('Đăng ký gửi xe', 'Reserve slot')}
                         </ThemedText>
-            </Pressable>
+                      </Pressable>
                     ) : (
                       <View style={[styles.primaryButton, styles.buttonDisabled]}>
                         <ThemedText style={styles.primaryButtonText}>
@@ -722,7 +766,7 @@ export default function ParkingMapScreen() {
                                 ? t('Đang sử dụng', 'In use')
                                 : t('Không thể đặt', 'Unavailable')}
                         </ThemedText>
-          </View>
+                      </View>
                     )}
                   </View>
                 ) : (
@@ -730,7 +774,7 @@ export default function ParkingMapScreen() {
                     <ThemedText style={styles.bookLabel}>
                       {t('Chọn xe', 'Select vehicle')} ·{' '}
                       {resolveParkingVehicleTypeLabel(selectedFloor.vehicleType?.type, t)}
-            </ThemedText>
+                    </ThemedText>
                     {eligibleVehicles.length === 0 ? (
                       <ThemedText style={styles.emptyVehiclesText}>
                         {typeMatchedButBlocked.length > 0
@@ -738,13 +782,15 @@ export default function ParkingMapScreen() {
                           : t(
                               'Không có xe đúng loại với tầng này. Thêm xe trong Hồ sơ.',
                               'No vehicle matches this floor type. Add one in Profile.',
-              )}
-            </ThemedText>
+                            )}
+                      </ThemedText>
                     ) : (
                       <ScrollView
                         horizontal
+                        nestedScrollEnabled
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.vehicleRow}
+                        keyboardShouldPersistTaps="handled"
                       >
                         {eligibleVehicles.map((vehicle) => {
                           const active = vehicle._id === selectedVehicleId;
@@ -756,7 +802,7 @@ export default function ParkingMapScreen() {
                               style={[styles.vehicleChip, active && styles.vehicleChipActive]}
                             >
                               <ThemedText
-                  style={[
+                                style={[
                                   styles.vehicleChipText,
                                   active && styles.vehicleChipTextActive,
                                 ]}
@@ -785,6 +831,7 @@ export default function ParkingMapScreen() {
                           placeholderTextColor={DesignColors.placeholder}
                           autoCapitalize="none"
                           style={styles.arrivalInput}
+                          returnKeyType="next"
                         />
                       </View>
                       <View style={styles.arrivalField}>
@@ -796,6 +843,7 @@ export default function ParkingMapScreen() {
                           placeholderTextColor={DesignColors.placeholder}
                           autoCapitalize="none"
                           style={styles.arrivalInput}
+                          returnKeyType="done"
                         />
                       </View>
                     </View>
@@ -812,9 +860,9 @@ export default function ParkingMapScreen() {
                       <Pressable onPress={() => setBookOpen(false)} style={styles.secondaryButton}>
                         <ThemedText style={styles.secondaryButtonText}>
                           {t('Quay lại', 'Back')}
-              </ThemedText>
+                        </ThemedText>
                       </Pressable>
-                <Pressable
+                      <Pressable
                         onPress={handleCreateReservation}
                         disabled={
                           isSubmitting ||
@@ -836,16 +884,16 @@ export default function ParkingMapScreen() {
                         ) : (
                           <ThemedText style={styles.primaryButtonText}>
                             {t('Xác nhận đặt chỗ', 'Confirm booking')}
-                  </ThemedText>
-              )}
+                          </ThemedText>
+                        )}
                       </Pressable>
                     </View>
-              </View>
-          )}
-              </>
+                  </View>
+                )}
+              </ScrollView>
             ) : null}
-        </View>
-      </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ThemedView>
   );
@@ -881,14 +929,14 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     floorTabsScroll: {
       flexGrow: 0,
       flexShrink: 0,
-      maxHeight: 40,
+      maxHeight: 48,
   },
   floorTabs: {
     flexDirection: 'row',
       alignItems: 'center',
     gap: Spacing.xs,
       paddingVertical: 2,
-      minHeight: 36,
+      minHeight: 40,
   },
   floorTab: {
       borderRadius: Radius.pill,
@@ -897,7 +945,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: DesignColors.surface2,
       paddingHorizontal: Spacing.md,
       paddingVertical: 8,
-      height: 36,
+      minHeight: 36,
+      maxWidth: 220,
       justifyContent: 'center',
     alignItems: 'center',
       alignSelf: 'center',
@@ -996,14 +1045,18 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       backgroundColor: 'rgba(0,0,0,0.35)',
     },
     sheet: {
-    backgroundColor: DesignColors.surface1,
+      backgroundColor: DesignColors.surface1,
       borderTopLeftRadius: Radius.xl,
       borderTopRightRadius: Radius.xl,
-    borderWidth: 1,
+      borderWidth: 1,
       borderColor: DesignColors.hairline,
-    padding: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      paddingTop: Spacing.md,
+      maxHeight: '88%',
+    },
+    sheetScrollContent: {
       gap: Spacing.sm,
-      paddingBottom: Spacing.xl,
+      paddingBottom: Spacing.sm,
     },
     sheetHandle: {
       alignSelf: 'center',

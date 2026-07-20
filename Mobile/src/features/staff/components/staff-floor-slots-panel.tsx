@@ -189,7 +189,10 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot, emptyHint }: Staff
                 active && styles.floorTabActive,
                 pressed && styles.floorTabPressed,
               ]}>
-              <ThemedText style={active ? styles.floorTabTextActive : styles.floorTabText}>
+              <ThemedText
+                numberOfLines={1}
+                style={active ? styles.floorTabTextActive : styles.floorTabText}
+              >
                 {presentation.tabLabel}
               </ThemedText>
               <ThemedText style={active ? styles.floorTabBadgeActive : styles.floorTabBadge}>

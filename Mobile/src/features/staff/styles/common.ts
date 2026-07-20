@@ -541,6 +541,7 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
     },
     floorTab: {
       minWidth: 52,
+      maxWidth: 240,
       borderRadius: Radius.lg,
       borderWidth: 1,
       borderColor: DesignColors.hairline,
@@ -588,12 +589,14 @@ export function createStaffStyles(DesignColors: DesignColorPalette) {
       ...Typography.button,
       color: DesignColors.inkSubtle,
       fontSize: 13,
+      flexShrink: 1,
     },
     floorTabTextActive: {
       ...Typography.button,
       color: DesignColors.ink,
       fontWeight: '600',
       fontSize: 13,
+      flexShrink: 1,
     },
     floorMeta: {
       borderRadius: Radius.lg,

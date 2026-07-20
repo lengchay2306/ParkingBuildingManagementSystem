@@ -371,6 +371,12 @@ export function ParkingMapGlCanvas({
   myReservedRef.current = myReservedSlotIds;
 
   const mapColors = resolvedScheme === 'light' ? MAP_COLORS_LIGHT : MAP_COLORS_DARK;
+  const activeFloorName = useMemo(() => {
+    if (activeFloorId === 'all') {
+      return null;
+    }
+    return floors.find((floor) => floor._id === activeFloorId)?.floorName?.trim() || null;
+  }, [activeFloorId, floors]);
   const statusSignature = useMemo(
     () =>
       floors
@@ -857,6 +863,20 @@ export function ParkingMapGlCanvas({
           <ThemedText style={styles.zoomBtnText}>−</ThemedText>
         </Pressable>
       </View>
+
+      {activeFloorName ? (
+        <View style={styles.floorNameBadge} pointerEvents="none">
+          <ThemedText style={styles.floorNameBadgeText} numberOfLines={2}>
+            {activeFloorName}
+          </ThemedText>
+        </View>
+      ) : (
+        <View style={styles.floorNameBadge} pointerEvents="none">
+          <ThemedText style={styles.floorNameBadgeText} numberOfLines={1}>
+            {t('Tất cả tầng', 'All floors')}
+          </ThemedText>
+        </View>
+      )}
     </View>
   );
 }
@@ -881,6 +901,24 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     gap: 6,
     alignItems: 'stretch',
+  },
+  floorNameBadge: {
+    position: 'absolute',
+    left: Spacing.sm,
+    bottom: Spacing.sm,
+    maxWidth: '72%',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(20,20,20,0.62)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+  },
+  floorNameBadgeText: {
+    ...Typography.caption,
+    color: '#fff',
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   modeBtn: {
     borderRadius: Radius.pill,

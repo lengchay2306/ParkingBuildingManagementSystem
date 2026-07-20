@@ -228,7 +228,6 @@ export function resolveFloorPresentation(
   floor: ParkingFloor,
   t: (vi: string, en: string) => string,
 ): ResolvedFloorPresentation {
-  const config = findParkingFloorConfig(floor.floorName);
   const total = floor.slotStats?.total ?? floor.slots.length;
   const available =
     floor.slotStats?.available ??
@@ -237,21 +236,13 @@ export function resolveFloorPresentation(
     floor.slotStats?.inUsed ??
     floor.slots.filter((slot) => slot.status === 'CURRENTLY-IN-USED').length;
 
-  const floorTitle = floor.floorName.split(' - ')[0] ?? floor.floorName;
+  // Always use DB floorName — do not remap via the old blueprint (T1/T5/…).
+  const floorName = floor.floorName?.trim() || '—';
   const vehicleTitle = resolveApiVehicleLabel(floor.vehicleType?.type, t);
-
-  let tabLabel: string;
-  if (config) {
-    tabLabel = floorTabLabel(config, t);
-  } else {
-    const parsedId = parseParkingFloorId(floor.floorName);
-    tabLabel = parsedId ? (parsedId === 'B1' ? 'B1' : `T${parsedId}`) : floor.floorName.slice(0, 6);
-  }
-
-  const metaTitle = `${floorTitle} · ${vehicleTitle} · ${total} ${t('ô', 'slots')}`;
+  const metaTitle = `${floorName} · ${vehicleTitle} · ${total} ${t('ô', 'slots')}`;
 
   return {
-    tabLabel,
+    tabLabel: floorName,
     metaTitle,
     available,
     total,

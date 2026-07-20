@@ -181,7 +181,10 @@ export function StaffCheckInSlotPicker({
                   active && styles.pillActive,
                   pressed && styles.pillPressed,
                 ]}>
-                <ThemedText style={[styles.pillText, active && styles.pillTextActive]}>
+                <ThemedText
+                  numberOfLines={1}
+                  style={[styles.pillText, active && styles.pillTextActive]}
+                >
                   {tabLabel} ({availableSlots.length})
                 </ThemedText>
               </Pressable>
