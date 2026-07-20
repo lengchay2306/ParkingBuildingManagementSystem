@@ -5,6 +5,7 @@ import { useAppToast } from '@/components/app-toast';
 import {
   createGuestParkingSession,
   createParkingSession,
+  createWalkInParkingSession,
   findFirstAvailableSlotForVehicleType,
   getActiveSessionByPlate,
   getActiveUserParkingSession,
@@ -40,8 +41,8 @@ import {
   resolveSlotLabel,
 } from '@/features/staff/lib/utils';
 import {
+  isValidStaffPhone,
   staffPhoneErrorMessage,
-  validateOptionalStaffPhone,
   validateStaffPhoneInput,
 } from '@/features/staff/lib/session-validation';
 import { useLanguagePreference } from '@/hooks/language-preference';
@@ -398,19 +399,8 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
     }
 
     if (checkInMode === 'registered' && foundVehicle) {
-      const phoneResult = validateStaffPhoneInput(checkInPhone, t);
-      if (!phoneResult.ok) {
-        showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), 'error');
-        return;
-      }
       if (!selectedSlotId) {
         showToast(t('Chọn ô trống', 'Select an available spot'), 'error');
-        return;
-      }
-
-      const vehicleTypeId = resolveVehicleTypeIdFromSessionOrVehicle(foundVehicle.vehicleTypeId);
-      if (!vehicleTypeId) {
-        showToast(t('Không xác định được loại xe', 'Vehicle type is missing'), 'error');
         return;
       }
 
@@ -426,11 +416,9 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
           return;
         }
 
-        const session = await createGuestParkingSession({
+        const session = await createWalkInParkingSession({
           licensePlate: foundVehicle.licensePlate,
           parkingSlotId: selectedSlotId,
-          vehicleTypeId,
-          phone: phoneResult.phone,
         });
         await finalizeCheckIn(session, foundVehicle.licensePlate);
       } catch (error) {
@@ -444,7 +432,7 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
       return;
     }
 
-    const phoneResult = validateOptionalStaffPhone(checkInPhone);
+    const phoneResult = validateStaffPhoneInput(checkInPhone, t);
     if (!phoneResult.ok) {
       showToast(staffPhoneErrorMessage(phoneResult.messageKey, t), 'error');
       return;
@@ -507,9 +495,12 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
     step === 'confirm' &&
     !hasActiveConflict &&
     !!selectedSlotId &&
-    (pendingReservation ||
-      (checkInMode === 'registered' && foundVehicle && checkInPhone.trim().length > 0) ||
-      (checkInMode === 'guest' && !!selectedVehicleTypeId && guestPlateValid));
+    (Boolean(pendingReservation) ||
+      (checkInMode === 'registered' && !!foundVehicle) ||
+      (checkInMode === 'guest' &&
+        !!selectedVehicleTypeId &&
+        guestPlateValid &&
+        isValidStaffPhone(checkInPhone)));
 
   const handleBackToIdle = useCallback(() => {
     resetFlow();

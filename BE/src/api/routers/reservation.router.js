@@ -23,7 +23,11 @@ const router = express.Router();
  * /api/v1/reservations:
  *   post:
  *     summary: Create a parking reservation
- *     description: Customer reserves a parking slot. driverId is taken from the authenticated user. expectedArrival must be in the future and within the next 2 hours.
+ *     description: |
+ *       Customer reserves a parking slot. driverId is taken from the authenticated user.
+ *       expectedArrival must be in the future and within the next 2 hours.
+ *       A 100,000 VND deposit (PayOS) is required to secure the slot — pay via the returned
+ *       checkoutUrl. The deposit is refunded automatically once the reservation is claimed at check-in.
  *     tags: [Reservation]
  *     security:
  *       - bearerAuth: []
@@ -51,9 +55,14 @@ const router = express.Router();
  *                 format: date-time
  *                 description: Expected arrival time (ISO 8601, future, within 2 hours from now)
  *                 example: "2026-05-27T10:00:00.000Z"
+ *               platform:
+ *                 type: string
+ *                 enum: [web, mobile]
+ *                 default: web
+ *                 description: Which PayOS return/cancel URLs to use for the deposit checkout
  *     responses:
  *       201:
- *         description: Reservation created successfully
+ *         description: Reservation created successfully — pay the deposit via checkoutUrl to secure the slot
  *         content:
  *           application/json:
  *             example:
@@ -68,6 +77,8 @@ const router = express.Router();
  *                   expectedArrival: "2026-05-27T10:00:00.000Z"
  *                   expiryAt: "2026-05-27T10:15:00.000Z"
  *                   status: PENDING
+ *                 checkoutUrl: "https://pay.payos.vn/web/..."
+ *                 depositAmount: 100000
  *       400:
  *         description: Slot not available, vehicle type mismatch, vehicle not yours, or expectedArrival outside the next 2 hours
  *       401:

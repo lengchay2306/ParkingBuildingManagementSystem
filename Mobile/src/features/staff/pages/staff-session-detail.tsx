@@ -25,7 +25,8 @@ import {
   createHiddenStaffTabBarStyle,
   createStaffTabBarStyle,
 } from '@/features/staff/components/staff-tab-bar';
-import { findStaffActiveSessionById } from '@/features/staff/api';
+import { findStaffActiveSessionById, correctParkingSessionSlot } from '@/features/staff/api';
+import { StaffCheckInSlotPicker } from '@/features/staff/components/staff-check-in-slot-picker';
 import { StaffPageShell } from '@/features/staff/components/staff-page-shell';
 import { StaffTextInput } from '@/features/staff/components/staff-text-input';
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
@@ -65,6 +66,8 @@ export default function StaffSessionDetailScreen() {
   const DesignColors = useStaffDesignColors();
   const commonStyles = useMemo(() => createStaffStyles(DesignColors), [DesignColors]);
   const {
+    floors,
+    isLoadingSlots,
     parkingSessions,
     loadParkingSessions,
     loadParkingSlots,
@@ -83,6 +86,9 @@ export default function StaffSessionDetailScreen() {
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [isCancellingPayment, setIsCancellingPayment] = useState(false);
   const [paymentUnpaidNotice, setPaymentUnpaidNotice] = useState<string | null>(null);
+  const [isCorrectingSlot, setIsCorrectingSlot] = useState(false);
+  const [showCorrectSlotPicker, setShowCorrectSlotPicker] = useState(false);
+  const [selectedCorrectSlotId, setSelectedCorrectSlotId] = useState<string | null>(null);
 
   /** Opened from Spots stays under `/staff-slots/...` — don't dump users onto Sessions. */
   const openedFromSlots = pathname.includes('/staff-slots/');
@@ -285,6 +291,61 @@ export default function StaffSessionDetailScreen() {
     }
   }, [session, showToast, t]);
 
+  const handleOpenCorrectSlot = useCallback(async () => {
+    setSelectedCorrectSlotId(null);
+    setShowCorrectSlotPicker(true);
+    try {
+      await loadParkingSlots();
+    } catch (error) {
+      showToast(
+        resolveApiErrorMessage(error, t('Không tải được sơ đồ ô', 'Could not load parking map')),
+        'error',
+      );
+    }
+  }, [loadParkingSlots, showToast, t]);
+
+  const handleCorrectSlot = useCallback(async () => {
+    if (!session || !selectedCorrectSlotId) {
+      showToast(t('Chọn ô trống mới', 'Select a new available spot'), 'error');
+      return;
+    }
+    if (selectedCorrectSlotId === session.slotId) {
+      showToast(t('Ô mới phải khác ô hiện tại', 'New spot must differ from the current one'), 'error');
+      return;
+    }
+
+    setIsCorrectingSlot(true);
+    try {
+      const updated = await correctParkingSessionSlot({
+        parkingSessionId: session.id,
+        parkingSlotId: selectedCorrectSlotId,
+      });
+      const refreshedFloors = await loadParkingSlots();
+      const record = mapParkingSessionToRecord(updated, refreshedFloors);
+      recordCheckIn(record);
+      setHydratedSession(record);
+      await loadParkingSessions({ status: 'ACTIVE', limit: 200 }).catch(() => undefined);
+      setShowCorrectSlotPicker(false);
+      setSelectedCorrectSlotId(null);
+      showToast(t('Đã cập nhật ô gửi', 'Parking spot updated'), 'success');
+    } catch (error) {
+      showToast(
+        resolveApiErrorMessage(error, t('Không cập nhật được ô', 'Could not update spot')),
+        'error',
+      );
+    } finally {
+      setIsCorrectingSlot(false);
+    }
+  }, [
+    loadParkingSessions,
+    loadParkingSlots,
+    recordCheckIn,
+    selectedCorrectSlotId,
+    session,
+    showToast,
+    t,
+  ]);
+
   const handleCancelQrPayment = useCallback(async () => {
     if (!paymentBill?.paymentId) {
       setPaymentBill(null);
@@ -413,6 +474,61 @@ export default function StaffSessionDetailScreen() {
         </View>
 
         <StaffSessionDetailGrid cells={detailCells} />
+
+        {isActive ? (
+          <View style={styles.correctSlotSection}>
+            <ThemedText style={styles.correctSlotTitle}>
+              {t('Sửa ô gửi', 'Correct spot')}
+            </ThemedText>
+            <ThemedText style={styles.correctSlotHint}>
+              {t(
+                'Nếu khách đỗ sai ô so với phiên, chọn ô thực tế để cập nhật.',
+                'If the customer parked in a different spot, pick the actual spot to update.',
+              )}
+            </ThemedText>
+            {!showCorrectSlotPicker ? (
+              <StaffActionButton
+                disabled={isCorrectingSlot || isCheckingOut || isCreatingBill}
+                label={t('Chọn ô mới', 'Pick new spot')}
+                onPress={() => void handleOpenCorrectSlot()}
+                variant="secondary"
+              />
+            ) : (
+              <View style={styles.correctSlotPicker}>
+                <StaffCheckInSlotPicker
+                  floors={floors}
+                  isLoading={isLoadingSlots}
+                  onSelectSlot={setSelectedCorrectSlotId}
+                  selectedSlotId={selectedCorrectSlotId}
+                  t={t}
+                />
+                <View style={styles.correctSlotActions}>
+                  <StaffActionButton
+                    disabled={isCorrectingSlot}
+                    label={t('Hủy', 'Cancel')}
+                    onPress={() => {
+                      setShowCorrectSlotPicker(false);
+                      setSelectedCorrectSlotId(null);
+                    }}
+                    style={styles.correctSlotActionItem}
+                    variant="ghost"
+                  />
+                  <StaffActionButton
+                    disabled={
+                      isCorrectingSlot ||
+                      !selectedCorrectSlotId ||
+                      selectedCorrectSlotId === session.slotId
+                    }
+                    label={t('Lưu ô mới', 'Save new spot')}
+                    loading={isCorrectingSlot}
+                    onPress={() => void handleCorrectSlot()}
+                    style={styles.correctSlotActionItem}
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+        ) : null}
       </ScrollView>
 
       {isActive ? (
@@ -520,6 +636,34 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       color: DesignColors.inkMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.8,
+    },
+    correctSlotSection: {
+      gap: Spacing.sm,
+      backgroundColor: DesignColors.surface1,
+      borderRadius: Radius.xl,
+      borderWidth: 1,
+      borderColor: DesignColors.hairline,
+      padding: Spacing.md,
+    },
+    correctSlotTitle: {
+      ...Typography.bodySm,
+      color: DesignColors.ink,
+      fontWeight: '700',
+    },
+    correctSlotHint: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      lineHeight: 18,
+    },
+    correctSlotPicker: {
+      gap: Spacing.sm,
+    },
+    correctSlotActions: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+    },
+    correctSlotActionItem: {
+      flex: 1,
     },
     checkoutActions: {
       flexDirection: 'row',

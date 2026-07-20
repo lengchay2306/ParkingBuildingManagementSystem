@@ -158,7 +158,13 @@ export function parseExpectedArrival(dateValue: string, timeValue: string): Date
 
 export function isExpectedArrivalValid(dateValue: string, timeValue: string): boolean {
   const parsed = parseExpectedArrival(dateValue, timeValue);
-  return parsed !== null && parsed.getTime() > Date.now();
+  if (!parsed) {
+    return false;
+  }
+  const now = Date.now();
+  const twoHoursFromNow = now + 2 * 60 * 60 * 1000;
+  const arrivalMs = parsed.getTime();
+  return arrivalMs > now && arrivalMs <= twoHoursFromNow;
 }
 
 /** @deprecated Prefer parseExpectedArrival + toISOString for free-form booking. */

@@ -10,6 +10,10 @@ const paymentSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Vehicle",
     },
+    reservationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Reservation",
+    },
     // calculatedFee: {
     //     type: Number,
     //     required: true,
@@ -30,7 +34,7 @@ const paymentSchema = mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['PENDING', 'PAID', 'CANCELLED'],
+        enum: ['PENDING', 'PAID', 'CANCELLED', 'REFUNDED'],
     },
     orderCode: {
         type: Number,

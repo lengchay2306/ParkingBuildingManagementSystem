@@ -2,9 +2,11 @@ import { BadRequestError, NotFoundError } from "../error/error.js";
 
 class ReservationService {
     #reservationRepository;
+    #paymentService;
 
-    constructor({ reservationRepository }) {
+    constructor({ reservationRepository, paymentService }) {
         this.#reservationRepository = reservationRepository;
+        this.#paymentService = paymentService;
     }
 
     #expireOverdueReservations = async () => {
@@ -16,6 +18,7 @@ class ReservationService {
         vehicleId,
         parkingSlotId,
         expectedArrival,
+        platform = 'web',
     }) => {
         await this.#expireOverdueReservations();
 
@@ -33,7 +36,7 @@ class ReservationService {
 
         const vehicle = await this.#reservationRepository.findVehicleById({ vehicleId });
         if (!vehicle) {
-            throw new NotFoundError("Vehicle not found");2
+            throw new NotFoundError("Vehicle not found");
         }
 
         if (vehicle.userId.toString() !== driverId.toString()) {
@@ -72,7 +75,13 @@ class ReservationService {
             status: "PENDING",
         });
 
-        return reservation;
+        const { checkoutUrl, depositAmount } = await this.#paymentService.reservationDepositPayment({
+            reservationId: reservation._id,
+            vehicleId,
+            platform,
+        });
+
+        return { reservation, checkoutUrl, depositAmount };
     }
 
     getMyReservations = async ({ driverId, status, page = 1, limit = 10 }) => {

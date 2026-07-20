@@ -143,13 +143,13 @@ export function StaffCheckInGuestConfirmStep({
         </View>
         <ThemedText style={styles.hint}>
           {t(
-            'SĐT không bắt buộc cho khách vãng lai.',
-            'Phone is optional for walk-in guests.',
+            'Nhập SĐT khách vãng lai để liên hệ / checkout.',
+            'Enter guest phone for contact / checkout.',
           )}
         </ThemedText>
 
         <View style={styles.phoneField}>
-          <ThemedText style={styles.phoneLabel}>{t('Số điện thoại (tuỳ chọn)', 'Phone (optional)')}</ThemedText>
+          <ThemedText style={styles.phoneLabel}>{t('Số điện thoại (bắt buộc)', 'Phone (required)')}</ThemedText>
           <TextInput
             editable={!isDisabled}
             keyboardType="phone-pad"
