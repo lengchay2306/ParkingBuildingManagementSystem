@@ -10,22 +10,19 @@ class ReservationController {
     createReservation = async (req, res, next) => {
         try {
             const { userId } = req.user;
-            const { vehicleId, parkingSlotId, expectedArrival, platform } = req.body;
+            const { vehicleId, parkingSlotId, expectedArrival } = req.body;
 
-            const { reservation, checkoutUrl, depositAmount } = await this.#reservationService.createReservation({
+            const reservation = await this.#reservationService.createReservation({
                 driverId: userId,
                 vehicleId,
                 parkingSlotId,
                 expectedArrival: new Date(expectedArrival),
-                platform,
             });
 
             res.status(201).json({
                 status: 'success',
                 data: {
                     reservation,
-                    checkoutUrl,
-                    depositAmount,
                 },
             });
         } catch (error) {

@@ -26,7 +26,6 @@ const createReservationSchema = Joi.object({
     parkingSlotId: objectId.required()
         .messages({ 'string.pattern.name': 'parkingSlotId must be a valid ObjectId' }),
     expectedArrival: expectedArrivalWithinTwoHours,
-    platform: Joi.string().valid('web', 'mobile').default('web'),
 })
 
 const cancelReservationSchema = Joi.object({

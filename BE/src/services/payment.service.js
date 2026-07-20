@@ -3,9 +3,6 @@ import { BadRequestError, NotFoundError } from "../error/error.js"
 import { calculatedParkingFee } from "../utils/calculateFunction.js";
 configDotenv();
 
-/** Reservation deposit amount in VND, refunded when the reservation is claimed at check-in. */
-const RESERVATION_DEPOSIT_AMOUNT = 100000;
-
 const FE_RETURN_URL = process.env.FE_RETURN_URL;
 const FE_CANCEL_URL = process.env.FE_CANCEL_URL;
 const MOBILE_RETURN_URL = process.env.MOBILE_RETURN_URL;
@@ -203,18 +200,6 @@ class PaymentService {
         // Checkout QR payments always have parkingSessionId. Sync PAID only —
         // completing the parking session stays on staff /check-payment.
         if (existingPayment.parkingSessionId) {
-            await this.#paymentRepository.updatePayment({
-                field: { _id: existingPayment._id },
-                updateData: {
-                    status: 'PAID',
-                },
-            });
-            return true;
-        }
-
-        // Reservation deposits: just sync PAID. The reservation itself was
-        // already created; the deposit gets refunded on check-in (claim).
-        if (existingPayment.reservationId) {
             await this.#paymentRepository.updatePayment({
                 field: { _id: existingPayment._id },
                 updateData: {
@@ -430,68 +415,6 @@ class PaymentService {
         }
 
         return paymentLink.checkoutUrl;
-    }
-
-    reservationDepositPayment = async ({
-        reservationId,
-        vehicleId,
-        platform = 'web',
-    }) => {
-        const orderCode = Number(String(Date.now()).slice(-6) + Math.floor(100 + Math.random() * 900))
-        const { returnUrl, cancelUrl } = resolvePayOsRedirectUrls(platform)
-
-        const newPayment = await this.#paymentRepository.savePayment({
-            paymentData: {
-                reservationId,
-                vehicleId,
-                amount: RESERVATION_DEPOSIT_AMOUNT,
-                paymentMethod: 'CARD',
-                status: 'PENDING',
-                orderCode,
-            }
-        })
-
-        if (!newPayment) {
-            throw new BadRequestError(`Cannot save reservation deposit payment`)
-        }
-
-        const paymentLink = await this.#payosGateway.paymentRequests.create({
-            orderCode,
-            amount: RESERVATION_DEPOSIT_AMOUNT,
-            description: `RESERVATION_DEPOSIT_${orderCode}`,
-            returnUrl,
-            cancelUrl,
-        })
-
-        if (!paymentLink) {
-            throw new BadRequestError(`Cannot request to PayOS`)
-        }
-
-        return {
-            checkoutUrl: paymentLink.checkoutUrl,
-            depositAmount: RESERVATION_DEPOSIT_AMOUNT,
-        };
-    }
-
-    // Best-effort: reservation was already claimed by the time this runs, so a
-    // missing/unpaid deposit should not block check-in — just log it.
-    refundReservationDeposit = async ({ reservationId }) => {
-        const depositPayment = await this.#paymentRepository.findPaymentByField({
-            reservationId,
-            status: 'PAID',
-        })
-
-        if (!depositPayment) {
-            console.error(`Reservation deposit refund skipped: no PAID deposit found for reservationId: ${reservationId}`);
-            return null;
-        }
-
-        return this.#paymentRepository.updatePayment({
-            field: { _id: depositPayment._id },
-            updateData: {
-                status: 'REFUNDED',
-            },
-        })
     }
 
     cancelPayment = async ({
