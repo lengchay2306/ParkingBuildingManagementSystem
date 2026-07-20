@@ -71,10 +71,10 @@ export function formatDriverDateTime(value: string) {
 }
 
 export function getReservationVehicleLabel(reservation: Reservation) {
-  if (typeof reservation.vehicleId === "object") {
+  if (reservation.vehicleId && typeof reservation.vehicleId === "object") {
     return reservation.vehicleId.licensePlate ?? reservation.vehicleId._id;
   }
-  return reservation.vehicleId;
+  return reservation.vehicleId ?? "—";
 }
 
 export function getReservationSlotLabel(reservation: Reservation) {

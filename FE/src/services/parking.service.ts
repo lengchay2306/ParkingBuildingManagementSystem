@@ -516,8 +516,11 @@ export type ManageReservationDisplayStatus =
   | string;
 
 export const getReservationVehicleId = (reservation: {
-  vehicleId: string | { _id: string };
+  vehicleId: string | { _id: string } | null;
 }) => {
+  if (!reservation.vehicleId) {
+    return null;
+  }
   if (typeof reservation.vehicleId === "object") {
     return reservation.vehicleId._id;
   }
@@ -627,6 +630,45 @@ export const createGuestParkingSession = async (payload: CreateGuestParkingSessi
     },
     credentials: "include",
     body: JSON.stringify(body),
+  });
+  const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (response.status !== 201) {
+    throw new ParkingApiError(
+      response.status,
+      apiPayload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  const parkingSession = apiPayload.data?.parkingSession;
+  if (!parkingSession) {
+    throw new ParkingApiError(response.status, "Parking session response data is missing.");
+  }
+
+  return parkingSession;
+};
+
+export type CreateRegisteredWalkInParkingSessionPayload = {
+  phone: string;
+  licensePlate: string;
+  parkingSlotId: string;
+};
+
+/** Xe có chủ trong hệ thống, chưa đặt chỗ — cần SĐT khớp chủ xe. */
+export const createRegisteredWalkInParkingSession = async (
+  payload: CreateRegisteredWalkInParkingSessionPayload,
+) => {
+  const response = await authFetch(`${API_BASE}/api/v1/parking/create-parking-session/walk-in`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({
+      phone: payload.phone.trim(),
+      licensePlate: payload.licensePlate.trim().toUpperCase(),
+      parkingSlotId: payload.parkingSlotId,
+    }),
   });
   const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
 
