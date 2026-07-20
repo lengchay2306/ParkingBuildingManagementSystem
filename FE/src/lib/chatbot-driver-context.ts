@@ -161,7 +161,7 @@ function summarizeReservations(reservations: Reservation[]): string {
 
 function howToSnippet(): string {
   return [
-    "- Cách đặt: Reserve Parking Slot → chọn tầng/xe → slot AVAILABLE → giờ đến → Reserve",
+    "- Cách đặt: Reserve Parking Slot → chọn tầng/xe → slot AVAILABLE → giờ đến (trong 2 giờ tới) → Reserve",
     "- Hủy: My Reservations → chỉ PENDING, trước giờ hẹn >15 phút",
   ].join("\n");
 }

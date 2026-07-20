@@ -14,6 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashboardEmptyState, DashboardLegend } from "@/components/dashboard-ui";
 import { getVehicleReserveBlockReason } from "@/lib/parking-validation";
+import {
+  getExpectedArrivalValidationMessage,
+  RESERVATION_ARRIVAL_MAX_MS,
+} from "@/lib/reservation-validation";
 import { cn } from "@/lib/utils";
 import {
   findFirstAvailableSlotForVehicleType,
@@ -117,6 +121,13 @@ export function DriverVehicleReserveDialog({
       ? toLocalTimeInputValue(Date.now() + 60_000)
       : undefined;
 
+  const maxArrivalTimestamp = Date.now() + RESERVATION_ARRIVAL_MAX_MS;
+  const maxExpectedArrivalDate = getLocalDateInputValue(new Date(maxArrivalTimestamp));
+  const maxExpectedArrivalTime =
+    expectedArrivalDate === maxExpectedArrivalDate
+      ? toLocalTimeInputValue(maxArrivalTimestamp)
+      : undefined;
+
   useEffect(() => {
     if (!open || !vehicle || !vehicleTypeId) {
       return;
@@ -200,8 +211,8 @@ export function DriverVehicleReserveDialog({
   };
 
   const expectedArrival = parseExpectedArrival(expectedArrivalDate, expectedArrivalTime);
-  const isExpectedArrivalValid =
-    expectedArrival !== null && expectedArrival.getTime() > Date.now();
+  const expectedArrivalError = getExpectedArrivalValidationMessage(expectedArrival);
+  const isExpectedArrivalValid = expectedArrivalError === null && expectedArrival !== null;
 
   const availableCount = floorSlots.filter((slot) => slot.status === "AVAILABLE").length;
 
@@ -212,7 +223,7 @@ export function DriverVehicleReserveDialog({
           <DialogHeader>
             <DialogTitle>Đặt chỗ đỗ xe</DialogTitle>
             <DialogDescription>
-              Chọn chỗ trống trên tầng phù hợp loại xe và thời gian đến dự kiến.
+              Chọn chỗ trống và thời gian đến trong vòng 2 giờ tới.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -247,6 +258,7 @@ export function DriverVehicleReserveDialog({
                 value={expectedArrivalDate}
                 onChange={(event) => setExpectedArrivalDate(event.target.value)}
                 min={getLocalDateInputValue()}
+                max={maxExpectedArrivalDate}
                 className="h-10 rounded-xl text-white [color-scheme:dark]"
               />
             </div>
@@ -258,13 +270,14 @@ export function DriverVehicleReserveDialog({
                 value={expectedArrivalTime}
                 onChange={(event) => setExpectedArrivalTime(event.target.value)}
                 min={minExpectedArrivalTime}
+                max={maxExpectedArrivalTime}
                 className="h-10 rounded-xl text-white [color-scheme:dark]"
               />
             </div>
           </div>
 
-          {!isExpectedArrivalValid && expectedArrivalDate && expectedArrivalTime ? (
-            <p className="text-xs text-destructive">Thời gian đến phải ở tương lai.</p>
+          {expectedArrivalError && expectedArrivalDate && expectedArrivalTime ? (
+            <p className="text-xs text-destructive">{expectedArrivalError}</p>
           ) : null}
 
           {matchingFloors.length === 0 ? (

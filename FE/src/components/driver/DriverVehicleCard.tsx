@@ -16,8 +16,11 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getReservationVehicleId } from "@/services/parking.service";
-import type { ParkingSession } from "@/services/parking.service";
+import {
+  getReservationVehicleId,
+  getSessionSlotLabel,
+  type ParkingSession,
+} from "@/services/parking.service";
 import type { Reservation } from "@/services/reservation.service";
 import type { MonthlyCard, Vehicle, VehicleType } from "@/services/vehicle.service";
 
@@ -55,6 +58,7 @@ export function DriverVehicleCard({
   const vehicleTypeName = getVehicleTypeName(vehicle, vehicleTypes);
   const monthlyCard = resolveMonthlyCard(vehicle.monthlyCardId);
   const isInLot = parkingSession?.status === "ACTIVE" && !parkingSession?.checkOutTime;
+  const inLotSlotLabel = parkingSession ? getSessionSlotLabel(parkingSession) : undefined;
 
   const handleToggleExpanded = () => {
     setIsExpanded((open) => {
@@ -148,6 +152,10 @@ export function DriverVehicleCard({
                   />
                 </div>
 
+                {isInLot && inLotSlotLabel ? (
+                  <InfoTile icon={MapPin} label="Chỗ đang gửi" value={inLotSlotLabel} />
+                ) : null}
+
                 {hasMonthlyCard ? (
                   <div className="space-y-2">
                     <button
@@ -235,16 +243,20 @@ export function DriverVehicleCard({
             <span
               className="inline-flex max-w-full items-center gap-1 rounded-full border border-status-empty/35 bg-status-empty/10 px-2.5 py-1 text-[10px] font-semibold text-status-empty"
               title={
-                parkingSession?.checkInTime
-                  ? `Check-in ${formatShortDateTime(parkingSession.checkInTime)}`
-                  : undefined
+                inLotSlotLabel
+                  ? `Chỗ ${inLotSlotLabel}`
+                  : parkingSession?.checkInTime
+                    ? `Check-in ${formatShortDateTime(parkingSession.checkInTime)}`
+                    : undefined
               }
             >
               <ParkingCircle className="size-3 shrink-0" />
               <span className="truncate">
-                {parkingSession?.checkInTime
-                  ? `Trong bãi · ${formatShortDateTime(parkingSession.checkInTime)}`
-                  : "Trong bãi"}
+                {inLotSlotLabel
+                  ? `Trong bãi · ${inLotSlotLabel}`
+                  : parkingSession?.checkInTime
+                    ? `Trong bãi · ${formatShortDateTime(parkingSession.checkInTime)}`
+                    : "Trong bãi"}
               </span>
             </span>
           ) : null}

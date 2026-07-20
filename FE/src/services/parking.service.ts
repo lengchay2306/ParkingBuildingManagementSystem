@@ -233,6 +233,62 @@ export const getSessionVehicleTypeLabel = (
   return floor?.vehicleType?.type;
 };
 
+export const getSessionVehicleTypeId = (
+  session: ParkingSession,
+  floors: ParkingFloor[] = [],
+): string | null => {
+  const slot = session.parkingSlotId;
+  if (typeof slot === "object") {
+    const floorType = slot.floorId?.vehicleTypeId;
+    if (floorType && typeof floorType === "object" && floorType._id) {
+      return floorType._id;
+    }
+    if (typeof floorType === "string") {
+      return floorType;
+    }
+  }
+
+  const vehicle = session.vehicleId;
+  if (vehicle && typeof vehicle === "object") {
+    const typeId = vehicle.vehicleTypeId;
+    if (typeId && typeof typeId === "object" && typeId._id) {
+      return typeId._id;
+    }
+    if (typeof typeId === "string") {
+      return typeId;
+    }
+  }
+
+  const floor = getFloorForParkingSlotId(getParkingSessionSlotId(session), floors);
+  return floor?.vehicleType?._id ?? null;
+};
+
+export const getSessionSlotLabel = (
+  session: ParkingSession,
+  floors: ParkingFloor[] = [],
+): string | undefined => {
+  const slot = session.parkingSlotId;
+  if (typeof slot === "object") {
+    const slotNumber = slot.slotNumber;
+    const floorName = slot.floorId?.floorName;
+    if (slotNumber && floorName) {
+      return `${slotNumber} · ${floorName}`;
+    }
+    if (slotNumber) {
+      return slotNumber;
+    }
+  }
+
+  const slotId = getParkingSessionSlotId(session);
+  const floor = getFloorForParkingSlotId(slotId, floors);
+  const slotOnFloor = floor?.slots.find((item) => item._id === slotId);
+  if (slotOnFloor && floor) {
+    return `${slotOnFloor.slotNumber} · ${floor.floorName}`;
+  }
+
+  return undefined;
+};
+
 export const getSessionLicensePlate = (
   session: ParkingSession,
   platesBySlotId: Record<string, string> = {},
@@ -583,7 +639,7 @@ export type CreateGuestParkingSessionPayload = {
   licensePlate: string;
   parkingSlotId: string;
   vehicleTypeId: string;
-  phone?: string;
+  phone: string;
 };
 
 export const createParkingSession = async (payload: CreateParkingSessionPayload) => {
@@ -612,16 +668,14 @@ export const createParkingSession = async (payload: CreateParkingSessionPayload)
   return parkingSession;
 };
 
-/** Khách vãng lai — không cần SĐT / tài khoản driver (chỉ slot AVAILABLE). */
+/** Khách vãng lai — cần SĐT liên hệ (BE bắt buộc). */
 export const createGuestParkingSession = async (payload: CreateGuestParkingSessionPayload) => {
   const body: Record<string, string> = {
+    phone: payload.phone.trim(),
     licensePlate: payload.licensePlate.trim().toUpperCase(),
     parkingSlotId: payload.parkingSlotId,
     vehicleTypeId: payload.vehicleTypeId,
   };
-  if (payload.phone?.trim()) {
-    body.phone = payload.phone.trim();
-  }
 
   const response = await authFetch(`${API_BASE}/api/v1/parking/create-parking-session/guest`, {
     method: "POST",
@@ -649,12 +703,11 @@ export const createGuestParkingSession = async (payload: CreateGuestParkingSessi
 };
 
 export type CreateRegisteredWalkInParkingSessionPayload = {
-  phone: string;
   licensePlate: string;
   parkingSlotId: string;
 };
 
-/** Xe có chủ trong hệ thống, chưa đặt chỗ — cần SĐT khớp chủ xe. */
+/** Xe có chủ trong hệ thống, chưa đặt chỗ — BE tự gắn vehicleId + checkInUserId. */
 export const createRegisteredWalkInParkingSession = async (
   payload: CreateRegisteredWalkInParkingSessionPayload,
 ) => {
@@ -665,7 +718,6 @@ export const createRegisteredWalkInParkingSession = async (
     },
     credentials: "include",
     body: JSON.stringify({
-      phone: payload.phone.trim(),
       licensePlate: payload.licensePlate.trim().toUpperCase(),
       parkingSlotId: payload.parkingSlotId,
     }),
@@ -673,6 +725,41 @@ export const createRegisteredWalkInParkingSession = async (
   const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
 
   if (response.status !== 201) {
+    throw new ParkingApiError(
+      response.status,
+      apiPayload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  const parkingSession = apiPayload.data?.parkingSession;
+  if (!parkingSession) {
+    throw new ParkingApiError(response.status, "Parking session response data is missing.");
+  }
+
+  return parkingSession;
+};
+
+export type CorrectParkingSessionSlotPayload = {
+  parkingSessionId: string;
+  parkingSlotId: string;
+};
+
+/** Staff: sửa chỗ đậu sai trên phiên ACTIVE. */
+export const correctParkingSessionSlot = async (payload: CorrectParkingSessionSlotPayload) => {
+  const response = await authFetch(
+    `${API_BASE}/api/v1/parking-sessions/${encodeURIComponent(payload.parkingSessionId)}/slot`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ parkingSlotId: payload.parkingSlotId }),
+    },
+  );
+  const apiPayload = await parseJson<{ parkingSession?: ParkingSession }>(response);
+
+  if (!response.ok) {
     throw new ParkingApiError(
       response.status,
       apiPayload.message || parkingErrorMessage(response.status),
