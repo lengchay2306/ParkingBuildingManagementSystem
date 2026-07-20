@@ -155,6 +155,19 @@ class ParkingRepository {
         return existParkingSession;
     }
 
+    countActiveSessionsByUserId = async ({ userId, vehicleIds = [] }) => {
+        const filter = {
+            status: 'ACTIVE',
+            $or: [{ checkInUserId: userId }],
+        };
+
+        if (vehicleIds.length > 0) {
+            filter.$or.push({ vehicleId: { $in: vehicleIds } });
+        }
+
+        return ParkingSession.countDocuments(filter);
+    }
+
     findAllParkingSessionByField = async (filter) => {
         const existParkingSession = await ParkingSession.find(filter)
                                                         .populate([

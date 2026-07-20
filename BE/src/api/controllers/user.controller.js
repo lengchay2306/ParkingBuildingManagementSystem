@@ -112,6 +112,20 @@ class UserController {
         }
     }
 
+    getUserDeletionEligibility = async (req, res, next) => {
+        try {
+            const { userId } = req.params;
+            const eligibility = await this.#userService.getUserDeletionEligibility({ userId });
+            res.status(200).json({
+                status: 'success',
+                data: { eligibility },
+                message: 'User deletion eligibility fetched successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     deleteUserById = async (req, res, next) => {
         try {
             const { userId } = req.params;

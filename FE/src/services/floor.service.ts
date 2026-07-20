@@ -157,3 +157,24 @@ export const deleteFloor = async (floorId: string) => {
 
   return payload.data?.floor ?? null;
 };
+
+/** Admin list: load every page for client-side search/filter. */
+export const fetchAllFloorsPages = async ({
+  vehicleTypeId,
+  batchSize = 100,
+}: Pick<GetFloorsParams, "vehicleTypeId"> & { batchSize?: number } = {}) => {
+  const first = await getAllFloors({ page: 1, limit: batchSize, vehicleTypeId });
+  const totalPages = Math.max(first.pagination?.totalPages ?? 1, 1);
+
+  if (totalPages <= 1) {
+    return first.floors;
+  }
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAllFloors({ page: index + 2, limit: batchSize, vehicleTypeId }),
+    ),
+  );
+
+  return [...first.floors, ...rest.flatMap((result) => result.floors)];
+};

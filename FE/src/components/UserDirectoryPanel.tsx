@@ -47,6 +47,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getUserDeletionBlockers } from "@/lib/user-deletion";
+import { fetchActiveParkingSessions } from "@/services/parking.service";
+import { fetchAllReservationsPages } from "@/services/reservation.service";
 import {
   createUser,
   deleteUserById,
@@ -125,6 +128,19 @@ export function UserDirectoryPanel({
     enabled: hasMounted,
   });
 
+  const deletionBlockerDataQuery = useQuery({
+    queryKey: ["user-deletion-blocker-data"],
+    queryFn: async () => {
+      const [activeSessions, pendingReservations] = await Promise.all([
+        fetchActiveParkingSessions(),
+        fetchAllReservationsPages({ status: "PENDING" }),
+      ]);
+      return { activeSessions, pendingReservations };
+    },
+    enabled: hasMounted && allowDelete,
+    staleTime: 30_000,
+  });
+
   const vehicleTypesQuery = useQuery({
     queryKey: ["vehicle-types"],
     queryFn: getVehicleTypes,
@@ -135,6 +151,18 @@ export function UserDirectoryPanel({
   const users = usersQuery.data?.users ?? [];
   const roleOptions = useMemo(() => getRoleOptions(users), [users]);
   const pagination = usersQuery.data?.pagination;
+  const activeSessions = deletionBlockerDataQuery.data?.activeSessions ?? [];
+  const pendingReservations = deletionBlockerDataQuery.data?.pendingReservations ?? [];
+
+  const getDeletionBlockersForUser = (user: UserProfile) =>
+    getUserDeletionBlockers(user, activeSessions, pendingReservations);
+
+  const selectedUserDeletionBlockers = selectedUser
+    ? getDeletionBlockersForUser(selectedUser)
+    : null;
+  const deletingUserDeletionBlockers = deletingUser
+    ? getDeletionBlockersForUser(deletingUser)
+    : null;
 
   useEffect(() => {
     if (isCreateOpen && !createRoleId && roleOptions.length > 0) {
@@ -323,6 +351,17 @@ export function UserDirectoryPanel({
       .catch(() => {
         // keep list payload if detail fetch fails
       });
+  };
+
+  const handleDeleteRequest = (user: UserProfile) => {
+    const blockers = getDeletionBlockersForUser(user);
+    if (!blockers.canDelete) {
+      toast.error("Không thể xóa người dùng", {
+        description: blockers.message ?? "Người dùng đang có xe trong bãi hoặc đặt chỗ.",
+      });
+      return;
+    }
+    setDeletingUser(user);
   };
 
   const handleDetailOpenChange = (open: boolean) => {
@@ -578,15 +617,20 @@ export function UserDirectoryPanel({
             {usersQuery.error instanceof Error ? usersQuery.error.message : "Không thể tải danh sách người dùng."}
           </div>
         ) : users.length > 0 ? (
-          users.map((user) => (
+          users.map((user) => {
+            const deletionBlockers = getDeletionBlockersForUser(user);
+            return (
             <UserRow
               key={user._id}
               user={user}
               allowDelete={allowDelete}
+              deleteDisabled={!deletionBlockers.canDelete}
+              deleteDisabledReason={deletionBlockers.message}
               onSelect={() => handleSelectUser(user)}
-              onDelete={() => setDeletingUser(user)}
+              onDelete={() => handleDeleteRequest(user)}
             />
-          ))
+            );
+          })
         ) : (
           <div className="px-5 py-5 text-sm text-muted-foreground">Không tìm thấy người dùng.</div>
         )}
@@ -643,6 +687,14 @@ export function UserDirectoryPanel({
           {selectedUser ? (
             <form onSubmit={handleEditSubmit} className="flex min-h-0 flex-1 flex-col">
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              {allowDelete && selectedUserDeletionBlockers && !selectedUserDeletionBlockers.canDelete ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                  <p className="font-medium text-amber-50">Không thể xóa tài khoản này</p>
+                  <p className="mt-1 text-amber-100/90">
+                    {selectedUserDeletionBlockers.message}
+                  </p>
+                </div>
+              ) : null}
               <div className="grid gap-2">
                 <Label htmlFor="user-full-name">Họ tên</Label>
                 <Input
@@ -952,7 +1004,13 @@ export function UserDirectoryPanel({
                     <Button
                       type="button"
                       variant="destructive"
-                      onClick={() => setDeletingUser(selectedUser)}
+                      disabled={selectedUserDeletionBlockers ? !selectedUserDeletionBlockers.canDelete : false}
+                      title={
+                        selectedUserDeletionBlockers && !selectedUserDeletionBlockers.canDelete
+                          ? (selectedUserDeletionBlockers.message ?? undefined)
+                          : undefined
+                      }
+                      onClick={() => handleDeleteRequest(selectedUser)}
                       className="h-11 rounded-xl px-4 text-[13px] font-semibold"
                     >
                       <Trash2 className="size-4" />
@@ -1122,15 +1180,26 @@ export function UserDirectoryPanel({
       >
         <AlertDialogContent className="rounded-2xl border-border/70 bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deletingUserDeletionBlockers && !deletingUserDeletionBlockers.canDelete
+                ? "Không thể xóa người dùng"
+                : "Bạn có chắc chắn muốn xóa?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {deletingUser
-                ? `Người dùng "${deletingUser.fullName}" và toàn bộ ${deletingUser.vehicles?.length ?? 0} xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`
-                : "Người dùng và toàn bộ xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác."}
+              {deletingUserDeletionBlockers && !deletingUserDeletionBlockers.canDelete
+                ? deletingUserDeletionBlockers.message
+                : deletingUser
+                  ? `Người dùng "${deletingUser.fullName}" và toàn bộ ${deletingUser.vehicles?.length ?? 0} xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`
+                  : "Người dùng và toàn bộ xe sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">
+              {deletingUserDeletionBlockers && !deletingUserDeletionBlockers.canDelete
+                ? "Đóng"
+                : "Hủy"}
+            </AlertDialogCancel>
+            {deletingUserDeletionBlockers?.canDelete !== false ? (
             <AlertDialogAction
               className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(event) => {
@@ -1150,6 +1219,7 @@ export function UserDirectoryPanel({
                 "Xóa"
               )}
             </AlertDialogAction>
+            ) : null}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1160,11 +1230,15 @@ export function UserDirectoryPanel({
 function UserRow({
   user,
   allowDelete,
+  deleteDisabled = false,
+  deleteDisabledReason,
   onSelect,
   onDelete,
 }: {
   user: UserProfile;
   allowDelete?: boolean;
+  deleteDisabled?: boolean;
+  deleteDisabledReason?: string | null;
   onSelect: () => void;
   onDelete: () => void;
 }) {
@@ -1223,9 +1297,15 @@ function UserRow({
             type="button"
             size="sm"
             variant="ghost"
+            disabled={deleteDisabled}
+            title={deleteDisabled ? (deleteDisabledReason ?? "Không thể xóa người dùng này") : undefined}
             onClick={onDelete}
-            className="h-8 rounded-xl px-2.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500"
-            aria-label={`Xóa ${user.fullName}`}
+            className="h-8 rounded-xl px-2.5 text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-40"
+            aria-label={
+              deleteDisabled
+                ? `Không thể xóa ${user.fullName}`
+                : `Xóa ${user.fullName}`
+            }
           >
             <Trash2 className="size-3.5" />
           </Button>

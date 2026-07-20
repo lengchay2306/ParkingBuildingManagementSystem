@@ -13,13 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashboardClientPagination } from "@/components/dashboard-ui";
+import { DashboardClientPagination, paginateItems } from "@/components/dashboard-ui";
 import { cn } from "@/lib/utils";
 import {
   createFloor,
   deleteFloor,
-  getAllFloors,
   getFloorById,
+  fetchAllFloorsPages,
   updateFloor,
   type Floor,
 } from "@/services/floor.service";
@@ -36,6 +36,7 @@ import {
   deleteAdminParkingSlot,
   getAdminParkingSlotById,
   getAdminParkingSlots,
+  fetchAllAdminParkingSlotsPages,
   updateAdminParkingSlot,
   type AdminParkingSlot,
   type AdminParkingSlotStatus,
@@ -105,9 +106,11 @@ export function AdminResourcesPanel({ className }: AdminResourcesPanelProps) {
 function FloorsAdmin() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const floorsQuery = useQuery({
-    queryKey: ["admin-floors", page],
-    queryFn: () => getAllFloors({ page, limit: ADMIN_LIST_PAGE_SIZE }),
+    queryKey: ["admin-floors-all"],
+    queryFn: () => fetchAllFloorsPages(),
   });
   const typesQuery = useQuery({
     queryKey: ["vehicle-types"],
@@ -123,6 +126,7 @@ function FloorsAdmin() {
     onSuccess: async () => {
       setFloorName("");
       setTotalSlot("20");
+      await queryClient.invalidateQueries({ queryKey: ["admin-floors-all"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-floors"] });
       toast.success("Đã tạo tầng");
     },
@@ -136,6 +140,7 @@ function FloorsAdmin() {
   const deleteMutation = useMutation({
     mutationFn: deleteFloor,
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-floors-all"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-floors"] });
       toast.success("Đã xóa tầng");
     },
@@ -145,6 +150,27 @@ function FloorsAdmin() {
       });
     },
   });
+
+  const filteredFloors = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const floors = floorsQuery.data ?? [];
+    if (!query) {
+      return floors;
+    }
+    return floors.filter((floor) => {
+      const typeLabel = vehicleTypeLabel(floor.vehicleTypeId).toLowerCase();
+      return (
+        floor.floorName.toLowerCase().includes(query) ||
+        floor._id.toLowerCase().includes(query) ||
+        typeLabel.includes(query)
+      );
+    });
+  }, [floorsQuery.data, searchQuery]);
+
+  const floorPagination = useMemo(
+    () => paginateItems(filteredFloors, page, ADMIN_LIST_PAGE_SIZE),
+    [filteredFloors, page],
+  );
 
   const onCreate = (event: FormEvent) => {
     event.preventDefault();
@@ -203,14 +229,31 @@ function FloorsAdmin() {
         </form>
       }
     >
+      <AdminListSearch
+        id="admin-floor-search"
+        label="Tìm tầng"
+        placeholder="Tên tầng, loại xe..."
+        value={searchInput}
+        onChange={setSearchInput}
+        active={Boolean(searchQuery)}
+        onSubmit={() => {
+          setPage(1);
+          setSearchQuery(searchInput.trim());
+        }}
+        onClear={() => {
+          setSearchInput("");
+          setSearchQuery("");
+          setPage(1);
+        }}
+      />
       <PaginatedResourceList
         loading={floorsQuery.isLoading}
         error={floorsQuery.error}
-        empty="Chưa có tầng."
-        items={floorsQuery.data?.floors ?? []}
+        empty={searchQuery ? "Không tìm thấy tầng khớp." : "Chưa có tầng."}
+        items={floorPagination.items}
         page={page}
-        totalPages={Math.max(floorsQuery.data?.pagination?.totalPages ?? 1, 1)}
-        totalItems={floorsQuery.data?.pagination?.totalCount}
+        totalPages={floorPagination.totalPages}
+        totalItems={filteredFloors.length}
         onPageChange={setPage}
         isFetching={floorsQuery.isFetching}
         renderItem={(floor: Floor) => (
@@ -246,6 +289,7 @@ function FloorsAdmin() {
                   if (!nextName?.trim()) return;
                   void updateFloor(floor._id, { floorName: nextName.trim() })
                     .then(async () => {
+                      await queryClient.invalidateQueries({ queryKey: ["admin-floors-all"] });
                       await queryClient.invalidateQueries({ queryKey: ["admin-floors"] });
                       toast.success("Đã cập nhật tầng");
                     })
@@ -499,13 +543,21 @@ function PricePoliciesAdmin() {
 function SlotsAdmin() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterFloorId, setFilterFloorId] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState<AdminParkingSlotStatus | "ALL">("ALL");
   const floorsQuery = useQuery({
     queryKey: ["admin-floors", "options"],
-    queryFn: () => getAllFloors({ page: 1, limit: 100 }),
+    queryFn: () => fetchAllFloorsPages(),
   });
   const slotsQuery = useQuery({
-    queryKey: ["admin-parking-slots", page],
-    queryFn: () => getAdminParkingSlots({ page, limit: ADMIN_LIST_PAGE_SIZE }),
+    queryKey: ["admin-parking-slots-all", filterFloorId, filterStatus],
+    queryFn: () =>
+      fetchAllAdminParkingSlotsPages({
+        floorId: filterFloorId === "ALL" ? undefined : filterFloorId,
+        status: filterStatus === "ALL" ? undefined : filterStatus,
+      }),
   });
 
   const [floorId, setFloorId] = useState("");
@@ -516,6 +568,7 @@ function SlotsAdmin() {
     mutationFn: createAdminParkingSlot,
     onSuccess: async () => {
       setSlotNumber("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots-all"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots"] });
       toast.success("Đã tạo chỗ đỗ");
     },
@@ -535,6 +588,7 @@ function SlotsAdmin() {
       nextStatus: AdminParkingSlotStatus;
     }) => updateAdminParkingSlot(id, { status: nextStatus }),
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots-all"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots"] });
       toast.success("Đã cập nhật chỗ đỗ");
     },
@@ -548,6 +602,7 @@ function SlotsAdmin() {
   const deleteMutation = useMutation({
     mutationFn: deleteAdminParkingSlot,
     onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots-all"] });
       await queryClient.invalidateQueries({ queryKey: ["admin-parking-slots"] });
       toast.success("Đã xóa chỗ đỗ");
     },
@@ -560,11 +615,37 @@ function SlotsAdmin() {
 
   const floorNameById = useMemo(() => {
     const map = new Map<string, string>();
-    for (const floor of floorsQuery.data?.floors ?? []) {
+    for (const floor of floorsQuery.data ?? []) {
       map.set(floor._id, floor.floorName);
     }
     return map;
   }, [floorsQuery.data]);
+
+  const filteredSlots = useMemo(() => {
+    const query = searchQuery.trim().toUpperCase();
+    const slots = slotsQuery.data ?? [];
+    if (!query) {
+      return slots;
+    }
+    return slots.filter((slot) => {
+      const floorKey =
+        typeof slot.floorId === "string" ? slot.floorId : slot.floorId?._id ?? "";
+      const floorLabel =
+        typeof slot.floorId === "object" && slot.floorId?.floorName
+          ? slot.floorId.floorName
+          : floorNameById.get(floorKey) ?? "";
+      return (
+        slot.slotNumber.toUpperCase().includes(query) ||
+        slot._id.toUpperCase().includes(query) ||
+        floorLabel.toUpperCase().includes(query)
+      );
+    });
+  }, [slotsQuery.data, searchQuery, floorNameById]);
+
+  const slotPagination = useMemo(
+    () => paginateItems(filteredSlots, page, ADMIN_LIST_PAGE_SIZE),
+    [filteredSlots, page],
+  );
 
   return (
     <AdminCrudShell
@@ -589,7 +670,7 @@ function SlotsAdmin() {
                 <SelectValue placeholder="Chọn tầng" />
               </SelectTrigger>
               <SelectContent>
-                {(floorsQuery.data?.floors ?? []).map((floor) => (
+                {(floorsQuery.data ?? []).map((floor) => (
                   <SelectItem key={floor._id} value={floor._id}>
                     {floor.floorName}
                   </SelectItem>
@@ -631,14 +712,75 @@ function SlotsAdmin() {
         </form>
       }
     >
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <AdminListSearch
+          id="admin-slot-search"
+          label="Tìm chỗ đỗ"
+          placeholder="Mã ô, tầng..."
+          value={searchInput}
+          onChange={setSearchInput}
+          active={Boolean(searchQuery)}
+          onSubmit={() => {
+            setPage(1);
+            setSearchQuery(searchInput.trim());
+          }}
+          onClear={() => {
+            setSearchInput("");
+            setSearchQuery("");
+            setPage(1);
+          }}
+        />
+        <Field label="Lọc tầng">
+          <Select
+            value={filterFloorId}
+            onValueChange={(value) => {
+              setFilterFloorId(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-9 rounded-xl">
+              <SelectValue placeholder="Tất cả tầng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả tầng</SelectItem>
+              {(floorsQuery.data ?? []).map((floor) => (
+                <SelectItem key={floor._id} value={floor._id}>
+                  {floor.floorName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Lọc trạng thái">
+          <Select
+            value={filterStatus}
+            onValueChange={(value) => {
+              setFilterStatus(value as AdminParkingSlotStatus | "ALL");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-9 rounded-xl">
+              <SelectValue placeholder="Tất cả" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả</SelectItem>
+              {slotStatuses.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
       <PaginatedResourceList
         loading={slotsQuery.isLoading}
         error={slotsQuery.error}
-        empty="Chưa có chỗ đỗ."
-        items={slotsQuery.data?.parkingSlots ?? []}
+        empty={searchQuery ? "Không tìm thấy chỗ đỗ khớp." : "Chưa có chỗ đỗ."}
+        items={slotPagination.items}
         page={page}
-        totalPages={Math.max(slotsQuery.data?.pagination?.totalPages ?? 1, 1)}
-        totalItems={slotsQuery.data?.pagination?.totalCount}
+        totalPages={slotPagination.totalPages}
+        totalItems={filteredSlots.length}
         onPageChange={setPage}
         isFetching={slotsQuery.isFetching}
         renderItem={(slot: AdminParkingSlot) => {
@@ -1022,4 +1164,58 @@ function vehicleTypeLabel(value?: string | { _id?: string; type?: string }) {
   if (!value) return "—";
   if (typeof value === "string") return value;
   return value.type ?? value._id ?? "—";
+}
+
+function AdminListSearch({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  active,
+  onSubmit,
+  onClear,
+}: {
+  id: string;
+  label: string;
+  placeholder?: string;
+  value: string;
+  onChange: (value: string) => void;
+  active: boolean;
+  onSubmit: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-[10px] uppercase tracking-[0.14em]">
+        {label}
+      </Label>
+      <form
+        className="flex flex-wrap items-center gap-1.5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <Input
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={cn(
+            "h-9 min-w-[180px] flex-1 rounded-xl",
+            active && "border-primary/60 ring-1 ring-primary/20",
+          )}
+        />
+        <Button type="submit" size="sm" className="h-9 rounded-xl">
+          Tìm
+        </Button>
+        {active ? (
+          <Button type="button" size="sm" variant="secondary" className="h-9 rounded-xl" onClick={onClear}>
+            Xóa
+          </Button>
+        ) : null}
+      </form>
+    </div>
+  );
 }

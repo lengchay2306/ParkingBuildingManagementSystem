@@ -188,3 +188,25 @@ export const deleteAdminParkingSlot = async (parkingSlotId: string) => {
 
   return payload.data?.parkingSlot ?? null;
 };
+
+/** Admin list: load every page for client-side search/filter. */
+export const fetchAllAdminParkingSlotsPages = async ({
+  floorId,
+  status,
+  batchSize = 100,
+}: Pick<GetAdminParkingSlotsParams, "floorId" | "status"> & { batchSize?: number } = {}) => {
+  const first = await getAdminParkingSlots({ page: 1, limit: batchSize, floorId, status });
+  const totalPages = Math.max(first.pagination?.totalPages ?? 1, 1);
+
+  if (totalPages <= 1) {
+    return first.parkingSlots;
+  }
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAdminParkingSlots({ page: index + 2, limit: batchSize, floorId, status }),
+    ),
+  );
+
+  return [...first.parkingSlots, ...rest.flatMap((result) => result.parkingSlots)];
+};
