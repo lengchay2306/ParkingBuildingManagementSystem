@@ -5,16 +5,19 @@ class ParkingService {
     #userRepository
     #vehicleRepository
     #reservationRepository
+    #paymentService
     constructor({ 
         parkingRepository,
         userRepository, 
         vehicleRepository,
         reservationRepository,
+        paymentService,
     }) {
         this.#parkingRepository = parkingRepository;
         this.#userRepository = userRepository;
         this.#vehicleRepository = vehicleRepository;
         this.#reservationRepository = reservationRepository;
+        this.#paymentService = paymentService;
     }
 
     #hasActiveMonthlyCard = (vehicle) => {
@@ -225,6 +228,10 @@ class ParkingService {
             vehicleId: usersVehicles._id,
             parkingSlotId: existingParkingSlot._id,
         })
+
+        // Deposit was held to secure the slot; once the driver actually
+        // checks in (claims the reservation), give it back.
+        await this.#paymentService.refundReservationDeposit({ reservationId });
 
         return {
             ...newParkingSession,
