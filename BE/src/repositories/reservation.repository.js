@@ -281,6 +281,16 @@ class ReservationRepository {
             .lean();
     }
 
+    countActiveReservationsByDriverId = async ({ driverId }) => {
+        const now = new Date();
+
+        return Reservation.countDocuments({
+            driverId,
+            status: 'PENDING',
+            expiryAt: { $gt: now },
+        });
+    }
+
     findActiveReservationsBySlotIds = async ({ parkingSlotIds }) => {
         const now = new Date();
 

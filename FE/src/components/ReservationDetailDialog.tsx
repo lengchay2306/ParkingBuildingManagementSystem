@@ -192,6 +192,9 @@ function getDriverPhone(reservation: Reservation) {
 }
 
 function getVehiclePlate(reservation: Reservation) {
+  if (!reservation.vehicleId) {
+    return "—";
+  }
   if (typeof reservation.vehicleId === "string") {
     return reservation.vehicleId;
   }
@@ -199,13 +202,16 @@ function getVehiclePlate(reservation: Reservation) {
 }
 
 function getVehicleType(reservation: Reservation) {
-  if (typeof reservation.vehicleId === "string") {
+  if (!reservation.vehicleId || typeof reservation.vehicleId === "string") {
     return "—";
   }
   return reservation.vehicleId.vehicleTypeId?.type ?? "—";
 }
 
 function getSlotLabel(reservation: Reservation) {
+  if (!reservation.parkingSlotId) {
+    return "—";
+  }
   if (typeof reservation.parkingSlotId === "string") {
     return reservation.parkingSlotId;
   }
@@ -213,14 +219,14 @@ function getSlotLabel(reservation: Reservation) {
 }
 
 function getFloorName(reservation: Reservation) {
-  if (typeof reservation.parkingSlotId === "string") {
+  if (!reservation.parkingSlotId || typeof reservation.parkingSlotId === "string") {
     return "—";
   }
   return reservation.parkingSlotId.floorId?.floorName ?? "—";
 }
 
 function getSlotStatus(reservation: Reservation) {
-  if (typeof reservation.parkingSlotId === "string") {
+  if (!reservation.parkingSlotId || typeof reservation.parkingSlotId === "string") {
     return "—";
   }
   return reservation.parkingSlotId.status ?? "—";

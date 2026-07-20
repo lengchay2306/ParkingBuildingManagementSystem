@@ -6,12 +6,67 @@ class UserService {
     #hashService;
     #vehicleService;
     #vehicleRepository;
+    #parkingRepository;
+    #reservationRepository;
 
-    constructor({ userRepository, hashService, vehicleService, vehicleRepository }) {
+    constructor({
+        userRepository,
+        hashService,
+        vehicleService,
+        vehicleRepository,
+        parkingRepository,
+        reservationRepository,
+    }) {
         this.#userRepository = userRepository;
         this.#hashService = hashService;
         this.#vehicleService = vehicleService;
         this.#vehicleRepository = vehicleRepository;
+        this.#parkingRepository = parkingRepository;
+        this.#reservationRepository = reservationRepository;
+    }
+
+    #buildUserDeletionBlockMessage = ({ activeSessionCount, activeReservationCount }) => {
+        const parts = [];
+
+        if (activeSessionCount > 0) {
+            parts.push('đang có xe trong bãi');
+        }
+        if (activeReservationCount > 0) {
+            parts.push('đang có đặt chỗ');
+        }
+
+        return `Không thể xóa người dùng ${parts.join(' và ')}. Vui lòng khóa tài khoản (LOCKED) thay vì xóa.`;
+    }
+
+    getUserDeletionEligibility = async ({ userId }) => {
+        const existingUser = await this.#userRepository.findByUserId({ userId });
+        if (!existingUser) {
+            throw new NotFoundError("User not found");
+        }
+
+        const vehicleIds = await this.#vehicleRepository.getVehicleIdsByUserId({ userId });
+        const [activeSessionCount, activeReservationCount] = await Promise.all([
+            this.#parkingRepository.countActiveSessionsByUserId({ userId, vehicleIds }),
+            this.#reservationRepository.countActiveReservationsByDriverId({ driverId: userId }),
+        ]);
+
+        const canDelete = activeSessionCount === 0 && activeReservationCount === 0;
+
+        return {
+            canDelete,
+            activeSessionCount,
+            activeReservationCount,
+            message: canDelete
+                ? null
+                : this.#buildUserDeletionBlockMessage({ activeSessionCount, activeReservationCount }),
+        };
+    }
+
+    #assertUserCanBeDeleted = async ({ userId }) => {
+        const eligibility = await this.getUserDeletionEligibility({ userId });
+        if (!eligibility.canDelete) {
+            throw new BadRequestError(eligibility.message);
+        }
     }
 
     #handleCreateUserVehicles = async ({ userId, vehicles }) => {
@@ -235,6 +290,8 @@ class UserService {
         if (!existingUser) {
             throw new NotFoundError("User not found");
         }
+
+        await this.#assertUserCanBeDeleted({ userId });
 
         const deletedVehicles = await this.#vehicleRepository.deleteVehiclesByUserId({ userId });
         const deletedUser = await this.#userRepository.deleteUserById({ userId });

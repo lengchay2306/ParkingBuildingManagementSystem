@@ -285,6 +285,39 @@ export const getAllUsers = async ({
   };
 };
 
+export type UserDeletionEligibility = {
+  canDelete: boolean;
+  activeSessionCount: number;
+  activeReservationCount: number;
+  message: string | null;
+};
+
+export const getUserDeletionEligibility = async (userId: string) => {
+  const response = await authFetch(
+    `${API_BASE}/api/v1/users/${encodeURIComponent(userId)}/deletion-eligibility`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const result = await parseJson<{ eligibility?: UserDeletionEligibility }>(response);
+
+  if (!response.ok) {
+    const fallback =
+      response.status === 403
+        ? "Bạn không có quyền kiểm tra điều kiện xóa người dùng."
+        : userErrorMessage(response.status);
+    throw new UserApiError(response.status, result.message || fallback);
+  }
+
+  const eligibility = result.data?.eligibility;
+  if (!eligibility) {
+    throw new UserApiError(response.status, "Deletion eligibility response data is missing.");
+  }
+
+  return eligibility;
+};
+
 export const deleteUserById = async (userId: string) => {
   const response = await authFetch(`${API_BASE}/api/v1/users/${userId}`, {
     method: "DELETE",

@@ -539,6 +539,17 @@ router.put(
  *         description: User not found
  */
 router.get(
+    "/:userId/deletion-eligibility",
+    authentication,
+    authorizationByRole(['ADMIN']),
+    validateData(userIdParamSchema, 'params'),
+    async (req, res, next) => {
+        const userController = req.container.resolve('userController');
+        await userController.getUserDeletionEligibility(req, res, next);
+    }
+);
+
+router.get(
     "/:userId",
     authentication,
     authorizationByRole(['ADMIN','MANAGER','STAFF']),

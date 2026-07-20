@@ -406,12 +406,12 @@ export function ReservationListPanel({
               return (
               <article
                 key={reservation._id}
-                className="api-row grid grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl px-5 py-4 transition-colors"
+                className="api-row grid w-full grid-cols-[1.4fr_1.2fr_1fr_0.8fr_0.7fr] items-center gap-4 rounded-xl px-5 py-4"
               >
                 <button
                   type="button"
                   onClick={() => setViewingReservation(reservation)}
-                  className="col-span-4 grid cursor-pointer grid-cols-[1.4fr_1.2fr_1fr_0.8fr] items-center gap-4 rounded-lg text-left transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="contents cursor-pointer text-left hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={`Xem chi tiết đặt chỗ ${getSlotLabel(reservation)}`}
                 >
                   <div className="min-w-0">
@@ -620,6 +620,9 @@ function formatReservationDateLabel(dateKey: string) {
 }
 
 function getDriverLabel(reservation: Reservation) {
+  if (!reservation.driverId) {
+    return "Không xác định";
+  }
   if (typeof reservation.driverId === "object") {
     return reservation.driverId.fullName ?? "Không xác định";
   }
@@ -627,13 +630,16 @@ function getDriverLabel(reservation: Reservation) {
 }
 
 function getDriverSubLabel(reservation: Reservation) {
-  if (typeof reservation.driverId === "object") {
-    return reservation.driverId.email ?? reservation.driverId.phone ?? "Không có";
+  if (!reservation.driverId || typeof reservation.driverId === "string") {
+    return "Không có";
   }
-  return "Không có";
+  return reservation.driverId.email ?? reservation.driverId.phone ?? "Không có";
 }
 
 function getVehicleLabel(reservation: Reservation) {
+  if (!reservation.vehicleId) {
+    return "—";
+  }
   if (typeof reservation.vehicleId === "string") {
     return reservation.vehicleId;
   }
@@ -641,6 +647,9 @@ function getVehicleLabel(reservation: Reservation) {
 }
 
 function getSlotLabel(reservation: Reservation) {
+  if (!reservation.parkingSlotId) {
+    return "—";
+  }
   if (typeof reservation.parkingSlotId === "string") {
     return reservation.parkingSlotId;
   }

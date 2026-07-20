@@ -80,6 +80,11 @@ class VehicleRepository {
         };
     }
 
+    getVehicleIdsByUserId = async ({ userId }) => {
+        const vehicles = await Vehicle.find({ userId }).select('_id').lean();
+        return vehicles.map((vehicle) => vehicle._id);
+    }
+
     getVehicleById = async ({ vehicleId }) => {
         const vehicle = await Vehicle.findById(vehicleId)
                                     .populate("vehicleTypeId")
