@@ -182,6 +182,60 @@ class ParkingRepository {
         return existParkingSession;
     }
 
+    /** Customer history: sessions for their vehicles and/or check-in user. */
+    findMyParkingSessions = async ({
+        userId,
+        vehicleIds = [],
+        status,
+        page = 1,
+        limit = 50,
+    }) => {
+        const orConditions = [{ checkInUserId: userId }];
+        if (vehicleIds.length > 0) {
+            orConditions.push({ vehicleId: { $in: vehicleIds } });
+        }
+
+        const filter = { $or: orConditions };
+        if (status) {
+            filter.status = status;
+        }
+
+        const skip = (Math.max(1, page) - 1) * limit;
+
+        const [parkingSessions, totalCount] = await Promise.all([
+            ParkingSession.find(filter)
+                .sort({ checkInTime: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate([
+                    'vehicleId',
+                    {
+                        path: 'parkingSlotId',
+                        populate: {
+                            path: 'floorId',
+                            populate: { path: 'vehicleTypeId' },
+                        },
+                    },
+                    'checkInUserId',
+                    'checkOutUserId',
+                    'checkInStaffId',
+                    'checkOutStaffId',
+                ])
+                .lean(),
+            ParkingSession.countDocuments(filter),
+        ]);
+
+        return {
+            parkingSessions,
+            pagination: {
+                page: Math.max(1, page),
+                limit,
+                totalCount,
+                totalPages: Math.max(1, Math.ceil(totalCount / limit)),
+            },
+        };
+    };
+
     createNewParkingSession = async ({
         vehicleId,
         licensePlate,

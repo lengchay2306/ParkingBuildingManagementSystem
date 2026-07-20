@@ -43,6 +43,7 @@ import { useLanguagePreference } from '@/hooks/language-preference';
 import { useProtectedSession } from '@/hooks/use-protected-session';
 import { useThemePreference } from '@/hooks/theme-preference';
 import { getMyProfile, type UserVehicle } from '@/lib/auth-api';
+import { formatDbStatus } from '@/lib/db-status';
 import {
   resolveFloorPresentation,
   resolveParkingVehicleTypeLabel,
@@ -130,20 +131,8 @@ function vehicleMatchesFloor(vehicle: UserVehicle, floor: ParkingFloor): boolean
   return false;
 }
 
-function statusLabel(
-  status: string | undefined,
-  t: (vi: string, en: string) => string,
-): string {
-  switch (mapApiSlotStatus(status)) {
-    case 'available':
-      return t('Trống', 'Available');
-    case 'reserved':
-      return t('Đã đặt trước', 'Reserved');
-    case 'in-use':
-      return t('Đang sử dụng', 'In use');
-    default:
-      return t('Không khả dụng', 'Unavailable');
-  }
+function statusLabel(status: string | undefined): string {
+  return formatDbStatus(status);
 }
 
 export default function ParkingMapScreen() {
@@ -639,11 +628,11 @@ export default function ParkingMapScreen() {
       <View style={styles.legendRow}>
         {(
           [
-            ['available', t('Trống', 'Free'), DesignColors.semanticSuccess],
-            ['reserved', t('Đã đặt', 'Reserved'), DesignColors.semanticWarning],
-            ['mine', t('Của tôi', 'Mine'), DesignColors.primary],
-            ['in-use', t('Đang dùng', 'In use'), DesignColors.inkMuted],
-            ['unavailable', t('Khóa', 'Blocked'), DesignColors.semanticDanger],
+            ['available', 'AVAILABLE', DesignColors.semanticSuccess],
+            ['reserved', 'RESERVED', DesignColors.semanticWarning],
+            ['mine', 'MINE', DesignColors.primary],
+            ['in-use', 'CURRENTLY-IN-USED', DesignColors.inkMuted],
+            ['unavailable', 'UNAVAILABLE', DesignColors.semanticDanger],
           ] as const
         ).map(([key, label, color]) => (
           <View key={key} style={styles.legendItem}>
@@ -707,9 +696,7 @@ export default function ParkingMapScreen() {
                 </ThemedText>
                 <View style={styles.statusPill}>
                   <ThemedText style={styles.statusPillText}>
-                    {isSelectedSlotMine
-                      ? t('Chỗ bạn đã đặt', 'Your reservation')
-                      : statusLabel(selectedSlot.status, t)}
+                    {statusLabel(selectedSlot.status)}
                   </ThemedText>
                 </View>
 
@@ -1045,8 +1032,11 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     statusPillText: {
       ...Typography.caption,
-    color: DesignColors.ink,
-      fontWeight: '600',
+      color: DesignColors.ink,
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
     },
     sheetActions: {
       flexDirection: 'row',

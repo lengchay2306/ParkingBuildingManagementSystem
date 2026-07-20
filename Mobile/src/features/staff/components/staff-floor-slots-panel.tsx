@@ -213,17 +213,17 @@ export function StaffFloorSlotsPanel({ floors, t, onOpenSlot, emptyHint }: Staff
                   {activePresentation.metaTitle}
                 </ThemedText>
                 <ThemedText style={styles.floorMetaCompactStats}>
-                  {activePresentation.available}/{activePresentation.total} {t('trống', 'free')} ·{' '}
-                  {activePresentation.inUsed} {t('đang gửi', 'in use')}
+                  {activePresentation.available}/{activePresentation.total} AVAILABLE ·{' '}
+                  {activePresentation.inUsed} CURRENTLY-IN-USED
                 </ThemedText>
               </View>
             </Animated.View>
 
             <View style={styles.legendRowCompact}>
-              <LegendDot color={DesignColors.accentEmerald} label={t('Trống', 'Free')} styles={styles} />
-              <LegendDot color={DesignColors.accentAmber} label={t('Gửi', 'In use')} styles={styles} />
-              <LegendDot color={DesignColors.accentSky} label={t('Đặt', 'Reserved')} styles={styles} />
-              <LegendDot color={DesignColors.inkSubtle} label={t('Khóa', 'Locked')} styles={styles} />
+              <LegendDot color={DesignColors.accentEmerald} label="AVAILABLE" styles={styles} />
+              <LegendDot color={DesignColors.accentAmber} label="CURRENTLY-IN-USED" styles={styles} />
+              <LegendDot color={DesignColors.accentSky} label="RESERVED" styles={styles} />
+              <LegendDot color={DesignColors.inkSubtle} label="UNAVAILABLE" styles={styles} />
             </View>
 
             {activeFloorSlots.length === 0 ? (

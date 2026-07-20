@@ -4,6 +4,7 @@ import {
     parkingSessionSchema,
     checkParkingSessionSchema,
     queryParkingSessionsSchema,
+    queryMyParkingSessionsSchema,
     guestParkingSessionSchema,
     walkInParkingSessionSchema,
     getActiveSessionByLicensePlateParamsSchema,
@@ -203,6 +204,48 @@ router.get(
         const parkingController = req.container.resolve('parkingController')
 
         await parkingController.getAllParkingSessions(req, res, next)
+    }
+)
+
+/**
+ * @swagger
+ * /api/v1/parking/my-parking-sessions:
+ *   get:
+ *     summary: List parking sessions for the authenticated driver
+ *     description: |
+ *       Returns ACTIVE and/or COMPLETED sessions for vehicles owned by the customer
+ *       (and sessions where they are the check-in user). Optional status filter.
+ *     tags: [Parking]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [ACTIVE, COMPLETED]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: Parking sessions fetched successfully
+ */
+router.get(
+    '/my-parking-sessions',
+    authentication,
+    authorizationByRole(['CUSTOMER', 'MANAGER', 'ADMIN', 'STAFF']),
+    validateData(queryMyParkingSessionsSchema, 'query'),
+    async (req, res, next) => {
+        const parkingController = req.container.resolve('parkingController')
+        await parkingController.getMyParkingSessions(req, res, next)
     }
 )
 

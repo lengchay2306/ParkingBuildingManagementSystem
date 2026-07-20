@@ -91,6 +91,34 @@ export async function getActiveUserParkingSession(
   }
 }
 
+export type MyParkingSessionsQuery = {
+  status?: 'ACTIVE' | 'COMPLETED';
+  page?: number;
+  limit?: number;
+};
+
+/** GET /parking/my-parking-sessions — lịch sử phiên gửi xe của tài xế đang đăng nhập. */
+export async function getMyParkingSessions(
+  query: MyParkingSessionsQuery = {},
+): Promise<CustomerParkingSession[]> {
+  const params = new URLSearchParams();
+  if (query.status) {
+    params.set('status', query.status);
+  }
+  if (query.page) {
+    params.set('page', String(query.page));
+  }
+  if (query.limit) {
+    params.set('limit', String(query.limit));
+  }
+  const qs = params.toString();
+  const response = await authenticatedFetch(`/parking/my-parking-sessions${qs ? `?${qs}` : ''}`);
+  const payload = await parseParkingResponse<{ parkingSessions?: CustomerParkingSession[] }>(
+    response,
+  );
+  return payload.data?.parkingSessions ?? [];
+}
+
 export async function getParkingSlots(filters: ParkingSlotFilters = {}): Promise<ParkingFloor[]> {
   const params = new URLSearchParams();
   if (filters.vehicleType) {

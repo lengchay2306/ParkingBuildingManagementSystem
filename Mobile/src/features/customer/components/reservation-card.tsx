@@ -6,6 +6,7 @@ import {
   canCancelReservation,
   type Reservation,
 } from '@/features/customer/api/reservations';
+import { formatDbStatus } from '@/lib/db-status';
 
 export function formatReservationDateTime(value: string | undefined) {
   if (!value) {
@@ -23,24 +24,8 @@ export function formatReservationDateTime(value: string | undefined) {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
-function reservationStatusLabel(
-  status: string | undefined,
-  t: (vi: string, en: string) => string,
-) {
-  const normalized = status?.toUpperCase();
-  if (normalized === 'PENDING') {
-    return t('Đang giữ chỗ', 'On hold');
-  }
-  if (normalized === 'CLAIMED') {
-    return t('Đã nhận chỗ', 'Claimed');
-  }
-  if (normalized === 'EXPIRED') {
-    return t('Hết hạn', 'Expired');
-  }
-  if (normalized === 'CANCELLED') {
-    return t('Đã hủy', 'Cancelled');
-  }
-  return status ?? '—';
+function reservationStatusLabel(status: string | undefined) {
+  return formatDbStatus(status);
 }
 
 function reservationStatusColor(status: string | undefined, DesignColors: DesignColorPalette) {
@@ -124,7 +109,7 @@ export function ReservationCard({
         </View>
         <View style={[styles.statusPill, { borderColor: statusColor }]}>
           <ThemedText style={[styles.statusPillText, { color: statusColor }]}>
-            {reservationStatusLabel(reservation.status, t)}
+            {reservationStatusLabel(reservation.status)}
           </ThemedText>
         </View>
       </View>

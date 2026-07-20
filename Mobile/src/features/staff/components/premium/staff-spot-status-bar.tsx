@@ -11,7 +11,6 @@ type StaffSpotStatusBarProps = {
   counts: StaffSpotCounts;
   value: SpotStatusFilter;
   onChange: (value: SpotStatusFilter) => void;
-  t: (vi: string, en: string) => string;
 };
 
 type StatusChip = {
@@ -21,7 +20,7 @@ type StatusChip = {
   color: string;
 };
 
-export function StaffSpotStatusBar({ counts, value, onChange, t }: StaffSpotStatusBarProps) {
+export function StaffSpotStatusBar({ counts, value, onChange }: StaffSpotStatusBarProps) {
   const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
 
@@ -29,36 +28,36 @@ export function StaffSpotStatusBar({ counts, value, onChange, t }: StaffSpotStat
     () => [
       {
         id: 'ALL',
-        label: t('Tất cả', 'All'),
+        label: 'ALL',
         count: counts.total,
         color: DesignColors.primary,
       },
       {
         id: 'AVAILABLE',
-        label: t('Trống', 'Free'),
+        label: 'AVAILABLE',
         count: counts.available,
         color: DesignColors.accentEmerald,
       },
       {
         id: 'CURRENTLY-IN-USED',
-        label: t('Đang gửi', 'In use'),
+        label: 'CURRENTLY-IN-USED',
         count: counts.inUsed,
         color: DesignColors.accentAmber,
       },
       {
         id: 'RESERVED',
-        label: t('Đã đặt', 'Reserved'),
+        label: 'RESERVED',
         count: counts.reserved,
         color: DesignColors.accentSky,
       },
       {
         id: 'UNAVAILABLE',
-        label: t('Khóa', 'Locked'),
+        label: 'UNAVAILABLE',
         count: counts.unavailable,
         color: DesignColors.inkSubtle,
       },
     ],
-    [DesignColors, counts, t],
+    [DesignColors, counts],
   );
 
   return (
@@ -78,7 +77,12 @@ export function StaffSpotStatusBar({ counts, value, onChange, t }: StaffSpotStat
               pressed && styles.chipPressed,
             ]}>
             <ThemedText style={[styles.count, active && { color: chip.color }]}>{chip.count}</ThemedText>
-            <ThemedText style={[styles.label, active && styles.labelActive]}>{chip.label}</ThemedText>
+            <ThemedText
+              numberOfLines={1}
+              style={[styles.label, active && styles.labelActive]}
+            >
+              {chip.label}
+            </ThemedText>
           </Pressable>
         );
       })}
@@ -94,7 +98,8 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
       paddingVertical: 2,
     },
     chip: {
-      minWidth: 64,
+      minWidth: 72,
+      maxWidth: 118,
       borderRadius: Radius.lg,
       borderWidth: 1,
       borderColor: DesignColors.hairlineStrong,
@@ -115,9 +120,12 @@ function createStyles(DesignColors: ReturnType<typeof useStaffDesignColors>) {
     },
     label: {
       ...Typography.caption,
-      fontSize: 10,
+      fontSize: 8,
+      lineHeight: 10,
       color: DesignColors.inkMuted,
-      fontWeight: '500',
+      fontWeight: '600',
+      textAlign: 'center',
+      letterSpacing: 0.2,
     },
     labelActive: {
       color: DesignColors.ink,

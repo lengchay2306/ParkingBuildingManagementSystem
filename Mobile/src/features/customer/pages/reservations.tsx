@@ -57,12 +57,12 @@ import {
   getVehicleReserveBlockReasonLocalized,
 } from '@/features/customer/lib/parking-validation';
 
-const STATUS_FILTERS: Array<{ value: ReservationStatus | null; vi: string; en: string }> = [
-  { value: null, vi: 'Tất cả', en: 'All' },
-  { value: 'PENDING', vi: 'Chờ', en: 'Pending' },
-  { value: 'CLAIMED', vi: 'Đã nhận', en: 'Claimed' },
-  { value: 'EXPIRED', vi: 'Hết hạn', en: 'Expired' },
-  { value: 'CANCELLED', vi: 'Đã hủy', en: 'Cancelled' },
+const STATUS_FILTERS: Array<{ value: ReservationStatus | null; label: string }> = [
+  { value: null, label: 'ALL' },
+  { value: 'PENDING', label: 'PENDING' },
+  { value: 'CLAIMED', label: 'CLAIMED' },
+  { value: 'EXPIRED', label: 'EXPIRED' },
+  { value: 'CANCELLED', label: 'CANCELLED' },
 ];
 
 function resolveVehicleTypeLabel(vehicle: UserVehicle): string | null {
@@ -551,7 +551,7 @@ export default function ReservationsScreen() {
                 ]}
               >
                 <ThemedText style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                  {t(filter.vi, filter.en)}
+                  {filter.label}
                 </ThemedText>
               </Pressable>
             );
@@ -744,10 +744,10 @@ export default function ReservationsScreen() {
               <View style={styles.slotLegendRow}>
                 {(
                   [
-                    [DesignColors.semanticSuccess, t('Trống', 'Free')],
-                    [DesignColors.semanticWarning, t('Đã đặt', 'Reserved')],
-                    [DesignColors.accentSky, t('Đang dùng', 'In use')],
-                    [DesignColors.semanticDanger, t('Khóa', 'Blocked')],
+                    [DesignColors.semanticSuccess, 'AVAILABLE'],
+                    [DesignColors.semanticWarning, 'RESERVED'],
+                    [DesignColors.accentSky, 'CURRENTLY-IN-USED'],
+                    [DesignColors.semanticDanger, 'UNAVAILABLE'],
                   ] as const
                 ).map(([color, label]) => (
                   <View key={label} style={styles.slotLegendItem}>
@@ -989,7 +989,10 @@ function createStyles(DesignColors: DesignColorPalette) {
     },
     statusPillText: {
       ...Typography.caption,
-      fontWeight: '600',
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
     },
     infoRow: {
       flexDirection: 'row',

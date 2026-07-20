@@ -1,13 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AnimatedLoader } from '@/components/animated-loader';
 import { ScalePressable } from '@/components/scale-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import type { ParkingFloor } from '@/features/customer/api/parking';
+import { resolveSlotStatusVisual } from '@/features/customer/components/floor-slots-panel';
+import {
+  resolveFloorPresentation,
+  sortFloorsLikeParkingMap,
+  sortSlotsByNumber,
+} from '@/lib/parking-floor-config';
 import { CUSTOMER_ROUTES } from '@/roles';
 
 type Props = {
@@ -17,10 +23,26 @@ type Props = {
   DesignColors: DesignColorPalette;
 };
 
-/** Compact live availability by floor — mirrors FE parking overview without dense slot grids. */
+/** Live lot status with floor tabs + slot grid (staff-like). */
 export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }: Props) {
   const router = useRouter();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
+
+  const orderedFloors = useMemo(() => sortFloorsLikeParkingMap(floors), [floors]);
+
+  useEffect(() => {
+    if (orderedFloors.length === 0) {
+      setActiveFloorId(null);
+      return;
+    }
+    setActiveFloorId((current) => {
+      if (current && orderedFloors.some((floor) => floor._id === current)) {
+        return current;
+      }
+      return orderedFloors[0]._id;
+    });
+  }, [orderedFloors]);
 
   const totals = useMemo(() => {
     return floors.reduce(
@@ -34,6 +56,21 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
       { available: 0, reserved: 0, inUsed: 0, total: 0 },
     );
   }, [floors]);
+
+  const activeFloor = useMemo(
+    () => orderedFloors.find((floor) => floor._id === activeFloorId) ?? orderedFloors[0] ?? null,
+    [activeFloorId, orderedFloors],
+  );
+
+  const activeSlots = useMemo(
+    () => (activeFloor ? sortSlotsByNumber(activeFloor.slots) : []),
+    [activeFloor],
+  );
+
+  const activePresentation = useMemo(
+    () => (activeFloor ? resolveFloorPresentation(activeFloor, t) : null),
+    [activeFloor, t],
+  );
 
   return (
     <View style={styles.card}>
@@ -54,19 +91,19 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
 
       <View style={styles.summaryRow}>
         <SummaryStat
-          label={t('Trống', 'Free')}
+          label="AVAILABLE"
           value={totals.available}
           color={DesignColors.semanticSuccess}
           styles={styles}
         />
         <SummaryStat
-          label={t('Đã đặt', 'Reserved')}
+          label="RESERVED"
           value={totals.reserved}
           color={DesignColors.semanticWarning}
           styles={styles}
         />
         <SummaryStat
-          label={t('Đang dùng', 'In use')}
+          label="CURRENTLY-IN-USED"
           value={totals.inUsed}
           color={DesignColors.accentSky}
           styles={styles}
@@ -75,49 +112,91 @@ export function CustomerHomeSlotsSection({ floors, isLoading, t, DesignColors }:
 
       {isLoading ? (
         <AnimatedLoader color={DesignColors.primary} size="small" style={styles.loader} />
-      ) : floors.length === 0 ? (
+      ) : orderedFloors.length === 0 ? (
         <ThemedText style={styles.emptyText}>
           {t('Không có dữ liệu bãi đỗ', 'No parking data')}
         </ThemedText>
       ) : (
-        <View style={styles.floorList}>
-          {floors.map((floor) => {
-            const available = floor.slotStats?.available ?? 0;
-            const total = floor.slotStats?.total ?? floor.slots.length;
-            const ratio = total > 0 ? available / total : 0;
-            return (
-              <View key={floor._id} style={styles.floorRow}>
-                <View style={styles.floorMeta}>
-                  <ThemedText style={styles.floorName} numberOfLines={1}>
-                    {floor.floorName}
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.floorTabs}
+          >
+            {orderedFloors.map((floor) => {
+              const active = floor._id === activeFloor?._id;
+              const presentation = resolveFloorPresentation(floor, t);
+              return (
+                <Pressable
+                  key={floor._id}
+                  onPress={() => setActiveFloorId(floor._id)}
+                  style={({ pressed }) => [
+                    styles.floorTab,
+                    active && styles.floorTabActive,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <ThemedText style={active ? styles.floorTabTextActive : styles.floorTabText}>
+                    {presentation.tabLabel}
                   </ThemedText>
-                  <ThemedText style={styles.floorType}>
-                    {floor.vehicleType?.type ?? '—'}
+                  <ThemedText style={active ? styles.floorTabBadgeActive : styles.floorTabBadge}>
+                    {presentation.available}
                   </ThemedText>
-                </View>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      {
-                        width: `${Math.round(ratio * 100)}%`,
-                        backgroundColor:
-                          ratio > 0.4
-                            ? DesignColors.semanticSuccess
-                            : ratio > 0.15
-                              ? DesignColors.semanticWarning
-                              : DesignColors.semanticDanger,
-                      },
-                    ]}
-                  />
-                </View>
-                <ThemedText style={styles.floorCount}>
-                  {available}/{total}
-                </ThemedText>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {activeFloor && activePresentation ? (
+            <View style={styles.floorBody}>
+              <ThemedText style={styles.floorMeta} numberOfLines={2}>
+                {activePresentation.metaTitle}
+              </ThemedText>
+              <ThemedText style={styles.floorStats}>
+                {activePresentation.available}/{activePresentation.total} AVAILABLE ·{' '}
+                {activePresentation.inUsed} CURRENTLY-IN-USED
+              </ThemedText>
+
+              <View style={styles.legendRow}>
+                <LegendDot color={DesignColors.semanticSuccess} label="AVAILABLE" styles={styles} />
+                <LegendDot
+                  color={DesignColors.semanticWarning}
+                  label="RESERVED"
+                  styles={styles}
+                />
+                <LegendDot
+                  color={DesignColors.accentSky}
+                  label="CURRENTLY-IN-USED"
+                  styles={styles}
+                />
+                <LegendDot
+                  color={DesignColors.semanticDanger}
+                  label="UNAVAILABLE"
+                  styles={styles}
+                />
               </View>
-            );
-          })}
-        </View>
+
+              {activeSlots.length === 0 ? (
+                <ThemedText style={styles.emptyText}>
+                  {t('Không có ô trên tầng này.', 'No spots on this floor.')}
+                </ThemedText>
+              ) : (
+                <View style={styles.slotGrid}>
+                  {activeSlots.map((slot) => {
+                    const visual = resolveSlotStatusVisual(slot.status, DesignColors);
+                    return (
+                      <View key={slot._id} style={[styles.slotChip, visual.chip]}>
+                        <ThemedText style={[styles.slotChipText, visual.text]} numberOfLines={1}>
+                          {slot.slotNumber}
+                        </ThemedText>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ) : null}
+        </>
       )}
     </View>
   );
@@ -137,7 +216,26 @@ function SummaryStat({
   return (
     <View style={styles.summaryChip}>
       <ThemedText style={[styles.summaryValue, { color }]}>{value}</ThemedText>
-      <ThemedText style={styles.summaryLabel}>{label}</ThemedText>
+      <ThemedText style={styles.summaryLabel} numberOfLines={1}>
+        {label}
+      </ThemedText>
+    </View>
+  );
+}
+
+function LegendDot({
+  color,
+  label,
+  styles,
+}: {
+  color: string;
+  label: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <ThemedText style={styles.legendText}>{label}</ThemedText>
     </View>
   );
 }
@@ -198,6 +296,7 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       borderColor: DesignColors.hairline,
       backgroundColor: DesignColors.surface2,
       paddingVertical: Spacing.sm,
+      paddingHorizontal: 4,
       alignItems: 'center',
       gap: 2,
     },
@@ -207,47 +306,103 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     summaryLabel: {
       ...Typography.caption,
       color: DesignColors.inkSubtle,
+      fontSize: 8,
+      letterSpacing: 0.2,
+      textAlign: 'center',
     },
-    floorList: {
-      gap: Spacing.sm,
+    floorTabs: {
+      flexDirection: 'row',
+      gap: Spacing.xs,
+      paddingVertical: 2,
     },
-    floorRow: {
+    floorTab: {
       flexDirection: 'row',
       alignItems: 'center',
+      gap: 6,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: DesignColors.hairlineStrong,
+      backgroundColor: DesignColors.surface2,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 8,
+    },
+    floorTabActive: {
+      borderColor: DesignColors.primary,
+      backgroundColor: `${DesignColors.primary}14`,
+    },
+    floorTabText: {
+      ...Typography.caption,
+      color: DesignColors.inkMuted,
+      fontWeight: '600',
+    },
+    floorTabTextActive: {
+      ...Typography.caption,
+      color: DesignColors.primary,
+      fontWeight: '700',
+    },
+    floorTabBadge: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontWeight: '600',
+      fontSize: 10,
+    },
+    floorTabBadgeActive: {
+      ...Typography.caption,
+      color: DesignColors.primary,
+      fontWeight: '700',
+      fontSize: 10,
+    },
+    floorBody: {
       gap: Spacing.sm,
     },
     floorMeta: {
-      width: 88,
-      gap: 1,
-    },
-    floorName: {
-      ...Typography.caption,
+      ...Typography.bodySm,
       color: DesignColors.ink,
       fontWeight: '600',
     },
-    floorType: {
+    floorStats: {
       ...Typography.caption,
-      color: DesignColors.inkSubtle,
-      fontSize: 10,
+      color: DesignColors.inkMuted,
     },
-    barTrack: {
-      flex: 1,
+    legendRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    legendDot: {
+      width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: DesignColors.surface2,
-      overflow: 'hidden',
     },
-    barFill: {
-      height: '100%',
-      borderRadius: 4,
+    legendText: {
+      ...Typography.caption,
+      color: DesignColors.inkSubtle,
+      fontSize: 9,
+      letterSpacing: 0.2,
     },
-    floorCount: {
-      ...Typography.mono,
+    slotGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.xs,
+    },
+    slotChip: {
+      minWidth: 52,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 8,
+      borderRadius: Radius.md,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    slotChipText: {
+      ...Typography.caption,
+      fontWeight: '700',
       fontSize: 11,
-      lineHeight: 14,
-      color: DesignColors.inkMuted,
-      width: 44,
-      textAlign: 'right',
     },
     loader: {
       marginVertical: Spacing.md,
@@ -257,5 +412,8 @@ const createStyles = (DesignColors: DesignColorPalette) =>
       color: DesignColors.inkMuted,
       textAlign: 'center',
       paddingVertical: Spacing.md,
+    },
+    pressed: {
+      opacity: 0.88,
     },
   });

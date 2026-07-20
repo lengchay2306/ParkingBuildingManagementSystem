@@ -551,6 +551,45 @@ class ParkingService {
         }
     }
 
+    #sanitizeParkingSessionUsers = (session) => ({
+        ...session,
+        checkInUserId: session.checkInUserId
+            ? { ...session.checkInUserId, password: undefined }
+            : null,
+        checkOutUserId: session.checkOutUserId
+            ? { ...session.checkOutUserId, password: undefined }
+            : null,
+        checkInStaffId: session.checkInStaffId
+            ? { ...session.checkInStaffId, password: undefined }
+            : null,
+        checkOutStaffId: session.checkOutStaffId
+            ? { ...session.checkOutStaffId, password: undefined }
+            : null,
+    });
+
+    /** List parking sessions belonging to the authenticated driver. */
+    getMyParkingSessions = async ({
+        userId,
+        status,
+        page = 1,
+        limit = 50,
+    }) => {
+        const vehicleIds = await this.#vehicleRepository.getVehicleIdsByUserId({ userId });
+
+        const { parkingSessions, pagination } = await this.#parkingRepository.findMyParkingSessions({
+            userId,
+            vehicleIds,
+            status,
+            page,
+            limit,
+        });
+
+        return {
+            parkingSessions: parkingSessions.map((session) => this.#sanitizeParkingSessionUsers(session)),
+            pagination,
+        };
+    };
+
     getSessionActiveByLicensePlate = async ({
         licensePlate,
     }) => {

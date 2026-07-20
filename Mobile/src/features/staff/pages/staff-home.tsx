@@ -55,14 +55,14 @@ export default function StaffHomeScreen() {
         id: 'available',
         icon: 'checkmark-circle-outline' as const,
         value: slotStats.available,
-        label: t('Trống', 'Available'),
+        label: 'AVAILABLE',
         tone: 'success' as const,
       },
       {
         id: 'occupied',
         icon: 'car-outline' as const,
         value: slotStats.inUsed,
-        label: t('Đang gửi', 'Occupied'),
+        label: 'CURRENTLY-IN-USED',
         tone: 'warning' as const,
       },
       {

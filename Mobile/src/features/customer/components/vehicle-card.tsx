@@ -12,6 +12,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import type { MonthlyCardRef, UserVehicle } from '@/lib/auth-api';
+import { formatDbStatus } from '@/lib/db-status';
 
 function formatDate(value: string | Date | undefined) {
   if (!value) {
@@ -30,22 +31,21 @@ function formatDate(value: string | Date | undefined) {
 function vehicleStatusTone(
   status: string | undefined,
   DesignColors: DesignColorPalette,
-  t: (vi: string, en: string) => string,
 ) {
-  const normalized = status?.toUpperCase();
+  const normalized = formatDbStatus(status);
   if (normalized === 'ACTIVE') {
-    return { label: t('Hoạt động', 'Active'), color: DesignColors.semanticSuccess };
+    return { label: normalized, color: DesignColors.semanticSuccess };
   }
   if (normalized === 'EXPIRED') {
-    return { label: t('Hết hạn', 'Expired'), color: DesignColors.inkMuted };
+    return { label: normalized, color: DesignColors.inkMuted };
   }
   if (normalized === 'LOCKED') {
-    return { label: t('Đã khóa', 'Locked'), color: DesignColors.semanticDanger };
+    return { label: normalized, color: DesignColors.semanticDanger };
   }
   if (normalized === 'INACTIVE') {
-    return { label: t('Ngưng', 'Inactive'), color: DesignColors.inkSubtle };
+    return { label: normalized, color: DesignColors.inkSubtle };
   }
-  return { label: status ?? '—', color: DesignColors.inkSubtle };
+  return { label: normalized, color: DesignColors.inkSubtle };
 }
 
 function resolveMonthlyCard(card: UserVehicle['monthlyCardId']): MonthlyCardRef | null {
@@ -105,7 +105,7 @@ export function VehicleCard({
     typeof vehicle.vehicleTypeId === 'object' && vehicle.vehicleTypeId?.type
       ? vehicle.vehicleTypeId.type
       : '—';
-  const vehicleStatus = vehicleStatusTone(vehicle.status, DesignColors, t);
+  const vehicleStatus = vehicleStatusTone(vehicle.status, DesignColors);
   const hasCard = Boolean(card);
   const cardNormalized = card?.status?.toUpperCase();
   const isCardExpired = cardNormalized === 'EXPIRED';

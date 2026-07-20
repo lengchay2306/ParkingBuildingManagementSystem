@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { DesignColorPalette, Radius, Spacing, Typography } from '@/constants/design';
 import type { CustomerParkingSession } from '@/features/customer/api/parking';
 import { CUSTOMER_ROUTES } from '@/roles';
+import { formatDbStatus } from '@/lib/db-status';
 
 function formatElapsed(checkInTime: string | undefined) {
   if (!checkInTime) {
@@ -63,7 +64,7 @@ export function CustomerHomeOverviewCard({
   const [elapsed, setElapsed] = useState(() => formatElapsed(activeSession?.checkInTime));
   const sessionPlate = resolveSessionPlate(activeSession);
   const slotLabel = resolveSlotLabel(activeSession);
-  const statusLabel = (status ?? 'ACTIVE').toUpperCase();
+  const statusLabel = formatDbStatus(status, 'ACTIVE');
   const isActiveStatus = statusLabel === 'ACTIVE';
 
   useEffect(() => {

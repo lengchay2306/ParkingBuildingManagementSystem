@@ -241,7 +241,6 @@ export default function StaffSlotsScreen() {
           <StaffSpotStatusBar
             counts={spotCounts}
             onChange={setStatusFilter}
-            t={t}
             value={statusFilter}
           />
 

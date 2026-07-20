@@ -154,12 +154,12 @@ export function FloorSlotsPanel({
               <View style={styles.floorHeaderText}>
                 <ThemedText style={styles.floorName}>{floor.floorName}</ThemedText>
                 <ThemedText style={styles.floorStats}>
-                  {floor.vehicleType?.type ?? '—'} · {t('Trống', 'Available')}:{' '}
+                  {floor.vehicleType?.type ?? '—'} · AVAILABLE:{' '}
                   {floor.slotStats?.available ?? 0}
                   {' · '}
-                  {t('Đặt', 'Reserved')}: {floor.slotStats?.reserved ?? 0}
+                  RESERVED: {floor.slotStats?.reserved ?? 0}
                   {' · '}
-                  {t('Dùng', 'In use')}: {floor.slotStats?.inUsed ?? 0}
+                  CURRENTLY-IN-USED: {floor.slotStats?.inUsed ?? 0}
                   {' / '}
                   {floor.slotStats?.total ?? floor.slots.length}
                 </ThemedText>

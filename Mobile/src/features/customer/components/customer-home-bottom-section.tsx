@@ -46,14 +46,17 @@ function createReservationStyles(DesignColors: DesignColorPalette) {
       letterSpacing: 0.4,
     },
     statusPill: {
-      borderRadius: Radius.md,
+      borderRadius: Radius.pill,
       borderWidth: 1,
       paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
+      paddingVertical: 4,
     },
     statusPillText: {
-      ...Typography.bodySm,
-      fontWeight: '600' as const,
+      ...Typography.caption,
+      fontWeight: '700' as const,
+      fontSize: 10,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase' as const,
     },
     infoRow: {
       flexDirection: 'row' as const,

@@ -6,6 +6,7 @@ import type { ParkingSlotStatus } from '@/features/staff/api';
 import { StaffStatusBadge } from '@/features/staff/components/premium';
 import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { formatDbStatus } from '@/lib/db-status';
 
 type SlotHeroVisualProps = {
   slotNumber: string;
@@ -39,14 +40,15 @@ function resolveStatusStyle(
 }
 
 function resolveStatusBadge(status: ParkingSlotStatus | string) {
-  if (status === 'CURRENTLY-IN-USED') {
-    return { label: 'IN USE', tone: 'occupied' as const };
+  const label = formatDbStatus(status, 'AVAILABLE');
+  if (label === 'CURRENTLY-IN-USED') {
+    return { label, tone: 'occupied' as const };
   }
-  if (status === 'UNAVAILABLE') {
-    return { label: 'UNAVAILABLE', tone: 'neutral' as const };
+  if (label === 'UNAVAILABLE') {
+    return { label, tone: 'neutral' as const };
   }
-  if (status === 'RESERVED') {
-    return { label: 'RESERVED', tone: 'reserved' as const };
+  if (label === 'RESERVED') {
+    return { label, tone: 'reserved' as const };
   }
   return { label: 'AVAILABLE', tone: 'available' as const };
 }

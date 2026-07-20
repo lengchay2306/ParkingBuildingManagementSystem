@@ -186,6 +186,28 @@ class ParkingController {
         }
     }
 
+    getMyParkingSessions = async (req, res, next) => {
+        try {
+            const { userId } = req.user
+            const { status, page, limit } = req.query
+
+            const result = await this.#parkingService.getMyParkingSessions({
+                userId,
+                status,
+                page: page ? Number(page) : 1,
+                limit: limit ? Number(limit) : 50,
+            })
+
+            res.status(200).json({
+                status: 'success',
+                data: result,
+                message: 'Parking sessions fetched successfully',
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
     getSessionActiveByLicensePlate = async (req, res, next) => {
         try {
             const { licensePlate } = req.params

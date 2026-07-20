@@ -62,20 +62,12 @@ import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { isNotFoundApiError, resolveApiErrorMessage } from '@/lib/api-error';
+import { formatDbStatus } from '@/lib/db-status';
 import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import { staffSlotSessionDetailPath } from '@/roles';
 
-function resolveStatusLabel(status: ParkingSlotStatus | string, t: (vi: string, en: string) => string) {
-  if (status === 'CURRENTLY-IN-USED') {
-    return t('Đang gửi xe', 'Vehicle parked');
-  }
-  if (status === 'UNAVAILABLE') {
-    return t('Không khả dụng', 'Unavailable');
-  }
-  if (status === 'RESERVED') {
-    return t('Đã đặt trước', 'Reserved');
-  }
-  return t('Trống', 'Available');
+function resolveStatusLabel(status: ParkingSlotStatus | string) {
+  return formatDbStatus(status, 'AVAILABLE');
 }
 
 function resolveStatusTone(status: ParkingSlotStatus | string) {
@@ -267,7 +259,7 @@ export default function StaffSlotDetailScreen() {
   );
 
   const vehicleType = slotContext?.vehicleType;
-  const statusLabel = resolveStatusLabel(resolvedStatus, t);
+  const statusLabel = resolveStatusLabel(resolvedStatus);
   const statusTone = resolveStatusTone(resolvedStatus);
   const reservationPlate = pendingReservation ? getReservationPlate(pendingReservation) : undefined;
   const reservationDriver = pendingReservation
@@ -525,7 +517,7 @@ export default function StaffSlotDetailScreen() {
                     {t('Đặt chỗ', 'Reservation')}
                   </ThemedText>
                 </View>
-                <StaffStatusBadge label={t('RESERVED', 'RESERVED')} tone="reserved" />
+                <StaffStatusBadge label="RESERVED" tone="reserved" />
               </View>
 
               {isLoadingReservation ? (
@@ -582,7 +574,7 @@ export default function StaffSlotDetailScreen() {
                     {t('Xe đang gửi', 'Parked vehicle')}
                   </ThemedText>
                 </View>
-                <StaffStatusBadge label={t('ACTIVE', 'ACTIVE')} tone="active" />
+                <StaffStatusBadge label="ACTIVE" tone="active" />
               </View>
 
               <View style={localStyles.plateHero}>

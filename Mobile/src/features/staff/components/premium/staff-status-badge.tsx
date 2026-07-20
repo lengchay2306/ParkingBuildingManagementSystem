@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Radius, Typography } from '@/constants/design';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
+import { formatDbStatus } from '@/lib/db-status';
 
 type StaffStatusBadgeProps = {
   label: string;
@@ -13,6 +14,7 @@ type StaffStatusBadgeProps = {
 export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgeProps) {
   const DesignColors = useStaffDesignColors();
   const styles = useMemo(() => createStyles(DesignColors), [DesignColors]);
+  const displayLabel = formatDbStatus(label);
 
   const palette =
     tone === 'active' || tone === 'available'
@@ -41,7 +43,7 @@ export function StaffStatusBadge({ label, tone = 'neutral' }: StaffStatusBadgePr
 
   return (
     <View style={[styles.badge, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      <ThemedText style={[styles.text, { color: palette.text }]}>{label}</ThemedText>
+      <ThemedText style={[styles.text, { color: palette.text }]}>{displayLabel}</ThemedText>
     </View>
   );
 }

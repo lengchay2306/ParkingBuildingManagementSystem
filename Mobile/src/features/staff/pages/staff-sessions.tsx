@@ -118,11 +118,11 @@ export default function StaffSessionsScreen() {
 
   const filterOptions = useMemo<StaffFilterOption<SessionFilter>[]>(
     () => [
-      { id: 'ALL', label: t('Tất cả', 'All') },
-      { id: 'ACTIVE', label: t('Đang hoạt động', 'Active') },
-      { id: 'COMPLETED', label: t('Đã kết thúc', 'Completed') },
+      { id: 'ALL', label: 'ALL' },
+      { id: 'ACTIVE', label: 'ACTIVE' },
+      { id: 'COMPLETED', label: 'COMPLETED' },
     ],
-    [t],
+    [],
   );
 
   const handleFilterChange = useCallback(

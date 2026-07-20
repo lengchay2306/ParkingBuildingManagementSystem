@@ -31,6 +31,7 @@ import {
   type UserProfile,
   type UserVehicle,
 } from '@/lib/auth-api';
+import { formatDbStatus } from '@/lib/db-status';
 import {
   buildProfileUpdatePayload,
   updateMyProfile,
@@ -84,16 +85,15 @@ function getInitials(fullName: string) {
 function statusTone(
   status: string | undefined,
   DesignColors: DesignColorPalette,
-  t: (vi: string, en: string) => string,
 ) {
-  const normalized = status?.toUpperCase();
+  const normalized = formatDbStatus(status);
   if (normalized === 'ACTIVE') {
-    return { label: t('Hoạt động', 'Active'), color: DesignColors.semanticSuccess };
+    return { label: normalized, color: DesignColors.semanticSuccess };
   }
   if (normalized === 'LOCKED') {
-    return { label: t('Đã khóa', 'Locked'), color: DesignColors.semanticDanger };
+    return { label: normalized, color: DesignColors.semanticDanger };
   }
-  return { label: status ?? '—', color: DesignColors.inkSubtle };
+  return { label: normalized, color: DesignColors.inkSubtle };
 }
 
 export default function ProfileScreen() {
@@ -344,7 +344,7 @@ export default function ProfileScreen() {
   }
 
   const roleName = profile ? extractRoleNameFromProfile(profile) : null;
-  const accountStatus = statusTone(profile?.status, DesignColors, t);
+  const accountStatus = statusTone(profile?.status, DesignColors);
   const vehicles = profile?.vehicles ?? [];
   const activeVehicles = useMemo(
     () => vehicles.filter((vehicle) => vehicle.status?.toUpperCase() !== 'INACTIVE'),
@@ -1239,6 +1239,9 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     statusPillText: {
       ...Typography.caption,
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 0.6,
       textTransform: 'uppercase',
     },
     noCardText: {

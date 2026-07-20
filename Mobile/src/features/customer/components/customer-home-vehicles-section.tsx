@@ -13,6 +13,7 @@ import {
   getVehicleReserveBlockReasonLocalized,
 } from '@/features/customer/lib/parking-validation';
 import type { UserVehicle } from '@/lib/auth-api';
+import { formatDbStatus } from '@/lib/db-status';
 import { CUSTOMER_ROUTES } from '@/roles';
 
 function formatShortDateTime(value?: string) {
@@ -207,7 +208,7 @@ export function CustomerHomeVehiclesSection({
                           style={[styles.statusChipText, { color: DesignColors.semanticWarning }]}
                           numberOfLines={1}
                         >
-                          {t('Đặt chỗ', 'Reserved')}{' '}
+                          {formatDbStatus(pending.status, 'PENDING')}{' '}
                           {resolveSlotLabel(pending) ?? '—'}
                           {pending.expectedArrival
                             ? ` · ${formatShortDateTime(pending.expectedArrival)}`
@@ -226,7 +227,7 @@ export function CustomerHomeVehiclesSection({
                           style={[styles.statusChipText, { color: DesignColors.semanticSuccess }]}
                           numberOfLines={1}
                         >
-                          {t('Trong bãi', 'In lot')}
+                          {formatDbStatus(session?.status, 'ACTIVE')}
                           {resolveSessionSlot(session) ? ` · ${resolveSessionSlot(session)}` : ''}
                         </ThemedText>
                       </View>
@@ -441,7 +442,10 @@ const createStyles = (DesignColors: DesignColorPalette) =>
     },
     statusChipText: {
       ...Typography.caption,
-      fontWeight: '600',
+      fontWeight: '700',
+      fontSize: 10,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
       flex: 1,
     },
     actions: {
