@@ -43,6 +43,7 @@ import {
 } from '@/features/staff/lib/utils';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { resolveApiErrorMessage } from '@/lib/api-error';
+import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import { useThemePreference } from '@/hooks/theme-preference';
 import { staffSessionDetailPath } from '@/roles';
 
@@ -230,10 +231,14 @@ export default function StaffOperationsScreen() {
       });
       router.push(staffSessionDetailPath(session._id) as never);
     } catch (error) {
-      showToast(
-        resolveApiErrorMessage(error, t('Tra cứu thất bại', 'Lookup failed')),
-        'error',
-      );
+        showToast(
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Tra cứu thất bại', 'Lookup failed'),
+          ),
+          'error',
+        );
     } finally {
       setIsLookingUpPlate(false);
     }
@@ -264,7 +269,11 @@ export default function StaffOperationsScreen() {
       void reloadPickers();
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Checkout thất bại', 'Checkout failed'),
+        resolveParkingSessionApiMessage(
+          error,
+          t,
+          t('Checkout thất bại', 'Checkout failed'),
+        ),
         'error',
       );
     } finally {

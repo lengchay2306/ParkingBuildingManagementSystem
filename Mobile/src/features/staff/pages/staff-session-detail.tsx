@@ -46,6 +46,7 @@ import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { resolveApiErrorMessage } from '@/lib/api-error';
+import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import { STAFF_ROUTES } from '@/roles';
 
 function resolveRouteParam(value: string | string[] | undefined): string | null {
@@ -135,7 +136,11 @@ export default function StaffSessionDetailScreen() {
       setHydratedSession(record);
     } catch (error) {
       showToast(
-        resolveApiErrorMessage(error, t('Không tải được phiên', 'Could not load session')),
+        resolveParkingSessionApiMessage(
+          error,
+          t,
+          t('Không tải được phiên', 'Could not load session'),
+        ),
         'error',
       );
     } finally {
@@ -274,7 +279,11 @@ export default function StaffSessionDetailScreen() {
         goBack();
       } catch (error) {
         showToast(
-          error instanceof Error ? error.message : t('Checkout thất bại', 'Checkout failed'),
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Checkout thất bại', 'Checkout failed'),
+          ),
           'error',
         );
       } finally {
@@ -344,7 +353,11 @@ export default function StaffSessionDetailScreen() {
       showToast(t('Đã cập nhật ô gửi', 'Parking spot updated'), 'success');
     } catch (error) {
       showToast(
-        resolveApiErrorMessage(error, t('Không cập nhật được ô', 'Could not update spot')),
+        resolveParkingSessionApiMessage(
+          error,
+          t,
+          t('Không cập nhật được ô', 'Could not update spot'),
+        ),
         'error',
       );
     } finally {

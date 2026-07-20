@@ -29,6 +29,7 @@ import {
 import { useStaffWorkspace } from '@/features/staff/context/staff-workspace-context';
 import { formatLicensePlateForApi } from '@/features/staff/lib/license-plate-ocr';
 import { isNotFoundApiError, resolveApiErrorMessage } from '@/lib/api-error';
+import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import {
   findStaffRelevantReservation,
   formatReservationSlotLabel,
@@ -250,7 +251,6 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
             }
           }
 
-          showToast(t('Không có đặt chỗ — chọn ô trống', 'No reservation — select an available spot'), 'success');
           return true;
         } catch (lookupError) {
           if (!isNotFoundApiError(lookupError)) {
@@ -271,7 +271,7 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
 
           if (sessionByPlate) {
             showToast(
-              t('Xe đang gửi trong bãi. Chuyển sang checkout.', 'Vehicle is in lot. Proceed to checkout.'),
+              t('Xe đang gửi trong bãi. Vui lòng checkout trước.', 'Vehicle is in lot. Checkout first.'),
               'error',
             );
             return true;
@@ -288,14 +288,17 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
             return true;
           }
 
-          showToast(t('Khách vãng lai — chọn loại xe và ô trống', 'Walk-in — select vehicle type and spot'), 'success');
           return true;
         }
       } catch (error) {
         resetConfirmState();
         setStep('idle');
         showToast(
-          error instanceof Error ? error.message : t('Không tra cứu được biển số', 'Could not look up plate'),
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Không tra cứu được biển số', 'Could not look up plate'),
+          ),
           'error',
         );
         return false;
@@ -326,24 +329,8 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         slotLabel,
         slotId: selectedSlotId ?? record.slotId,
       });
-      void loadParkingSessions({}, refreshedFloors ?? floors).catch((error) => {
-        showToast(
-          resolveApiErrorMessage(
-            error,
-            t('Không làm mới danh sách phiên', 'Could not refresh sessions'),
-          ),
-          'error',
-        );
-      });
-      void loadActiveSlotSessions(refreshedFloors ?? floors).catch((error) => {
-        showToast(
-          resolveApiErrorMessage(
-            error,
-            t('Không làm mới trạng thái ô', 'Could not refresh spot status'),
-          ),
-          'error',
-        );
-      });
+      void loadParkingSessions({}, refreshedFloors ?? floors).catch(() => undefined);
+      void loadActiveSlotSessions(refreshedFloors ?? floors).catch(() => undefined);
 
       resetFlow();
       showToast(t('Check-in thành công', 'Check-in successful'), 'success');
@@ -379,7 +366,11 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         await finalizeCheckIn(session, plateQuery);
       } catch (error) {
         showToast(
-          error instanceof Error ? error.message : t('Check-in thất bại', 'Check-in failed'),
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Check-in thất bại', 'Check-in failed'),
+          ),
           'error',
         );
       } finally {
@@ -428,7 +419,11 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
         await finalizeCheckIn(session, foundVehicle.licensePlate);
       } catch (error) {
         showToast(
-          error instanceof Error ? error.message : t('Check-in thất bại', 'Check-in failed'),
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Check-in thất bại', 'Check-in failed'),
+          ),
           'error',
         );
       } finally {
@@ -481,7 +476,11 @@ export function useStaffCheckInFlow(options: UseStaffCheckInFlowOptions = {}) {
       await finalizeCheckIn(session, guestLicensePlate);
     } catch (error) {
       showToast(
-        error instanceof Error ? error.message : t('Check-in thất bại', 'Check-in failed'),
+        resolveParkingSessionApiMessage(
+          error,
+          t,
+          t('Check-in thất bại', 'Check-in failed'),
+        ),
         'error',
       );
     } finally {

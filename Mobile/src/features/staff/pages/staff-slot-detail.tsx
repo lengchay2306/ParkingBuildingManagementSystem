@@ -62,6 +62,7 @@ import { createStaffStyles } from '@/features/staff/styles/common';
 import { useStaffDesignColors } from '@/features/staff/hooks/use-staff-design-colors';
 import { useLanguagePreference } from '@/hooks/language-preference';
 import { isNotFoundApiError, resolveApiErrorMessage } from '@/lib/api-error';
+import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import { staffSlotSessionDetailPath } from '@/roles';
 
 function resolveStatusLabel(status: ParkingSlotStatus | string, t: (vi: string, en: string) => string) {
@@ -410,7 +411,11 @@ export default function StaffSlotDetailScreen() {
       router.replace(staffSlotSessionDetailPath(session._id) as never);
     } catch (error) {
       showToast(
-        resolveApiErrorMessage(error, t('Check-in thất bại', 'Check-in failed')),
+        resolveParkingSessionApiMessage(
+          error,
+          t,
+          t('Check-in thất bại', 'Check-in failed'),
+        ),
         'error',
       );
     } finally {

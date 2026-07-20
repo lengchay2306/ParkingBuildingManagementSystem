@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppToast } from '@/components/app-toast';
+import { resolveParkingSessionApiMessage } from '@/features/staff/lib/parking-session-api-message';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/design';
 import { StaffCheckInConfirmSheet } from '@/features/staff/components/staff-check-in-confirm-sheet';
@@ -93,7 +94,6 @@ export default function StaffScanScreen() {
         }
 
         if (flow.kind === 'checkout') {
-          showToast(t('Xe đang gửi — chuyển checkout', 'Vehicle in lot — opening checkout'), 'success');
           const floors = await loadParkingSlots().catch(() => []);
           recordCheckIn(mapParkingSessionToRecord(flow.session, floors));
           await loadParkingSessions({ status: 'ACTIVE' }).catch(() => undefined);
@@ -115,7 +115,11 @@ export default function StaffScanScreen() {
         setIsResolving(false);
       } catch (error) {
         showToast(
-          error instanceof Error ? error.message : t('Không xử lý được biển số', 'Could not process plate'),
+          resolveParkingSessionApiMessage(
+            error,
+            t,
+            t('Không xử lý được biển số', 'Could not process plate'),
+          ),
           'error',
         );
         resolvingRef.current = false;
