@@ -33,7 +33,7 @@ class ReservationService {
 
         const vehicle = await this.#reservationRepository.findVehicleById({ vehicleId });
         if (!vehicle) {
-            throw new NotFoundError("Vehicle not found");
+            throw new NotFoundError("Vehicle not found");2
         }
 
         if (vehicle.userId.toString() !== driverId.toString()) {

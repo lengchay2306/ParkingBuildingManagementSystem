@@ -3,6 +3,7 @@ import { authentication, authorizationByRole, validateData } from '../middleware
 import {
     createParkingSessionSchema,
     updateParkingSessionSchema,
+    correctParkingSessionSlotSchema,
     parkingSessionIdParamSchema,
     getParkingSessionsQuerySchema,
 } from '../../validators/parkingSession.validator.js';
@@ -128,9 +129,66 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/parking-sessions/{parkingSessionId}/slot:
+ *   patch:
+ *     summary: Correct parked slot on an ACTIVE session (Staff)
+ *     description: |
+ *       When a driver parked in a different slot than recorded in the parking session,
+ *       staff can reassign `parkingSlotId` to the actual slot.
+ *
+ *       **Side effects**
+ *       - Old slot status → `AVAILABLE` (if it was in use by this session)
+ *       - New slot must be `AVAILABLE` → becomes `CURRENTLY-IN-USED`
+ *       - New slot must match the same vehicle-type floor as the previous slot
+ *       - Session must be `ACTIVE`
+ *     tags: [ParkingSession]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parkingSessionId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [parkingSlotId]
+ *             properties:
+ *               parkingSlotId:
+ *                 type: string
+ *                 description: Actual parking slot ObjectId where the vehicle is parked
+ *                 example: "665a1b2c3d4e5f6a7b8c9d0f"
+ *     responses:
+ *       200:
+ *         description: Parking session slot corrected successfully
+ *       400:
+ *         description: Session not ACTIVE, slot unavailable, same slot, or vehicle type mismatch
+ *       404:
+ *         description: Session or new slot not found
+ */
+router.patch(
+    '/:parkingSessionId/slot',
+    authentication,
+    authorizationByRole(['ADMIN', 'MANAGER', 'STAFF']),
+    validateData(parkingSessionIdParamSchema, 'params'),
+    validateData(correctParkingSessionSlotSchema),
+    async (req, res, next) => {
+        const parkingSessionController = req.container.resolve('parkingSessionController');
+        await parkingSessionController.correctParkingSessionSlot(req, res, next);
+    },
+);
+
+/**
+ * @swagger
  * /api/v1/parking-sessions/{parkingSessionId}:
  *   put:
  *     summary: Update parking session (Admin)
+ *     description: |
+ *       Full update for admin. If `parkingSlotId` changes on an ACTIVE session,
+ *       old/new parking slot statuses are updated the same way as PATCH .../slot.
  *     tags: [ParkingSession]
  *     security:
  *       - bearerAuth: []

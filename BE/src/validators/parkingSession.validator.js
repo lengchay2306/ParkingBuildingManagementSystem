@@ -40,6 +40,15 @@ const updateParkingSessionSchema = Joi.object({
     'object.min': 'At least one field must be provided',
 });
 
+/** Staff corrects wrong parked slot on an ACTIVE session. */
+const correctParkingSessionSlotSchema = Joi.object({
+    parkingSlotId: objectIdSchema.required()
+        .messages({
+            'any.required': 'parkingSlotId is required',
+            'string.pattern.base': 'parkingSlotId must be a valid ObjectId',
+        }),
+});
+
 const parkingSessionIdParamSchema = Joi.object({
     parkingSessionId: objectIdSchema.required(),
 });
@@ -55,6 +64,7 @@ const getParkingSessionsQuerySchema = Joi.object({
 export {
     createParkingSessionSchema,
     updateParkingSessionSchema,
+    correctParkingSessionSlotSchema,
     parkingSessionIdParamSchema,
     getParkingSessionsQuerySchema,
 };

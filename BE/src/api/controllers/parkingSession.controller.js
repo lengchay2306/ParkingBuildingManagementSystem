@@ -74,6 +74,26 @@ class ParkingSessionController {
         }
     };
 
+    correctParkingSessionSlot = async (req, res, next) => {
+        try {
+            const { parkingSessionId } = req.params;
+            const { parkingSlotId } = req.body;
+
+            const parkingSession = await this.#parkingSessionService.correctParkingSessionSlot({
+                parkingSessionId,
+                parkingSlotId,
+            });
+
+            res.status(200).json({
+                status: 'success',
+                data: { parkingSession },
+                message: 'Parking session slot corrected successfully',
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
     deleteParkingSession = async (req, res, next) => {
         try {
             const { parkingSessionId } = req.params;
