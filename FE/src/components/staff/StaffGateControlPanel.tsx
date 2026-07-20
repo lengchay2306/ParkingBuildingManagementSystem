@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { DashboardLoadingState } from "@/components/dashboard-ui";
 import { getLicensePlateBlockReason } from "@/lib/parking-validation";
+import { VIETNAM_PHONE_PATTERN } from "@/lib/reservation-validation";
 import {
   getManualPlateValidationError,
   normalizeManualPlateInput,
@@ -77,8 +78,6 @@ export type StaffGateMode = "checkin" | "checkout";
 
 export type StaffCheckInKind = "reservation" | "registered-walk-in" | "guest";
 
-const REGISTERED_WALK_IN_PHONE_PATTERN = /^(03|05|07|08|09)\d{8}$/;
-
 type StaffGateControlPanelProps = {
   parkingFloors: ParkingFloor[];
   allReservations: Reservation[];
@@ -104,7 +103,7 @@ export function StaffGateControlPanel({
   const [manualInput, setManualInput] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [walkInVehicleTypeId, setWalkInVehicleTypeId] = useState("");
-  const [registeredWalkInPhone, setRegisteredWalkInPhone] = useState("");
+  const [guestWalkInPhone, setGuestWalkInPhone] = useState("");
   const [walkInSelectedSlot, setWalkInSelectedSlot] = useState<WalkInSlotSelection | null>(null);
   const [slotPickerOpen, setSlotPickerOpen] = useState(false);
   const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
@@ -179,7 +178,7 @@ export function StaffGateControlPanel({
     lookupQuery.data?.kind === "checkout" ? lookupQuery.data.session : null;
 
   useEffect(() => {
-    setRegisteredWalkInPhone("");
+    setGuestWalkInPhone("");
   }, [scannedPlate]);
 
   useEffect(() => {
@@ -242,12 +241,7 @@ export function StaffGateControlPanel({
       }
 
       if (checkInKind === "registered-walk-in") {
-        const phone = registeredWalkInPhone.trim();
-        if (!REGISTERED_WALK_IN_PHONE_PATTERN.test(phone)) {
-          throw new Error("Nhập SĐT chủ xe hợp lệ (10 số, đầu 03/05/07/08/09).");
-        }
         return createRegisteredWalkInParkingSession({
-          phone,
           licensePlate: plate,
           parkingSlotId: walkInSelectedSlot.slot._id,
         });
@@ -257,10 +251,16 @@ export function StaffGateControlPanel({
         throw new Error("Chọn loại xe.");
       }
 
+      const phone = guestWalkInPhone.trim();
+      if (!VIETNAM_PHONE_PATTERN.test(phone)) {
+        throw new Error("Nhập SĐT khách vãng lai hợp lệ (10 số, đầu 03/05/07/08/09).");
+      }
+
       return createGuestParkingSession({
         licensePlate: plate,
         parkingSlotId: walkInSelectedSlot.slot._id,
         vehicleTypeId: walkInVehicleTypeId,
+        phone,
       });
     },
     onSuccess: (session) => {
@@ -440,17 +440,19 @@ export function StaffGateControlPanel({
       if (!walkInSlotPreview) {
         return "Không còn chỗ trống cho loại xe này.";
       }
-      const phone = registeredWalkInPhone.trim();
-      if (!phone) {
-        return "Nhập SĐT chủ xe để xác minh.";
-      }
-      if (!REGISTERED_WALK_IN_PHONE_PATTERN.test(phone)) {
-        return "SĐT không đúng định dạng (03/05/07/08/09 + 8 số).";
-      }
       return undefined;
     }
-    if (checkInKind === "guest" && !walkInSlotPreview) {
-      return "Không còn chỗ trống cho loại xe đã chọn.";
+    if (checkInKind === "guest") {
+      if (!walkInSlotPreview) {
+        return "Không còn chỗ trống cho loại xe đã chọn.";
+      }
+      const phone = guestWalkInPhone.trim();
+      if (!phone) {
+        return "Nhập SĐT khách vãng lai.";
+      }
+      if (!VIETNAM_PHONE_PATTERN.test(phone)) {
+        return "SĐT không đúng định dạng (03/05/07/08/09 + 8 số).";
+      }
     }
     return undefined;
   })();
@@ -582,8 +584,8 @@ export function StaffGateControlPanel({
             checkInKind={checkInKind ?? "guest"}
             reservation={reservation}
             registeredVehicle={registeredVehicle}
-            registeredWalkInPhone={registeredWalkInPhone}
-            onRegisteredWalkInPhoneChange={setRegisteredWalkInPhone}
+            guestWalkInPhone={guestWalkInPhone}
+            onGuestWalkInPhoneChange={setGuestWalkInPhone}
             vehicleTypes={vehicleTypes}
             walkInVehicleTypeId={walkInVehicleTypeId}
             onWalkInVehicleTypeChange={handleWalkInVehicleTypeChange}
@@ -647,8 +649,8 @@ type CheckInResultPanelProps = {
   checkInKind: StaffCheckInKind;
   reservation: Reservation | null;
   registeredVehicle: Vehicle | null;
-  registeredWalkInPhone: string;
-  onRegisteredWalkInPhoneChange: (value: string) => void;
+  guestWalkInPhone: string;
+  onGuestWalkInPhoneChange: (value: string) => void;
   vehicleTypes: VehicleType[];
   walkInVehicleTypeId: string;
   onWalkInVehicleTypeChange: (value: string) => void;
@@ -664,8 +666,8 @@ function CheckInResultPanel({
   checkInKind,
   reservation,
   registeredVehicle,
-  registeredWalkInPhone,
-  onRegisteredWalkInPhoneChange,
+  guestWalkInPhone,
+  onGuestWalkInPhoneChange,
   vehicleTypes,
   walkInVehicleTypeId,
   onWalkInVehicleTypeChange,
@@ -757,22 +759,9 @@ function CheckInResultPanel({
         <InfoRow icon={CarFront} label="Loại xe" value={vehicleTypeLabel} />
         <InfoRow icon={User} label="Gói đỗ" value={monthlyLabel} />
 
-        <div className="space-y-2">
-          <Label htmlFor="registered-walkin-phone">SĐT chủ xe (xác minh)</Label>
-          <Input
-            id="registered-walkin-phone"
-            value={registeredWalkInPhone}
-            onChange={(event) => onRegisteredWalkInPhoneChange(event.target.value.replace(/\D/g, ""))}
-            placeholder="0901234567"
-            inputMode="numeric"
-            maxLength={10}
-            className="h-11 rounded-xl font-mono"
-            autoComplete="off"
-          />
-          <p className="text-xs text-muted-foreground">
-            SĐT phải khớp tài khoản sở hữu xe trong hệ thống.
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Phiên check-in sẽ hiển thị trên tài khoản khách hàng sở hữu xe này.
+        </p>
 
         {walkInSlotPreview ? (
           <button
@@ -832,6 +821,23 @@ function CheckInResultPanel({
       <InfoRow icon={CarFront} label="Biển số" value={plate} highlight />
 
       <div className="space-y-2">
+        <Label htmlFor="guest-walkin-phone">SĐT khách vãng lai</Label>
+        <Input
+          id="guest-walkin-phone"
+          value={guestWalkInPhone}
+          onChange={(event) => onGuestWalkInPhoneChange(event.target.value.replace(/\D/g, ""))}
+          placeholder="0901234567"
+          inputMode="numeric"
+          maxLength={10}
+          className="h-11 rounded-xl font-mono"
+          autoComplete="off"
+        />
+        <p className="text-xs text-muted-foreground">
+          SĐT bắt buộc để liên hệ khi checkout / thanh toán.
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="walkin-vehicle-type">Loại xe</Label>
         <Select value={walkInVehicleTypeId} onValueChange={onWalkInVehicleTypeChange}>
           <SelectTrigger id="walkin-vehicle-type" className="h-11 rounded-xl">
@@ -865,11 +871,17 @@ function CheckInResultPanel({
             </p>
           </div>
         </button>
-      ) : (
+        ) : (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           Không còn chỗ trống cho loại xe này.
         </p>
       )}
+
+      {checkInDisabledReason ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {checkInDisabledReason}
+        </p>
+      ) : null}
 
       <Button
         type="button"

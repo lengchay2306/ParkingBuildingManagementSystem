@@ -24,6 +24,7 @@ import {
 import { requireRole } from "@/lib/auth";
 import {
   checkoutParkingSession,
+  correctParkingSessionSlot,
   fetchStaffOccupancySessions,
   getCheckoutPhoneForSession,
   getParkingFloors,
@@ -73,6 +74,7 @@ function StaffPage() {
   const [activeTab, setActiveTab] = useState<StaffTab>("gate");
   const [paymentBill, setPaymentBill] = useState<StaffBillQrWithPayment | null>(null);
   const [paymentBillPlate, setPaymentBillPlate] = useState<string | undefined>();
+  const [correctingSessionId, setCorrectingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -138,17 +140,39 @@ function StaffPage() {
       staffParkingSessionsQueryKey,
       (current: ParkingSession[] | undefined) => {
         const list = current ?? [];
+        const withoutSession = list.filter((item) => item._id !== session._id);
         const sessionSlotId = getParkingSessionSlotId(session);
         if (!sessionSlotId) {
-          return [...list, session];
+          return [...withoutSession, session];
         }
         return [
-          ...list.filter((item) => getParkingSessionSlotId(item) !== sessionSlotId),
+          ...withoutSession.filter((item) => getParkingSessionSlotId(item) !== sessionSlotId),
           session,
         ];
       },
     );
   };
+
+  const correctSlotMutation = useMutation({
+    mutationFn: correctParkingSessionSlot,
+    onMutate: ({ parkingSessionId }) => {
+      setCorrectingSessionId(parkingSessionId);
+    },
+    onSuccess: async (session) => {
+      upsertSessionInCache(session);
+      await parkingFloorsQuery.refetch();
+      setCorrectingSessionId(null);
+      toast.success("Đã cập nhật chỗ đậu", {
+        description: `Xe ${getSessionLicensePlate(session) ?? "—"} · phiên #${session._id.slice(-6).toUpperCase()}`,
+      });
+    },
+    onError: (error) => {
+      setCorrectingSessionId(null);
+      toast.error("Không thể sửa chỗ", {
+        description: error instanceof Error ? error.message : "Vui lòng thử lại.",
+      });
+    },
+  });
 
   const checkoutSessionMutation = useMutation({
     mutationFn: async (session: ParkingSession) => {
@@ -314,6 +338,14 @@ function StaffPage() {
               isLoading={parkingSessionsQuery.isLoading}
               onCheckoutSession={(session) => checkoutSessionMutation.mutate(session)}
               isCheckingOut={checkoutSessionMutation.isPending}
+              onCorrectSessionSlot={async (payload) => {
+                await correctSlotMutation.mutateAsync({
+                  parkingSessionId: payload.sessionId,
+                  parkingSlotId: payload.parkingSlotId,
+                });
+              }}
+              isCorrectingSlot={correctSlotMutation.isPending}
+              correctingSessionId={correctingSessionId}
             />
           ) : null}
 

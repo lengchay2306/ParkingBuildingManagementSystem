@@ -31,7 +31,9 @@ type ParkingSessionDetailDialogProps = {
   vehicleTypeLabel?: string;
   licensePlateLabel?: string;
   showCheckoutAction?: boolean;
+  showCorrectSlotAction?: boolean;
   onCheckout?: () => void;
+  onCorrectSlot?: () => void;
   isCheckingOut?: boolean;
   checkoutLabel?: string;
   open: boolean;
@@ -45,7 +47,9 @@ export function ParkingSessionDetailDialog({
   vehicleTypeLabel,
   licensePlateLabel,
   showCheckoutAction = false,
+  showCorrectSlotAction = false,
   onCheckout,
+  onCorrectSlot,
   isCheckingOut = false,
   checkoutLabel,
   open,
@@ -209,7 +213,23 @@ export function ParkingSessionDetailDialog({
 
           {showCheckoutAction && session.status === "ACTIVE" ? (
             <section className="space-y-3 border-t border-border pt-4">
-              <SectionHeading>Ra cổng</SectionHeading>
+              <SectionHeading>Thao tác</SectionHeading>
+              {showCorrectSlotAction ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Xe đậu sai ô so với phiên ghi nhận — chọn lại chỗ thực tế (cùng loại xe).
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full rounded-xl"
+                    disabled={!onCorrectSlot}
+                    onClick={onCorrectSlot}
+                  >
+                    Sửa chỗ đậu
+                  </Button>
+                </>
+              ) : null}
               <p className="text-xs text-muted-foreground">
                 {isMonthlySession
                   ? "Xe có thẻ tháng — kết thúc phiên không cần quét VietQR."

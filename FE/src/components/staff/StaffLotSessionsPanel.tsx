@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, X } from "lucide-react";
 
 import { ParkingSessionDetailDialog } from "@/components/ParkingSessionDetailDialog";
+import { StaffCorrectSessionSlotDialog } from "@/components/staff/StaffCorrectSessionSlotDialog";
 import {
   StaffLotSlotFilterDialog,
   type LotSlotFilterSelection,
@@ -32,6 +33,12 @@ type StaffLotSessionsPanelProps = {
   isLoading?: boolean;
   onCheckoutSession: (session: ParkingSession) => void;
   isCheckingOut?: boolean;
+  onCorrectSessionSlot: (payload: {
+    sessionId: string;
+    parkingSlotId: string;
+  }) => void | Promise<void>;
+  isCorrectingSlot?: boolean;
+  correctingSessionId?: string | null;
 };
 
 export function StaffLotSessionsPanel({
@@ -40,12 +47,26 @@ export function StaffLotSessionsPanel({
   isLoading = false,
   onCheckoutSession,
   isCheckingOut = false,
+  onCorrectSessionSlot,
+  isCorrectingSlot = false,
+  correctingSessionId = null,
 }: StaffLotSessionsPanelProps) {
   const [search, setSearch] = useState("");
   const [selectedSlotFilter, setSelectedSlotFilter] = useState<LotSlotFilterSelection | null>(null);
   const [isSlotFilterOpen, setIsSlotFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [viewingSession, setViewingSession] = useState<ParkingSession | null>(null);
+  const [correctingSession, setCorrectingSession] = useState<ParkingSession | null>(null);
+
+  useEffect(() => {
+    if (!viewingSession) {
+      return;
+    }
+    const fresh = sessions.find((item) => item._id === viewingSession._id);
+    if (fresh) {
+      setViewingSession(fresh);
+    }
+  }, [sessions, viewingSession?._id]);
 
   const activeSessions = useMemo(
     () =>
@@ -191,15 +212,26 @@ export function StaffLotSessionsPanel({
                         {session.isGuest ? "Vãng lai" : session.sessionType}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          className="rounded-lg"
-                          onClick={() => setViewingSession(session)}
-                        >
-                          Chi tiết
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="rounded-lg"
+                            onClick={() => setCorrectingSession(session)}
+                          >
+                            Sửa chỗ
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-lg"
+                            onClick={() => setViewingSession(session)}
+                          >
+                            Chi tiết
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -243,6 +275,12 @@ export function StaffLotSessionsPanel({
           viewingSession ? (getSessionLicensePlate(viewingSession) ?? undefined) : undefined
         }
         showCheckoutAction={viewingSession?.status === "ACTIVE"}
+        showCorrectSlotAction={viewingSession?.status === "ACTIVE"}
+        onCorrectSlot={() => {
+          if (viewingSession) {
+            setCorrectingSession(viewingSession);
+          }
+        }}
         onCheckout={() => {
           if (viewingSession) {
             onCheckoutSession(viewingSession);
@@ -254,6 +292,22 @@ export function StaffLotSessionsPanel({
           if (!open) {
             setViewingSession(null);
           }
+        }}
+      />
+
+      <StaffCorrectSessionSlotDialog
+        open={correctingSession !== null}
+        onOpenChange={(open) => {
+          if (!open && !isCorrectingSlot) {
+            setCorrectingSession(null);
+          }
+        }}
+        session={correctingSession}
+        parkingFloors={parkingFloors}
+        isSubmitting={isCorrectingSlot && correctingSession?._id === correctingSessionId}
+        onConfirm={async (payload) => {
+          await onCorrectSessionSlot(payload);
+          setCorrectingSession(null);
         }}
       />
     </div>
