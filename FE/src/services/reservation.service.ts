@@ -337,6 +337,18 @@ export const getReservationsByPlate = async (
   };
 };
 
+/** Staff gate lookup — unregistered plate returns empty list instead of 404. */
+export const getReservationsByPlateSafe = async (licensePlate: string) => {
+  try {
+    return await getReservationsByPlate(licensePlate);
+  } catch (error) {
+    if (error instanceof ReservationApiError && error.status === 404) {
+      return { vehicle: null, reservations: [] as Reservation[] };
+    }
+    throw error;
+  }
+};
+
 /** @deprecated Use deleteReservationByManage */
 export const cancelReservationByStaff = deleteReservationByManage;
 
@@ -411,21 +423,21 @@ export const mapStaffSlotReservationsBySlotId = (reservations: Reservation[]) =>
 };
 
 export const getReservationDriverPhone = (reservation: Reservation) => {
-  if (typeof reservation.driverId === "object") {
+  if (reservation.driverId && typeof reservation.driverId === "object") {
     return reservation.driverId.phone ?? null;
   }
   return null;
 };
 
 export const getReservationDriverName = (reservation: Reservation) => {
-  if (typeof reservation.driverId === "object") {
+  if (reservation.driverId && typeof reservation.driverId === "object") {
     return reservation.driverId.fullName ?? null;
   }
   return null;
 };
 
 export const getReservationVehiclePlate = (reservation: Reservation) => {
-  if (typeof reservation.vehicleId === "object") {
+  if (reservation.vehicleId && typeof reservation.vehicleId === "object") {
     return reservation.vehicleId.licensePlate ?? null;
   }
   return null;
