@@ -36,10 +36,10 @@ import type { Reservation } from "@/services/reservation.service";
 import type { Vehicle, VehicleType } from "@/services/vehicle.service";
 
 const slotStatusText: Record<ParkingSlotStatus, string> = {
-  AVAILABLE: "Trống",
-  RESERVED: "Đã đặt",
-  UNAVAILABLE: "Không khả dụng",
-  "CURRENTLY-IN-USED": "Đang dùng",
+  AVAILABLE: "AVAILABLE",
+  RESERVED: "RESERVED",
+  UNAVAILABLE: "UNAVAILABLE",
+  "CURRENTLY-IN-USED": "CURRENTLY-IN-USED",
 };
 
 const slotButtonStyles: Record<ParkingSlotStatus, string> = {
@@ -299,7 +299,7 @@ export function DriverVehicleReserveDialog({
                             : "border-border/70 bg-secondary/40 text-muted-foreground hover:border-primary/30 hover:text-foreground",
                         )}
                       >
-                        {formatFloorLabel(floor.floorName)}
+                        {floor.floorName}
                       </button>
                     );
                   })}
@@ -324,7 +324,7 @@ export function DriverVehicleReserveDialog({
                   </p>
                   <p className="mt-0.5 truncate text-sm font-semibold">
                     {selectedSlot
-                      ? `${selectedSlot.slot.slotNumber} · ${formatFloorLabel(selectedSlot.floor.floorName)}`
+                      ? `${selectedSlot.slot.slotNumber} · ${selectedSlot.floor.floorName}`
                       : "Bấm để chọn chỗ trống"}
                   </p>
                 </div>
@@ -333,7 +333,10 @@ export function DriverVehicleReserveDialog({
               {isSlotGridOpen ? (
                 <>
                   <div className="flex flex-wrap gap-2">
-                    <DashboardLegend label={`Trống ${availableCount}`} tone="bg-status-empty" />
+                    <DashboardLegend label={`AVAILABLE ${availableCount}`} tone="bg-status-empty" />
+                    <DashboardLegend label="RESERVED" tone="bg-status-reserved" />
+                    <DashboardLegend label="CURRENTLY-IN-USED" tone="bg-status-full" />
+                    <DashboardLegend label="UNAVAILABLE" tone="bg-muted" />
                   </div>
 
                   {floorSlots.length > 0 ? (
@@ -415,11 +418,6 @@ export function DriverVehicleReserveDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function formatFloorLabel(floorName: string) {
-  const shortLabel = floorName.split(" - ")[0]?.trim();
-  return shortLabel || floorName;
 }
 
 function getVehicleTypeId(vehicle: Vehicle): string | null {

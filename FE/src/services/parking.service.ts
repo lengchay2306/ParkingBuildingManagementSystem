@@ -355,6 +355,52 @@ export const getActiveUserParkingSession = async (
   return payload.data?.parkingSession ?? null;
 };
 
+export type MyParkingSessionsQuery = {
+  status?: "ACTIVE" | "COMPLETED";
+  page?: number;
+  limit?: number;
+};
+
+/** GET /parking/my-parking-sessions — lịch sử phiên gửi xe của tài xế đang đăng nhập. */
+export const getMyParkingSessions = async (
+  query: MyParkingSessionsQuery = {},
+): Promise<{ parkingSessions: ParkingSession[]; pagination?: ParkingSessionsPagination }> => {
+  const params = new URLSearchParams();
+  if (query.status) {
+    params.set("status", query.status);
+  }
+  if (query.page) {
+    params.set("page", String(query.page));
+  }
+  if (query.limit) {
+    params.set("limit", String(query.limit));
+  }
+  const qs = params.toString();
+  const response = await authFetch(
+    `${API_BASE}/api/v1/parking/my-parking-sessions${qs ? `?${qs}` : ""}`,
+    {
+      method: "GET",
+      credentials: "include",
+    },
+  );
+  const payload = await parseJson<{
+    parkingSessions?: ParkingSession[];
+    pagination?: ParkingSessionsPagination;
+  }>(response);
+
+  if (!response.ok) {
+    throw new ParkingApiError(
+      response.status,
+      payload.message || parkingErrorMessage(response.status),
+    );
+  }
+
+  return {
+    parkingSessions: payload.data?.parkingSessions ?? [],
+    pagination: payload.data?.pagination,
+  };
+};
+
 /** Staff gate: active session for a license plate (404 → not in lot). */
 export const getActiveSessionByPlate = async (
   licensePlate: string,

@@ -235,7 +235,8 @@ export function DriverVehicleCard({
             >
               <MapPin className="size-3 shrink-0" />
               <span className="truncate">
-                Đặt chỗ {getReservationSlotLabel(pendingReservation)}
+                {(pendingReservation.status ?? "PENDING").toUpperCase()}{" "}
+                {getReservationSlotLabel(pendingReservation)}
               </span>
             </span>
           ) : null}
@@ -252,11 +253,8 @@ export function DriverVehicleCard({
             >
               <ParkingCircle className="size-3 shrink-0" />
               <span className="truncate">
-                {inLotSlotLabel
-                  ? `Trong bãi · ${inLotSlotLabel}`
-                  : parkingSession?.checkInTime
-                    ? `Trong bãi · ${formatShortDateTime(parkingSession.checkInTime)}`
-                    : "Trong bãi"}
+                {(parkingSession?.status ?? "ACTIVE").toUpperCase()}
+                {inLotSlotLabel ? ` · ${inLotSlotLabel}` : ""}
               </span>
             </span>
           ) : null}
@@ -457,14 +455,7 @@ function formatShortDateTime(value?: string) {
 }
 
 function formatCardStatus(status?: string) {
-  switch (status) {
-    case "ACTIVE":
-      return "Đang hoạt động";
-    case "EXPIRED":
-      return "Hết hạn";
-    default:
-      return status ?? "—";
-  }
+  return (status ?? "—").trim().toUpperCase() || "—";
 }
 
 function getDaysRemaining(endDate?: string) {

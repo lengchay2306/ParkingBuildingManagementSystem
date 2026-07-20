@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { DriverParkingSessionsPanel } from "@/components/driver/DriverParkingSessionsPanel";
 import { DriverSubscriptionCheckoutDialog } from "@/components/driver/DriverSubscriptionCheckoutDialog";
 import { DriverVehicleReserveDialog } from "@/components/driver/DriverVehicleReserveDialog";
 import { DriverReservationsHistoryPanel } from "@/components/driver/DriverReservationsHistoryPanel";
@@ -124,11 +125,12 @@ export const Route = createFileRoute("/driver")({
 const RESERVATION_HISTORY_PAGE_SIZE = 10;
 const VEHICLE_PAGE_SIZE = 5;
 
-type DriverTab = "manage" | "reservations";
+type DriverTab = "manage" | "reservations" | "sessions";
 
 const driverTabs: Array<{ id: DriverTab; label: string }> = [
   { id: "manage", label: "Xe & Đặt chỗ" },
   { id: "reservations", label: "Đã đặt chỗ" },
+  { id: "sessions", label: "Phiên gửi xe" },
 ];
 
 const vehicleTypesQueryKey = ["vehicle-types"] as const;
@@ -189,6 +191,7 @@ function DriverPage() {
       queryClient.invalidateQueries({ queryKey: myReservationsQueryKey }),
       queryClient.invalidateQueries({ queryKey: parkingFloorsQueryKey }),
       queryClient.invalidateQueries({ queryKey: myVehicleParkingSessionsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ["my-parking-sessions"] }),
     ]);
   };
 
@@ -1187,6 +1190,10 @@ function DriverPage() {
               onViewReservation={setViewingHistoryReservation}
               onCancelReservation={handleCancelReservationById}
             />
+          ) : null}
+
+          {activeTab === "sessions" ? (
+            <DriverParkingSessionsPanel enabled={hasMounted && activeTab === "sessions"} />
           ) : null}
         </DashboardSection>
 

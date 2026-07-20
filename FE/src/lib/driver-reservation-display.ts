@@ -79,9 +79,14 @@ export function getReservationVehicleLabel(reservation: Reservation) {
 
 export function getReservationSlotLabel(reservation: Reservation) {
   if (typeof reservation.parkingSlotId === "object") {
-    return reservation.parkingSlotId.slotNumber ?? reservation.parkingSlotId._id;
+    const slotNumber = reservation.parkingSlotId.slotNumber ?? reservation.parkingSlotId._id;
+    const floorName = reservation.parkingSlotId.floorId?.floorName;
+    if (slotNumber && floorName) {
+      return `${slotNumber} · ${floorName}`;
+    }
+    return slotNumber ?? "—";
   }
-  return reservation.parkingSlotId;
+  return reservation.parkingSlotId ?? "—";
 }
 
 export function findSessionForReservation(
@@ -109,21 +114,10 @@ export function findSessionForReservation(
 
 export function getReservationDisplayStatus(
   reservation: Reservation,
-  parkingSession: ParkingSession | null,
+  _parkingSession: ParkingSession | null,
 ): ReservationDisplayStatus {
-  if (parkingSession?.status === "COMPLETED" && parkingSession.checkOutTime) {
-    return "CHECKED OUT";
-  }
-
-  if (parkingSession?.status === "ACTIVE" && !parkingSession.checkOutTime) {
-    return "CHECKED IN";
-  }
-
-  if (reservation.status === "CLAIMED") {
-    return "CHECKED OUT";
-  }
-
-  return reservation.status as Reservation["status"];
+  // Show DB reservation status (PENDING / CLAIMED / EXPIRED / CANCELLED).
+  return (reservation.status?.toUpperCase() ?? "PENDING") as Reservation["status"];
 }
 
 export function getReservationStatusBadge(status: ReservationDisplayStatus) {
@@ -145,21 +139,7 @@ export function getReservationStatusBadge(status: ReservationDisplayStatus) {
 }
 
 export function getReservationStatusLabel(status: ReservationDisplayStatus) {
-  switch (status) {
-    case "PENDING":
-      return "Chờ xử lý";
-    case "CLAIMED":
-    case "CHECKED IN":
-      return "Đã check-in";
-    case "CHECKED OUT":
-      return "Đã check-out";
-    case "CANCELLED":
-      return "Đã hủy";
-    case "EXPIRED":
-      return "Hết hạn";
-    default:
-      return status;
-  }
+  return String(status ?? "—").trim().toUpperCase() || "—";
 }
 
 function getSlotStatusFromFloors(slotId: string, parkingFloors: ParkingFloor[]) {
@@ -184,10 +164,7 @@ export function enrichReservationForDetail(
 
   let nextReservation: Reservation = {
     ...reservation,
-    status:
-      displayStatus === "CHECKED IN" || displayStatus === "CHECKED OUT"
-        ? "CLAIMED"
-        : displayStatus,
+    status: displayStatus as Reservation["status"],
   };
 
   if (profile && typeof nextReservation.driverId === "string") {

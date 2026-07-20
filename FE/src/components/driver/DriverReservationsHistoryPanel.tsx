@@ -93,8 +93,8 @@ export function DriverReservationsHistoryPanel({
                           {getReservationSlotLabel(reservation)}
                         </p>
                         {isSlotHeld ? (
-                          <p className="mt-0.5 text-[10px] font-medium text-status-yours">
-                            Đang giữ chỗ
+                          <p className="mt-0.5 text-[10px] font-medium tracking-wide text-status-yours">
+                            RESERVED
                           </p>
                         ) : null}
                       </td>
